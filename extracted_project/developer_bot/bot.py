@@ -313,7 +313,9 @@ def build_application() -> Application:
 
 
 def main():
+    import time
     system_logger.info("=== DEVELOPER BOT STARTUP === PID:%s", os.getpid())
+    time.sleep(5)
     app = build_application()
     system_logger.info("Developer Bot polling started.")
     app.run_polling(

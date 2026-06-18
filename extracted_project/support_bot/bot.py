@@ -108,10 +108,11 @@ def build_application() -> Application:
 
 
 def main():
+    import time
     init_db()
     system_logger.info("Support DB initialized.")
     system_logger.info("=== SUPPORT BOT STARTUP === PID:%s", os.getpid())
-
+    time.sleep(5)
     app = build_application()
     system_logger.info("Support Bot polling started.")
     app.run_polling(
