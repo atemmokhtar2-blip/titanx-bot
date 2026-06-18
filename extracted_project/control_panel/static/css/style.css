@@ -1914,3 +1914,12 @@ a:not([target="_blank"]) {
   .stat-value { font-size: 1.6rem; }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   NUCLEAR BLUR FIX — bg-orbs completely disabled
+   Root cause: filter:blur(22px) on 500px orbs created visible fog
+   Fix: hide container entirely — no filter, no blur, no fog
+   ═══════════════════════════════════════════════════════════════ */
+.bg-orbs { display: none !important; }
+.bg-orb  { display: none !important; filter: none !important; opacity: 0 !important; }
+
