@@ -53,14 +53,22 @@ function toggleTheme() {
 })();
 
 // ── Page Loader ──────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function () {
-  const loader = document.getElementById('page-loader');
+(function () {
+  var loader = document.getElementById('page-loader');
   if (!loader) return;
-  setTimeout(function () {
+  function hideLoader() {
     loader.classList.add('hidden');
-    setTimeout(function () { if (loader) loader.style.display = 'none'; }, 450);
-  }, 400);
-});
+    setTimeout(function () { if (loader) loader.style.display = 'none'; }, 350);
+  }
+  if (document.readyState === 'complete') {
+    setTimeout(hideLoader, 80);
+  } else {
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(hideLoader, 120);
+    });
+    window.addEventListener('load', hideLoader);
+  }
+})();
 
 // ── Loading Overlay ──────────────────────────────────────────
 function showLoading(msg) {
