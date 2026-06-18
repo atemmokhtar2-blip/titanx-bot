@@ -1,7 +1,6 @@
 import os
 import time
 import json
-from collections import deque
 from datetime import datetime
 import psutil
 from fastapi import APIRouter, Request, Depends
@@ -21,12 +20,9 @@ BOT_SCRIPTS = {
     "support": ("بوت الدعم", "support_bot/bot.py"),
 }
 
-# Chart history: stores last 20 stat snapshots
-_chart_history: deque = deque(maxlen=20)
-
 
 def _get_system_stats() -> dict:
-    cpu = psutil.cpu_percent(interval=0.3)
+    cpu = psutil.cpu_percent(interval=0.5)
     mem = psutil.virtual_memory()
     disk = psutil.disk_usage(PROJECT_ROOT)
     net = psutil.net_io_counters()
@@ -43,9 +39,9 @@ def _get_system_stats() -> dict:
 
 
 def _fmt_bytes(b: int) -> str:
-    if b < 1024:       return f"{b} B"
-    elif b < 1024**2:  return f"{b/1024:.1f} KB"
-    elif b < 1024**3:  return f"{b/1024**2:.1f} MB"
+    if b < 1024: return f"{b} B"
+    elif b < 1024**2: return f"{b/1024:.1f} KB"
+    elif b < 1024**3: return f"{b/1024**2:.1f} MB"
     return f"{b/1024**3:.2f} GB"
 
 
@@ -57,6 +53,7 @@ def _get_bot_status() -> list:
                 health = json.load(f)
     except Exception:
         pass
+
     bots = []
     for key, (label, script) in BOT_SCRIPTS.items():
         running = False
@@ -117,26 +114,7 @@ async def api_stats(session: dict = Depends(require_owner)):
     stats["disk_used_h"] = _fmt_bytes(stats["disk_used"])
     stats["net_sent_h"] = _fmt_bytes(stats["net_sent"])
     stats["net_recv_h"] = _fmt_bytes(stats["net_recv"])
-    # Store in chart history
-    _chart_history.append({
-        "ts": stats["ts"],
-        "cpu": stats["cpu_percent"],
-        "ram": stats["mem_percent"],
-        "disk": stats["disk_percent"],
-    })
     return stats
-
-
-@router.get("/api/chart_history")
-async def api_chart_history(session: dict = Depends(require_owner)):
-    """Return chart-ready time-series data."""
-    history = list(_chart_history)
-    return {
-        "labels": [h["ts"] for h in history],
-        "cpu":    [h["cpu"] for h in history],
-        "ram":    [h["ram"] for h in history],
-        "disk":   [h["disk"] for h in history],
-    }
 
 
 @router.get("/api/bots")

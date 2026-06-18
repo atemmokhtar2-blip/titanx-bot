@@ -9,8 +9,7 @@
     <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>📂 متصفح الملفات</span>
       <div style="display:flex;gap:6px">
-        <input class="form-control" id="fm-search" placeholder="🔍 بحث…" style="width:160px;font-size:.82rem" oninput="searchFiles(this.value)">
-        <button class="btn btn-sm btn-ghost" onclick="promptMkdir()">📁+</button>
+        <button class="btn btn-sm btn-ghost" onclick="promptMkdir()">📁+ مجلد</button>
       </div>
     </div>
 
@@ -20,10 +19,10 @@
     </div>
 
     <!-- Upload zone -->
-    <div class="upload-zone" id="upload-zone" style="margin-bottom:12px;padding:16px">
+    <div class="upload-zone" id="upload-zone" style="margin-bottom:12px;padding:20px">
       <input type="file" multiple>
       <div class="upload-icon">📤</div>
-      <div>اسحب وأفلت أو <b>انقر للرفع</b></div>
+      <div>اسحب وأفلت ملفات هنا أو <b>انقر للرفع</b></div>
     </div>
 
     <!-- File tree -->
@@ -39,35 +38,20 @@
     <div class="card">
       <div class="card-title">⚡ إجراءات سريعة</div>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="btn btn-ghost" onclick="promptCreate()">📄 إنشاء ملف</button>
+        <button class="btn btn-ghost" onclick="promptCreate()">📄 إنشاء ملف جديد</button>
         <button class="btn btn-ghost" onclick="promptMkdir()">📁 إنشاء مجلد</button>
-        <button class="btn btn-ghost" onclick="downloadCurrentDir()">⬇️ تحميل المجلد (ZIP)</button>
-        <button class="btn btn-ghost" onclick="compressCurrentDir()">🗜️ ضغط المجلد</button>
-      </div>
-    </div>
-
-    <!-- Selection Actions -->
-    <div class="card" id="selection-actions" style="display:none">
-      <div class="card-title">☑️ إجراءات المحدد</div>
-      <div style="font-size:.82rem;color:var(--text2);margin-bottom:8px">
-        المحدد: <span id="selected-count">0</span> عنصر
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="btn btn-ghost btn-sm" onclick="promptCopySelected()">📋 نسخ إلى…</button>
-        <button class="btn btn-ghost btn-sm" onclick="promptMoveSelected()">📦 نقل إلى…</button>
-        <button class="btn btn-ghost btn-sm" onclick="compressSelected()">🗜️ ضغط</button>
-        <button class="btn btn-danger btn-sm" onclick="clearSelection()">✕ إلغاء التحديد</button>
+        <button class="btn btn-ghost" onclick="downloadCurrentDir()">⬇️ تحميل المجلد الحالي (ZIP)</button>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">ℹ️ تعليمات</div>
-      <div style="font-size:.82rem;color:var(--text2);line-height:1.8">
-        <div>🖼️ انقر على الأيقونة لمعاينة الصور</div>
-        <div>✏️ انقر القلم لتحرير ملف نصي</div>
-        <div>⬇️ انقر السهم للتحميل</div>
-        <div>📋 نسخ · 📦 نقل · 🗜️ ضغط</div>
-        <div>🔐 الملفات المحمية لا تُحذف</div>
+      <div class="card-title">ℹ️ معلومات</div>
+      <div style="font-size:.85rem;color:var(--text2);line-height:1.8">
+        <div>🔐 الملفات المحمية لا يمكن حذفها أو تعديلها</div>
+        <div>✏️ انقر على أيقونة القلم لتحرير الملف</div>
+        <div>⬇️ انقر على السهم لتحميل الملف</div>
+        <div>🗑️ انقر على سلة المهملات للحذف</div>
+        <div>📁 انقر على المجلد للدخول إليه</div>
       </div>
     </div>
   </div>
@@ -103,48 +87,12 @@
     </div>
   </div>
 </div>
-
-<!-- Copy Modal -->
-<div class="modal-overlay hidden" id="copy-modal">
-  <div class="modal">
-    <div class="modal-title" id="copy-modal-title">📋 نسخ الملف</div>
-    <div class="form-group">
-      <label class="form-label">الوجهة (اتركه فارغاً = نفس المجلد)</label>
-      <input class="form-control" id="copy-dst" placeholder="مثال: extracted_project/other_module">
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('copy-modal')">إلغاء</button>
-      <button class="btn btn-primary" onclick="doCopyFile()">نسخ</button>
-    </div>
-  </div>
-</div>
-
-<!-- Move Modal -->
-<div class="modal-overlay hidden" id="move-modal">
-  <div class="modal">
-    <div class="modal-title" id="move-modal-title">📦 نقل الملف</div>
-    <div class="form-group">
-      <label class="form-label">الوجهة (مسار المجلد)</label>
-      <input class="form-control" id="move-dst" placeholder="مثال: extracted_project/other_module">
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('move-modal')">إلغاء</button>
-      <button class="btn btn-primary" onclick="doMoveFile()">نقل</button>
-    </div>
-  </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-let _pendingCopyPath = '';
-let _pendingMovePath = '';
-let _selectedFiles = new Set();
-let _fullItems = [];
-
 function promptCreate(){ openModal('create-modal'); }
 function promptMkdir(){ openModal('mkdir-modal'); }
-
 async function createNewFile(){
   const name = document.getElementById('new-file-name').value.trim();
   const content = document.getElementById('new-file-content').value;
@@ -166,212 +114,9 @@ function downloadCurrentDir(){
   if(!_currentPath){ showToast('اختر مجلداً أولاً','warning'); return; }
   window.location.href = '/files/api/download?path='+encodeURIComponent(_currentPath);
 }
-async function compressCurrentDir(){
-  if(!_currentPath){ showToast('اختر مجلداً أولاً','warning'); return; }
-  const data = await apiPost('/files/api/compress',{path:_currentPath});
-  if(data.ok) showToast('✅ تم الضغط: '+data.zip+' ('+data.size+')','success');
-  else showToast(data.error,'error');
-  loadDir(_currentPath);
-}
-
-// ── Image Preview ──────────────────────────────────────────────────────────────
-async function previewImage(path) {
-  const data = await apiGet('/files/api/preview_image?path='+encodeURIComponent(path));
-  if(data.error){ showToast(data.error,'error'); return; }
-  document.getElementById('img-preview-el').src = data.data_url;
-  document.getElementById('img-preview-path').textContent = path;
-  document.getElementById('img-preview-size').textContent = 'الحجم: '+data.size;
-  document.getElementById('img-download-btn').href = '/files/api/download?path='+encodeURIComponent(path);
-  openModal('image-preview-modal');
-}
-
-// ── Copy / Move ────────────────────────────────────────────────────────────────
-function promptCopy(path) {
-  _pendingCopyPath = path;
-  document.getElementById('copy-modal-title').textContent = '📋 نسخ: '+path.split('/').pop();
-  document.getElementById('copy-dst').value = _currentPath;
-  openModal('copy-modal');
-}
-async function doCopyFile() {
-  const dst_dir = document.getElementById('copy-dst').value.trim();
-  const data = await apiPost('/files/api/copy',{src:_pendingCopyPath, dst_dir});
-  closeModal('copy-modal');
-  if(data.ok){ showToast('✅ تم النسخ → '+data.dest,'success'); loadDir(_currentPath); }
-  else showToast(data.error,'error');
-}
-function promptMove(path) {
-  _pendingMovePath = path;
-  document.getElementById('move-modal-title').textContent = '📦 نقل: '+path.split('/').pop();
-  document.getElementById('move-dst').value = _currentPath;
-  openModal('move-modal');
-}
-async function doMoveFile() {
-  const dst_dir = document.getElementById('move-dst').value.trim();
-  const data = await apiPost('/files/api/move',{src:_pendingMovePath, dst_dir});
-  closeModal('move-modal');
-  if(data.ok){ showToast('✅ تم النقل → '+data.dest,'success'); loadDir(_currentPath); }
-  else showToast(data.error,'error');
-}
-
-// ── Zip a single item ─────────────────────────────────────────────────────────
-async function compressItem(path) {
-  const data = await apiPost('/files/api/compress',{path});
-  if(data.ok){ showToast('✅ '+data.zip+' ('+data.size+')','success'); loadDir(_currentPath); }
-  else showToast(data.error,'error');
-}
-async function extractItem(path) {
-  const data = await apiPost('/files/api/extract',{path});
-  if(data.ok){ showToast('✅ تم الاستخراج إلى: '+data.extracted_to,'success'); loadDir(_currentPath); }
-  else showToast(data.error,'error');
-}
-
-// ── Selection ─────────────────────────────────────────────────────────────────
-function toggleSelect(path) {
-  if(_selectedFiles.has(path)) _selectedFiles.delete(path);
-  else _selectedFiles.add(path);
-  const count = _selectedFiles.size;
-  document.getElementById('selected-count').textContent = count;
-  document.getElementById('selection-actions').style.display = count > 0 ? 'block' : 'none';
-}
-function clearSelection() {
-  _selectedFiles.clear();
-  document.getElementById('selection-actions').style.display = 'none';
-  loadDir(_currentPath);
-}
-function promptCopySelected() {
-  if(_selectedFiles.size === 0) return;
-  _pendingCopyPath = [..._selectedFiles][0];
-  openModal('copy-modal');
-}
-function promptMoveSelected() {
-  if(_selectedFiles.size === 0) return;
-  _pendingMovePath = [..._selectedFiles][0];
-  openModal('move-modal');
-}
-async function compressSelected() {
-  for(const p of _selectedFiles) await compressItem(p);
-  clearSelection();
-}
-
-// ── Search ────────────────────────────────────────────────────────────────────
-function searchFiles(q) {
-  if(!q) { renderItems(_fullItems); return; }
-  const filtered = _fullItems.filter(i => i.name.toLowerCase().includes(q.toLowerCase()));
-  renderItems(filtered);
-}
-
-// ── Override renderItems to add extra buttons ─────────────────────────────────
-const _originalRenderDir = window._renderDirRows;
-function renderItems(items) {
-  _fullItems = items;
-  const tree = document.getElementById('file-tree');
-  if(!tree) return;
-  if(!items || items.length === 0) {
-    tree.innerHTML = '<div style="text-align:center;color:var(--text2);padding:32px">المجلد فارغ</div>';
-    return;
-  }
-  tree.innerHTML = items.map(item => {
-    const ext = (item.name.split('.').pop() || '').toLowerCase();
-    const icon = item.is_dir
-      ? '📂'
-      : item.is_image ? '🖼️'
-      : item.is_zip ? '📦'
-      : item.is_text ? _textIcon(ext)
-      : '📄';
-    const nameCell = item.is_dir
-      ? `<a href="#" class="file-link" onclick="loadDir('${_esc(item.rel)}');return false">${icon} ${_esc(item.name)}</a>`
-      : `<span class="file-name">${icon} ${_esc(item.name)}</span>`;
-    const mainBtn = item.is_dir ? '' :
-      item.is_image
-        ? `<button class="btn btn-ghost btn-sm" onclick="previewImage('${_esc(item.rel)}')" title="معاينة">🖼️</button>`
-        : item.is_text
-          ? `<button class="btn btn-ghost btn-sm" onclick="openEditor('${_esc(item.rel)}')" title="تحرير">✏️</button>`
-          : '';
-    const extraBtns = `
-      <button class="btn btn-ghost btn-sm" onclick="promptCopy('${_esc(item.rel)}')" title="نسخ">📋</button>
-      <button class="btn btn-ghost btn-sm" onclick="promptMove('${_esc(item.rel)}')" title="نقل">📦</button>
-      <button class="btn btn-ghost btn-sm" onclick="compressItem('${_esc(item.rel)}')" title="ضغط">🗜️</button>
-      ${item.is_zip ? `<button class="btn btn-ghost btn-sm" onclick="extractItem('${_esc(item.rel)}')" title="استخراج">📂</button>` : ''}
-    `;
-    const downloadBtn = !item.is_dir
-      ? `<a href="/files/api/download?path=${encodeURIComponent(item.rel)}" class="btn btn-ghost btn-sm" title="تحميل">⬇️</a>`
-      : '';
-    const deleteBtn = !item.protected
-      ? `<button class="btn btn-danger btn-sm" onclick="deleteItem('${_esc(item.rel)}')" title="حذف">🗑️</button>`
-      : `<button class="btn btn-ghost btn-sm" disabled title="محمي">🔐</button>`;
-    const renameBtn = !item.protected
-      ? `<button class="btn btn-ghost btn-sm" onclick="promptRename('${_esc(item.rel)}')" title="إعادة تسمية">✏️</button>`
-      : '';
-    return `
-      <div class="file-item ${item.protected ? 'file-protected' : ''}">
-        <div class="file-item-left">
-          <input type="checkbox" class="file-checkbox" onchange="toggleSelect('${_esc(item.rel)}')">
-          <div class="file-item-name">${nameCell}</div>
-        </div>
-        <div class="file-item-meta">
-          <span class="file-size">${item.size || ''}</span>
-          <span class="file-mtime">${item.mtime || ''}</span>
-        </div>
-        <div class="file-item-actions">
-          ${mainBtn}${extraBtns}${downloadBtn}${renameBtn}${deleteBtn}
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function _textIcon(ext) {
-  const map = {py:'🐍', js:'📜', json:'🔧', html:'🌐', css:'🎨', md:'📝', sh:'⚡', sql:'🗄️', log:'📋', txt:'📝'};
-  return map[ext] || '📄';
-}
-function _esc(s) { return (s||'').replace(/'/g, "\\'").replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-// ── Patch loadDir to use renderItems ──────────────────────────────────────────
-const _origLoadDir = window.loadDir;
-window.loadDir = async function(path) {
-  _selectedFiles.clear();
-  document.getElementById('selection-actions').style.display = 'none';
-  const data = await apiGet('/files/api/list?path=' + encodeURIComponent(path));
-  if(data.error) { showToast(data.error,'error'); return; }
-  window._currentPath = path;
-  _buildBreadcrumb(data.breadcrumbs || []);
-  _fullItems = data.items || [];
-  renderItems(_fullItems);
-  document.getElementById('fm-search').value = '';
-};
-
-function _buildBreadcrumb(crumbs) {
-  const bc = document.getElementById('breadcrumb');
-  if(!bc) return;
-  bc.innerHTML = crumbs.map((c,i) =>
-    i < crumbs.length-1
-      ? `<a href="#" onclick="loadDir('${c.rel}');return false">${c.name}</a>`
-      : `<span>${c.name}</span>`
-  ).join(' / ');
-}
-function deleteItem(path) {
-  if(!confirm('حذف "'+path.split('/').pop()+'"؟')) return;
-  apiPost('/files/api/delete',{path}).then(d => {
-    if(d.ok) { showToast('✅ تم الحذف','success'); loadDir(_currentPath); }
-    else showToast(d.error,'error');
-  });
-}
-function promptRename(path) {
-  const oldName = path.split('/').pop();
-  const newName = prompt('اسم جديد:', oldName);
-  if(!newName || newName === oldName) return;
-  apiPost('/files/api/rename',{old:path, new:newName}).then(d => {
-    if(d.ok) { showToast('✅ تمت إعادة التسمية','success'); loadDir(_currentPath); }
-    else showToast(d.error,'error');
-  });
-}
-
-// URL param auto-open
+// Open file editor from URL param if provided
 const urlParams = new URLSearchParams(location.search);
 const editFile = urlParams.get('edit');
 if(editFile) window.addEventListener('load', ()=>setTimeout(()=>openEditor(editFile),500));
-
-// Init load
-document.addEventListener('DOMContentLoaded', () => loadDir(''));
 </script>
 {% endblock %}

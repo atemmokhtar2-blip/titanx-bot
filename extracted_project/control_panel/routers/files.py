@@ -4,7 +4,6 @@ import mimetypes
 import difflib
 import zipfile
 import io
-import base64
 from datetime import datetime
 from fastapi import APIRouter, Request, Depends, Form, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, Response
@@ -16,11 +15,6 @@ router = APIRouter(prefix="/files")
 templates = Jinja2Templates(directory=os.path.join(CONTROL_PANEL_DIR, "templates"))
 
 _ROOT = PROJECT_ROOT
-
-_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico", ".bmp"}
-_TEXT_EXTS = {".py", ".txt", ".md", ".json", ".yaml", ".yml", ".cfg", ".ini",
-              ".log", ".sh", ".js", ".ts", ".html", ".css", ".env", ".toml",
-              ".xml", ".csv", ".sql", ".gitignore", ".dockerfile"}
 
 
 def _safe_resolve(rel: str) -> str:
@@ -39,18 +33,15 @@ def _is_protected(path: str) -> bool:
 
 def _is_text(path: str) -> bool:
     ext = os.path.splitext(path)[1].lower()
-    return ext in _TEXT_EXTS
-
-
-def _is_image(path: str) -> bool:
-    ext = os.path.splitext(path)[1].lower()
-    return ext in _IMAGE_EXTS
+    return ext in {".py", ".txt", ".md", ".json", ".yaml", ".yml",
+                   ".cfg", ".ini", ".log", ".sh", ".js", ".ts", ".html",
+                   ".css", ".env", ".toml", ".xml", ".csv", ".sql"}
 
 
 def _fmt_size(b: int) -> str:
-    if b < 1024:       return f"{b} B"
-    elif b < 1024**2:  return f"{b/1024:.1f} KB"
-    elif b < 1024**3:  return f"{b/1024**2:.1f} MB"
+    if b < 1024: return f"{b} B"
+    elif b < 1024**2: return f"{b/1024:.1f} KB"
+    elif b < 1024**3: return f"{b/1024**2:.1f} MB"
     return f"{b/1024**3:.2f} GB"
 
 
@@ -80,8 +71,6 @@ def _list_dir(rel: str) -> dict:
                 "mtime": mtime,
                 "protected": _is_protected(child),
                 "is_text": _is_text(child) if not is_dir else False,
-                "is_image": _is_image(child) if not is_dir else False,
-                "is_zip": child.endswith(".zip") if not is_dir else False,
             })
     except PermissionError:
         pass
@@ -124,30 +113,7 @@ async def api_read(path: str, session: dict = Depends(require_owner)):
             return JSONResponse({"error": "الملف غير نصي"}, status_code=400)
         with open(full, "r", encoding="utf-8", errors="replace") as f:
             content = f.read()
-        return {"content": content, "path": path, "size": _fmt_size(size),
-                "protected": _is_protected(full), "is_json": path.endswith(".json")}
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=400)
-
-
-@router.get("/api/preview_image")
-async def api_preview_image(path: str, session: dict = Depends(require_owner)):
-    """Return base64-encoded image for preview."""
-    try:
-        full = _safe_resolve(path)
-        if not os.path.isfile(full) or not _is_image(full):
-            return JSONResponse({"error": "ليس صورة"}, status_code=400)
-        size = os.path.getsize(full)
-        if size > 5 * 1024 * 1024:
-            return JSONResponse({"error": "الصورة كبيرة جداً للمعاينة"}, status_code=400)
-        with open(full, "rb") as f:
-            data = f.read()
-        ext = os.path.splitext(full)[1].lower().strip(".")
-        mime_map = {"jpg": "jpeg", "jpeg": "jpeg", "png": "png", "gif": "gif",
-                    "webp": "webp", "svg": "svg+xml", "ico": "x-icon", "bmp": "bmp"}
-        mime = "image/" + mime_map.get(ext, ext)
-        b64 = base64.b64encode(data).decode()
-        return {"data_url": f"data:{mime};base64,{b64}", "size": _fmt_size(size)}
+        return {"content": content, "path": path, "size": _fmt_size(size), "protected": _is_protected(full)}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=400)
 
@@ -217,90 +183,6 @@ async def api_rename(request: Request, session: dict = Depends(require_owner)):
         return JSONResponse({"error": str(e)}, status_code=400)
 
 
-@router.post("/api/copy")
-async def api_copy(request: Request, session: dict = Depends(require_owner)):
-    body = await request.json()
-    src = body.get("src", "")
-    dst_dir = body.get("dst_dir", "")
-    try:
-        full_src = _safe_resolve(src)
-        full_dst_dir = _safe_resolve(dst_dir) if dst_dir else os.path.dirname(full_src)
-        if not os.path.exists(full_src):
-            return JSONResponse({"error": "المصدر غير موجود"}, status_code=400)
-        base = os.path.basename(full_src)
-        name, ext = os.path.splitext(base)
-        dest = os.path.join(full_dst_dir, f"{name}_copy{ext}")
-        if os.path.isdir(full_src):
-            shutil.copytree(full_src, dest)
-        else:
-            shutil.copy2(full_src, dest)
-        return {"ok": True, "dest": os.path.relpath(dest, _ROOT)}
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=400)
-
-
-@router.post("/api/move")
-async def api_move(request: Request, session: dict = Depends(require_owner)):
-    body = await request.json()
-    src = body.get("src", "")
-    dst_dir = body.get("dst_dir", "")
-    try:
-        full_src = _safe_resolve(src)
-        full_dst_dir = _safe_resolve(dst_dir)
-        if _is_protected(full_src):
-            return JSONResponse({"error": "محمي"}, status_code=403)
-        if not os.path.exists(full_src):
-            return JSONResponse({"error": "المصدر غير موجود"}, status_code=400)
-        dest = os.path.join(full_dst_dir, os.path.basename(full_src))
-        shutil.move(full_src, dest)
-        return {"ok": True, "dest": os.path.relpath(dest, _ROOT)}
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=400)
-
-
-@router.post("/api/compress")
-async def api_compress(request: Request, session: dict = Depends(require_owner)):
-    """Compress a file/directory to ZIP."""
-    body = await request.json()
-    path = body.get("path", "")
-    try:
-        full = _safe_resolve(path)
-        if not os.path.exists(full):
-            return JSONResponse({"error": "المسار غير موجود"}, status_code=400)
-        zip_path = full + ".zip"
-        if os.path.isdir(full):
-            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-                for dp, _, files in os.walk(full):
-                    for fname in files:
-                        fp = os.path.join(dp, fname)
-                        zf.write(fp, os.path.relpath(fp, full))
-        else:
-            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-                zf.write(full, os.path.basename(full))
-        return {"ok": True, "zip": os.path.relpath(zip_path, _ROOT),
-                "size": _fmt_size(os.path.getsize(zip_path))}
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=400)
-
-
-@router.post("/api/extract")
-async def api_extract(request: Request, session: dict = Depends(require_owner)):
-    """Extract a ZIP file."""
-    body = await request.json()
-    path = body.get("path", "")
-    try:
-        full = _safe_resolve(path)
-        if not full.endswith(".zip") or not os.path.isfile(full):
-            return JSONResponse({"error": "ليس ملف ZIP"}, status_code=400)
-        out_dir = full[:-4]
-        os.makedirs(out_dir, exist_ok=True)
-        with zipfile.ZipFile(full, "r") as zf:
-            zf.extractall(out_dir)
-        return {"ok": True, "extracted_to": os.path.relpath(out_dir, _ROOT)}
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=400)
-
-
 @router.post("/api/mkdir")
 async def api_mkdir(request: Request, session: dict = Depends(require_owner)):
     body = await request.json()
@@ -346,11 +228,12 @@ async def api_download(path: str, session: dict = Depends(require_owner)):
             name = os.path.basename(full) + ".zip"
             return StreamingResponse(buf, media_type="application/zip",
                                      headers={"Content-Disposition": f"attachment; filename={name}"})
-        with open(full, "rb") as f:
-            data = f.read()
-        mime, _ = mimetypes.guess_type(full)
-        name = os.path.basename(full)
-        return Response(content=data, media_type=mime or "application/octet-stream",
-                        headers={"Content-Disposition": f"attachment; filename={name}"})
+        else:
+            with open(full, "rb") as f:
+                data = f.read()
+            mime, _ = mimetypes.guess_type(full)
+            name = os.path.basename(full)
+            return Response(content=data, media_type=mime or "application/octet-stream",
+                            headers={"Content-Disposition": f"attachment; filename={name}"})
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=400)

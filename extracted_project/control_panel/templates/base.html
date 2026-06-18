@@ -6,7 +6,7 @@
 <title>{% block title %}TitanX Control Panel{% endblock %}</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap">
 <link rel="stylesheet" href="/static/css/style.css">
 <script>
 (function(){
@@ -44,18 +44,6 @@
         <a href="/system" class="nav-item {% if active_page=='system' %}active{% endif %}">
           <span class="nav-icon">🖥️</span>
           <span class="nav-label">حالة النظام</span>
-        </a>
-      </div>
-
-      <div class="nav-section">
-        <div class="nav-section-label">البوتات</div>
-        <a href="/bots" class="nav-item {% if active_page=='bots' %}active{% endif %}">
-          <span class="nav-icon">🤖</span>
-          <span class="nav-label">مركز البوتات</span>
-        </a>
-        <a href="/ai" class="nav-item {% if active_page=='ai' %}active{% endif %}">
-          <span class="nav-icon">🛠️</span>
-          <span class="nav-label">مركز AI والاسترداد</span>
         </a>
       </div>
 
@@ -101,10 +89,6 @@
           <span class="nav-icon">🐙</span>
           <span class="nav-label">GitHub</span>
         </a>
-        <a href="/backups" class="nav-item {% if active_page=='backups' %}active{% endif %}">
-          <span class="nav-icon">💾</span>
-          <span class="nav-label">النسخ الاحتياطية</span>
-        </a>
       </div>
     </nav>
 
@@ -128,13 +112,6 @@
           <span class="hamburger-line"></span>
           <span class="hamburger-line"></span>
           <span class="hamburger-line"></span>
-        </button>
-        <!-- Back button — shown on all pages except dashboard -->
-        <button class="btn btn-ghost btn-sm" id="back-btn"
-                onclick="history.back()"
-                style="display:none;gap:4px;padding:6px 10px">
-          <span style="font-size:1rem">‹</span>
-          <span>رجوع</span>
         </button>
         <div class="header-breadcrumb">
           <span class="header-brand">TitanX</span>
@@ -173,31 +150,13 @@
   </div>
 </div>
 
-<!-- IMAGE PREVIEW MODAL -->
-<div class="modal-overlay hidden" id="image-preview-modal">
-  <div class="modal" style="max-width:min(700px,95vw)">
-    <div class="modal-header">
-      <div class="modal-title">🖼️ معاينة الصورة</div>
-      <code id="img-preview-path" class="modal-subtitle"></code>
-    </div>
-    <div style="padding:16px;text-align:center">
-      <img id="img-preview-el" src="" style="max-width:100%;max-height:60vh;border-radius:var(--radius-sm);object-fit:contain" alt="معاينة">
-      <div id="img-preview-size" style="color:var(--text2);font-size:.8rem;margin-top:8px"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('image-preview-modal')">إغلاق</button>
-      <a id="img-download-btn" href="#" class="btn btn-success btn-sm" download>⬇️ تحميل</a>
-    </div>
-  </div>
-</div>
-
 <!-- USER DETAIL MODAL -->
 <div class="modal-overlay hidden" id="user-detail-modal">
   <div class="modal">
     <div class="modal-header">
       <div class="modal-title">👤 تفاصيل المستخدم</div>
     </div>
-    <div class="grid-2" style="gap:12px;margin-bottom:16px;padding:20px 24px">
+    <div class="grid-2" style="gap:12px;margin-bottom:16px">
       <div><div class="form-label">الاسم</div><div id="ud-name" style="font-weight:700"></div></div>
       <div><div class="form-label">المعرف</div><div id="ud-id" style="font-family:monospace"></div></div>
       <div><div class="form-label">اسم المستخدم</div><div id="ud-username"></div></div>
@@ -221,14 +180,5 @@
 <div id="toast-container"></div>
 <script src="/static/js/app.js"></script>
 {% block scripts %}{% endblock %}
-<script>
-// ── Back button logic ─────────────────────────────────────────────────────────
-(function() {
-  const backBtn = document.getElementById('back-btn');
-  if (backBtn && window.location.pathname !== '/') {
-    backBtn.style.display = 'inline-flex';
-  }
-})();
-</script>
 </body>
 </html>
