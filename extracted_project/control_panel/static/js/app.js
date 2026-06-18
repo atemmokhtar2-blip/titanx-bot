@@ -43,12 +43,12 @@ function toggleTheme() {
   if (!loader) return;
   function hideLoader() {
     loader.classList.add('hidden');
-    setTimeout(function () { if (loader) loader.style.display = 'none'; }, 280);
+    // CSS .page-loader.hidden already applies display:none !important
+    // No JS setTimeout needed
   }
   if (document.readyState === 'complete') {
     hideLoader();
   } else {
-    // Hide on DOMContentLoaded (don't wait for images/fonts)
     document.addEventListener('DOMContentLoaded', hideLoader);
     window.addEventListener('load', hideLoader);
   }
@@ -104,13 +104,9 @@ function closeSidebar() {
 
 function _clearOverlay(overlay) {
   overlay.classList.remove('visible');
+  overlay.style.display       = 'none';
   overlay.style.pointerEvents = 'none';
-  // Delay display:none so the fade-out CSS transition finishes
-  setTimeout(function () {
-    if (!overlay.classList.contains('visible')) {
-      overlay.style.display = 'none';
-    }
-  }, 250);
+  overlay.style.opacity       = '';
 }
 
 // Close sidebar on outside click

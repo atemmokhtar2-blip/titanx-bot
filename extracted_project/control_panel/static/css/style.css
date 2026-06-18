@@ -119,10 +119,16 @@ img { max-width: 100%; }
   display: none;
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.70);
-  z-index: 99;
-  animation: fadeIn 0.2s ease;
+  z-index: 98;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
-.mobile-overlay.visible { display: block; }
+.mobile-overlay.visible {
+  display: block;
+  pointer-events: all;
+  opacity: 1;
+}
 
 /* ── SIDEBAR ─────────────────────────────────────────────────── */
 .sidebar {
@@ -1101,13 +1107,7 @@ textarea.form-control { resize: vertical; min-height: 120px; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border3); }
 
-/* ── MOBILE SIDEBAR OVERLAY ──────────────────────────────────── */
-#mobile-overlay {
-  position: fixed; inset: 0; z-index: 149;
-  background: rgba(0,0,0,0.65);
-  display: none;
-}
-#mobile-overlay.visible { display: block; }
+/* ── MOBILE SIDEBAR OVERLAY — single source of truth is .mobile-overlay above ── */
 
 /* ── BACK BUTTON ENHANCED ────────────────────────────────────── */
 .back-btn {
@@ -1656,17 +1656,8 @@ a:not([target="_blank"]) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MOBILE OVERLAY — BLUR-FREE (no backdrop-filter anywhere)
+   MOBILE OVERLAY — consolidated above (line ~120), no duplicates
    ═══════════════════════════════════════════════════════════════ */
-/* IMPORTANT: NO backdrop-filter on .mobile-overlay — causes ghost blur */
-.mobile-overlay {
-  transition: opacity 0.22s ease;
-}
-.mobile-overlay.visible {
-  display: block !important;
-  pointer-events: all !important;
-  opacity: 1;
-}
 
 /* ═══════════════════════════════════════════════════════════════
    BOT STATUS — 4 STATES: running / stopped / restarting / error
@@ -1757,9 +1748,10 @@ a:not([target="_blank"]) {
    PAGE LOADER — faster hide transition
    ═══════════════════════════════════════════════════════════════ */
 .page-loader.hidden {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.28s ease;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  display: none !important;
+  transition: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════
