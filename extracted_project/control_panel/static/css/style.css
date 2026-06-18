@@ -637,12 +637,12 @@ textarea.form-control { resize: vertical; min-height: 120px; }
 .modal-overlay {
   position: fixed; inset: 0; z-index: 1000;
   background: rgba(0,0,0,0.72);
-  backdrop-filter: blur(8px);
+  /* NO backdrop-filter here — causes ghost blur when hidden */
   display: flex; align-items: center; justify-content: center;
   animation: fadeIn 0.2s ease;
   padding: 20px;
 }
-.modal-overlay.hidden { display: none; }
+.modal-overlay.hidden { display: none !important; backdrop-filter: none !important; }
 
 .modal {
   background: var(--card);
@@ -1146,7 +1146,7 @@ textarea.form-control { resize: vertical; min-height: 120px; }
 }
 .bg-orb {
   position: absolute; border-radius: 50%;
-  filter: blur(50px);
+  filter: blur(22px);  /* was 50px — reduced to prevent fog/blur perception */
   will-change: transform;
 }
 .orb-1 {
@@ -1174,10 +1174,10 @@ textarea.form-control { resize: vertical; min-height: 120px; }
 @keyframes orbDrift3 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(65px,45px) scale(0.92)} }
 @keyframes orbDrift4 { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(-35px,-55px) scale(1.12)} }
 
-/* Layout above orbs */
-.layout { position: relative; z-index: 1; }
+/* Layout above orbs — isolation prevents blur bleed from stacking contexts */
+.layout { position: relative; z-index: 1; isolation: isolate; }
 .page-loader { z-index: 9999 !important; }
-.loading-overlay { z-index: 8888 !important; }
+.loading-overlay { z-index: 8888 !important; backdrop-filter: none !important; }
 .modal-overlay { z-index: 1000 !important; }
 
 /* ── CHART CONTAINERS ──────────────────────────────────────────── */
@@ -1408,10 +1408,10 @@ textarea.form-control { resize: vertical; min-height: 120px; }
   border-color: rgba(59,130,246,0.18);
 }
 
-/* Modal overlay — subtle blur only for modals (not loading) */
+/* Modal overlay — subtle blur ONLY when a modal is actually open */
 .modal-overlay:not(.hidden) {
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1656,11 +1656,11 @@ a:not([target="_blank"]) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MOBILE OVERLAY — pointer-events fixed (never blocks when closed)
+   MOBILE OVERLAY — BLUR-FREE (no backdrop-filter anywhere)
    ═══════════════════════════════════════════════════════════════ */
+/* IMPORTANT: NO backdrop-filter on .mobile-overlay — causes ghost blur */
 .mobile-overlay {
-  backdrop-filter: blur(3px);
-  transition: opacity 0.25s ease;
+  transition: opacity 0.22s ease;
 }
 .mobile-overlay.visible {
   display: block !important;
@@ -1772,4 +1772,145 @@ a:not([target="_blank"]) {
 }
 .git-last-push strong { color: var(--text2); }
 
+
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER — LIVE SYSTEM PILL & CLOCK
+   ═══════════════════════════════════════════════════════════════ */
+
+.header-sys-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 99px;
+  background: rgba(34,197,94,0.08);
+  border: 1px solid rgba(34,197,94,0.22);
+  font-size: .72rem; font-weight: 700;
+  color: var(--text2);
+  transition: var(--trans-fast);
+}
+.header-sys-pill:hover { background: rgba(34,197,94,0.14); }
+.header-sys-cpu, .header-sys-ram { font-weight: 800; color: var(--text); }
+.header-sys-sep { color: var(--border3); font-size: .65rem; }
+
+.header-clock {
+  font-size: .78rem; font-weight: 700; color: var(--text2);
+  font-variant-numeric: tabular-nums;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: .04em;
+  padding: 4px 10px;
+  background: var(--glass2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+@media (max-width: 600px) {
+  .header-sys-pill { display: none; }
+  .header-clock    { display: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACTIVITY FEED ROW
+   ═══════════════════════════════════════════════════════════════ */
+
+.activity-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: var(--radius-sm);
+  background: var(--bg2); border: 1px solid var(--border);
+  transition: var(--trans-fast);
+}
+.activity-row:hover {
+  background: var(--bg3); border-color: var(--border2);
+  transform: translateX(-2px);
+}
+.activity-icon {
+  font-size: 1.2rem; flex-shrink: 0;
+  width: 32px; height: 32px; display: flex;
+  align-items: center; justify-content: center;
+  background: var(--glass2); border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PREMIUM CARD ENHANCEMENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Pulsing border on card-glow-blue hover */
+.card-glow-blue {
+  transition: border-color 0.4s ease, box-shadow 0.4s ease, transform 0.2s ease;
+}
+.card-glow-blue:hover {
+  border-color: rgba(59,130,246,0.28) !important;
+  box-shadow: 0 8px 40px rgba(59,130,246,0.12), var(--shadow) !important;
+}
+
+/* Stat card value accent flash */
+.stat-card { cursor: default; }
+.stat-value.count-updated {
+  animation: countFlash 0.7s ease forwards;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BOT STATUS ROW — ENHANCED
+   ═══════════════════════════════════════════════════════════════ */
+
+.bot-status-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--bg2);
+  margin-bottom: 10px; transition: var(--trans-fast);
+}
+.bot-status-row.running {
+  border-color: rgba(34,197,94,0.25);
+  background: rgba(34,197,94,0.04);
+}
+.bot-status-row.stopped {
+  border-color: rgba(239,68,68,0.2);
+  background: rgba(239,68,68,0.03);
+}
+.bot-status-row:last-child { margin-bottom: 0; }
+
+/* ═══════════════════════════════════════════════════════════════
+   LIVE BADGE PULSE ANIMATION
+   ═══════════════════════════════════════════════════════════════ */
+
+.live-badge {
+  animation: livePulse 3s ease-in-out infinite;
+}
+@keyframes livePulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.0); }
+  50%     { box-shadow: 0 0 0 4px rgba(34,197,94,0.12); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ORBS — REDUCED OPACITY (prevent fog effect on dark monitors)
+   ═══════════════════════════════════════════════════════════════ */
+
+.orb-1 { opacity: 0.022 !important; }
+.orb-2 { opacity: 0.018 !important; }
+.orb-3 { opacity: 0.012 !important; }
+.orb-4 { opacity: 0.010 !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   PARTICLES CANVAS — SHARPER BLEND
+   ═══════════════════════════════════════════════════════════════ */
+
+#particles-canvas { opacity: 0.45; } /* was 0.6 */
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE — RESPONSIVE IMPROVEMENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .metrics-strip { gap: 8px; }
+  .metric-pill   { flex: 1 1 calc(50% - 4px); min-width: 0; }
+  .stats-grid    { grid-template-columns: repeat(2, 1fr); }
+  .grid-2        { grid-template-columns: 1fr; }
+  .grid-3        { grid-template-columns: repeat(2, 1fr); }
+  .activity-row  { padding: 8px; }
+}
+
+@media (max-width: 480px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .grid-3     { grid-template-columns: 1fr 1fr; }
+  .stat-value { font-size: 1.6rem; }
+}
 

@@ -561,6 +561,51 @@ function copyText(text, label) {
   }
 }
 
+// ── Live Header Clock ─────────────────────────────────────────
+(function initHeaderClock() {
+  document.addEventListener('DOMContentLoaded', function () {
+    var clockEl = document.getElementById('header-clock');
+    if (!clockEl) return;
+    // Only show on wider screens
+    if (window.innerWidth > 768) clockEl.style.display = 'block';
+    function tick() {
+      var now = new Date();
+      var h = now.getHours().toString().padStart(2, '0');
+      var m = now.getMinutes().toString().padStart(2, '0');
+      var s = now.getSeconds().toString().padStart(2, '0');
+      clockEl.textContent = h + ':' + m + ':' + s;
+    }
+    tick();
+    setInterval(tick, 1000);
+    window.addEventListener('resize', function () {
+      clockEl.style.display = window.innerWidth > 768 ? 'block' : 'none';
+    });
+  });
+})();
+
+// ── Header sys pill live update (all pages) ───────────────────
+// Runs on every page to keep the header CPU/RAM pill fresh.
+// Dashboard overrides _fetchStats with a richer version that also updates the pill.
+var _globalPillActive = false;
+(function initGlobalStatsPoll() {
+  document.addEventListener('DOMContentLoaded', function () {
+    var hasDashboardCharts = !!document.getElementById('downloads-chart');
+    if (hasDashboardCharts) return; // dashboard handles its own polling including the pill
+    _globalPillActive = true;
+    (async function globalPillPoll() {
+      if (!_globalPillActive) return;
+      try {
+        var d = await apiGet('/system/api/stats');
+        _uel('hdr-cpu', d.cpu_percent + '%');
+        _uel('hdr-ram', Math.round(d.mem_percent) + '%');
+        var hdrDot = document.getElementById('hdr-dot');
+        if (hdrDot) hdrDot.className = 'dot dot-blink ' + (d.cpu_percent > 80 ? 'dot-red' : 'dot-green');
+      } catch(e) {}
+      setTimeout(globalPillPoll, 10000);
+    })();
+  });
+})();
+
 // ── Particles Background ──────────────────────────────────────
 (function initParticles() {
   document.addEventListener('DOMContentLoaded', function () {

@@ -2,8 +2,8 @@ modules = ["python-3.12", "nodejs-20", "web"]
 
 [deployment]
 router = "application"
-deploymentTarget = "autoscale"
-run = ["bash", "-c", "PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages:$PYTHONPATH python3 /home/runner/workspace/extracted_project/control_panel/server.py"]
+deploymentTarget = "vm"
+run = ["bash", "/home/runner/workspace/scripts/start.sh"]
 
 [deployment.postBuild]
 args = ["pnpm", "store", "prune"]

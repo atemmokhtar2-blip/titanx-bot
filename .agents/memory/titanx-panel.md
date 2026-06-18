@@ -1,28 +1,36 @@
 ---
 name: TitanX Control Panel
-description: Key decisions and quirks for the TitanX bot suite + control panel on Replit.
+description: FastAPI panel setup, ports, auth, and key architectural decisions
 ---
 
-## Auth
-- Token = HMAC-SHA256(SECRET_KEY, OWNER_ID)[:18] encoded base64url — deterministic, no DB needed.
-- Access URL: `/panel?k=<TOKEN>` → sets session cookie → redirects to `/dashboard`.
-- OWNER_ID from env `OWNER_ID` (set in .replit userenv). Token is `uoLVbwho9geilbVaeKciWWbZ`.
+# TitanX Control Panel
 
-## Port / Deployment
-- Control panel runs on port 5000, maps to externalPort 80.
-- Deployment: autoscale, run = ["bash", "-c", "PYTHONPATH=.../.pythonlibs/lib/python3.12/site-packages:$PYTHONPATH python3 /home/runner/workspace/extracted_project/control_panel/server.py"]
-- gunicorn is NOT installed; uvicorn is in `.pythonlibs`.
+## Server & Ports
+- **Server**: `extracted_project/control_panel/server.py` → uvicorn, port 5000
+- **Auth**: Token-based `/panel?k=TOKEN` OR password login `/panel/login` (SHA256+salt in `.panel_settings.json`)
+- **Password default**: `9,c4A,tw_Q!*iL` (DO NOT change in code — user manages via `/panel/api/change-password`)
+- **PYTHONPATH**: `/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages:$PYTHONPATH`
 
-## Production domain
-- Dev: REPLIT_DEV_DOMAIN; Production: REPLIT_DOMAINS (comma-separated, use first entry).
-- config.py already handles both.
+## Deployment
+- **Target**: `vm` (always-running — bots need persistent processes)
+- **Run command**: `bash /home/runner/workspace/scripts/start.sh`
+- **Previously**: `autoscale` — changed to `vm` to support bot persistence in production
 
-**Why:** Replit dev containers expose REPLIT_DEV_DOMAIN; deployed apps expose REPLIT_DOMAINS instead.
+## Blur — PERMANENT FIX (2026-06-18)
+Root causes identified and eliminated:
+1. `.modal-overlay` base rule had `backdrop-filter: blur(8px)` — removed, now ONLY on `:not(.hidden)`
+2. `.mobile-overlay { backdrop-filter: blur(3px) }` — my bad addition from prior session, removed
+3. `bg-orb { filter: blur(50px) }` → reduced to `22px`; orb opacity further lowered (0.010–0.022)
+4. `.loading-overlay` — explicitly `backdrop-filter: none !important`
+5. `.layout { isolation: isolate }` — prevents stacking context blur bleed
+6. Particles canvas opacity reduced from 0.6 → 0.45
 
-## File management
-- All API routes exist: /files/api/{list,read,save,delete,rename,mkdir,upload,download}
-- renameFile() JS added to app.js; rename button (✍️) in renderDir() for each item.
+**Why**: `backdrop-filter` on hidden elements (even `display:none`) can cause rendering artifacts in some browsers (Chrome/WebKit), especially with `opacity` transitions.
 
-## Update center
-- /updates/api/{analyze,apply,status,backup,restore} all implemented in updates.py.
-- Apply runs as background task (BackgroundTasks). Poll /api/status for progress.
+## Key Files
+- `control_panel/app.py` — FastAPI app, routers registered
+- `control_panel/static/css/style.css` — ~1900 lines, blur fixes at end
+- `control_panel/static/js/app.js` — live stats, bot polling, particles, header clock
+- `control_panel/templates/base.html` — header with live sys-pill + clock
+- `control_panel/templates/dashboard.html` — AI control center, live activity feed
+- `control_panel/routers/bots.py` — 4-state bot control (running/stopped/restarting/error)
