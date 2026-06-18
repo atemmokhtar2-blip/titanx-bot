@@ -2,7 +2,7 @@
 import sys
 import os
 
-# Force .pythonlibs FIRST — must happen before any other imports
+# Put .pythonlibs first so installed packages shadow the older Nix-store versions
 _pythonlibs = "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages"
 if _pythonlibs not in sys.path:
     sys.path.insert(0, _pythonlibs)
@@ -13,7 +13,6 @@ _extracted = os.path.dirname(_here)
 if _extracted not in sys.path:
     sys.path.insert(1, _extracted)
 
-# Now import uvicorn & app AFTER path is fixed
 import uvicorn  # noqa: E402
 from control_panel.app import app  # noqa: E402
 

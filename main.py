@@ -11,6 +11,7 @@ _here        = os.path.dirname(os.path.abspath(__file__))
 _pythonlibs  = os.path.join(_here, ".pythonlibs", "lib", "python3.12", "site-packages")
 _extracted   = os.path.join(_here, "extracted_project")
 
+# .pythonlibs must be first so installed packages shadow the older Nix-store versions
 for _p in (_pythonlibs, _extracted):
     if _p not in sys.path:
         sys.path.insert(0, _p)
