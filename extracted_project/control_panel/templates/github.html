@@ -65,11 +65,11 @@
       </div>
       <div class="form-group">
         <label class="form-label">Git User Name</label>
-        <input class="form-control" id="cfg-name" placeholder="TitanX Bot" value="TitanX Bot">
+        <input class="form-control" id="cfg-name" placeholder="TitanX Bot" value="{{ cfg.name }}">
       </div>
       <div class="form-group">
         <label class="form-label">Git Email</label>
-        <input class="form-control" id="cfg-email" placeholder="bot@titanx.local" value="bot@titanx.local">
+        <input class="form-control" id="cfg-email" placeholder="bot@titanx.local" value="{{ cfg.email }}">
       </div>
       <button class="btn btn-primary" onclick="configureGit()">💾 حفظ الإعدادات</button>
     </div>

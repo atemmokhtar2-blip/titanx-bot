@@ -1,20 +1,45 @@
 import os
+import json
 import subprocess
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 import httpx
 from ..auth import require_owner
-from ..config import CONTROL_PANEL_DIR, PROJECT_ROOT
+from ..config import CONTROL_PANEL_DIR, PROJECT_ROOT, EXTRACTED_DIR
 
 router = APIRouter(prefix="/github")
 templates = Jinja2Templates(directory=os.path.join(CONTROL_PANEL_DIR, "templates"))
 
+GITHUB_CONFIG_FILE = os.path.join(EXTRACTED_DIR, ".panel_github_config.json")
+
+
+def _load_saved_config() -> dict:
+    try:
+        if os.path.exists(GITHUB_CONFIG_FILE):
+            with open(GITHUB_CONFIG_FILE) as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def _save_config(data: dict):
+    try:
+        with open(GITHUB_CONFIG_FILE, "w") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
 
 def _get_config() -> dict:
+    saved = _load_saved_config()
     return {
-        "token": os.getenv("GITHUB_TOKEN", ""),
-        "repo": os.getenv("GITHUB_REPO", ""),
+        "token":  os.getenv("GITHUB_TOKEN", "") or saved.get("token", ""),
+        "repo":   os.getenv("GITHUB_REPO",  "") or saved.get("repo",  ""),
+        "name":   saved.get("name",   "TitanX Bot"),
+        "email":  saved.get("email",  "bot@titanx.local"),
+        "branch": saved.get("branch", "main"),
     }
 
 
@@ -43,7 +68,7 @@ def _get_git_info() -> dict:
 
 @router.get("", response_class=HTMLResponse)
 async def github_page(request: Request, session: dict = Depends(require_owner)):
-    cfg = _get_config()
+    cfg      = _get_config()
     git_info = _get_git_info()
     return templates.TemplateResponse(request, "github.html", {
         "cfg": cfg, "git_info": git_info, "active_page": "github"
@@ -64,10 +89,10 @@ async def api_pull(session: dict = Depends(require_owner)):
 @router.post("/api/push")
 async def api_push(request: Request, session: dict = Depends(require_owner)):
     body = await request.json()
-    msg = body.get("message", "Update via TitanX Control Panel")
-    r1 = _git_run("add", "-A")
-    r2 = _git_run("commit", "-m", msg)
-    r3 = _git_run("push")
+    msg  = body.get("message", "Update via TitanX Control Panel")
+    r1   = _git_run("add", "-A")
+    r2   = _git_run("commit", "-m", msg)
+    r3   = _git_run("push")
     output = "\n".join(filter(None, [r1["stdout"], r2["stdout"], r3["stdout"],
                                       r1["stderr"], r2["stderr"], r3["stderr"]]))
     return {"ok": r3["ok"], "output": output}
@@ -75,8 +100,8 @@ async def api_push(request: Request, session: dict = Depends(require_owner)):
 
 @router.post("/api/commit")
 async def api_commit(request: Request, session: dict = Depends(require_owner)):
-    body = await request.json()
-    msg = body.get("message", "Commit via TitanX")
+    body  = await request.json()
+    msg   = body.get("message", "Commit via TitanX")
     paths = body.get("paths", ["."])
     r1 = _git_run("add", *paths)
     r2 = _git_run("commit", "-m", msg)
@@ -91,12 +116,14 @@ async def api_diff(session: dict = Depends(require_owner)):
 
 @router.post("/api/configure")
 async def api_configure(request: Request, session: dict = Depends(require_owner)):
-    body = await request.json()
-    repo = body.get("repo", "").strip()
-    token = body.get("token", "").strip()
-    name = body.get("name", "TitanX Bot").strip()
-    email = body.get("email", "bot@titanx.local").strip()
+    body   = await request.json()
+    repo   = body.get("repo",   "").strip()
+    token  = body.get("token",  "").strip()
+    name   = body.get("name",   "TitanX Bot").strip() or "TitanX Bot"
+    email  = body.get("email",  "bot@titanx.local").strip() or "bot@titanx.local"
+    branch = body.get("branch", "main").strip() or "main"
     results = []
+
     if name:
         r = _git_run("config", "user.name", name)
         results.append(f"name: {'ok' if r['ok'] else r['stderr']}")
@@ -109,17 +136,26 @@ async def api_configure(request: Request, session: dict = Depends(require_owner)
         if not r["ok"]:
             r = _git_run("remote", "add", "origin", url)
         results.append(f"remote: {'ok' if r['ok'] else r['stderr']}")
+
+    saved = _load_saved_config()
+    saved.update({"repo": repo or saved.get("repo", ""), "name": name,
+                  "email": email, "branch": branch})
+    if token:
+        saved["token"] = token
+    _save_config(saved)
+
     return {"ok": True, "results": results}
 
 
 @router.get("/api/gh/repos")
 async def api_gh_repos(session: dict = Depends(require_owner)):
-    token = os.getenv("GITHUB_TOKEN", "")
+    cfg   = _get_config()
+    token = cfg["token"]
     if not token:
         return JSONResponse({"error": "لا يوجد GitHub Token"}, status_code=400)
     async with httpx.AsyncClient() as client:
         r = await client.get("https://api.github.com/user/repos?per_page=30&sort=updated",
-                              headers={"Authorization": f"token {token}"})
+                             headers={"Authorization": f"token {token}"})
         if r.status_code == 200:
             repos = [{"name": x["full_name"], "private": x["private"]} for x in r.json()]
             return {"repos": repos}

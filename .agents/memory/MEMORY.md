@@ -1,1 +1,2 @@
 - [TitanX Control Panel](titanx-panel.md) — FastAPI panel on port 5000; token auth via /panel?k=TOKEN; uvicorn only (no gunicorn); PYTHONPATH must be set.
+- [TitanX Bot Cleanup](titanx-bot-cleanup.md) — Admin Bot and Developer Bot removed; only Main Bot + Support Bot remain; db_utils/config must NOT reference DEV_DB or dev_db.

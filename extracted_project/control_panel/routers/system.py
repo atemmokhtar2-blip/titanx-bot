@@ -16,8 +16,7 @@ BOT_HEALTH_FILE = "/tmp/bot_health.json"
 
 BOT_SCRIPTS = {
     "main":    ("البوت الرئيسي", "bot.py"),
-    "admin":   ("بوت الإدمن", "admin_bot/bot.py"),
-    "support": ("بوت الدعم", "support_bot/bot.py"),
+    "support": ("بوت الدعم",     "support_bot/bot.py"),
 }
 
 
@@ -39,9 +38,9 @@ def _get_system_stats() -> dict:
 
 
 def _fmt_bytes(b: int) -> str:
-    if b < 1024: return f"{b} B"
-    elif b < 1024**2: return f"{b/1024:.1f} KB"
-    elif b < 1024**3: return f"{b/1024**2:.1f} MB"
+    if b < 1024:       return f"{b} B"
+    elif b < 1024**2:  return f"{b/1024:.1f} KB"
+    elif b < 1024**3:  return f"{b/1024**2:.1f} MB"
     return f"{b/1024**3:.2f} GB"
 
 
@@ -81,10 +80,11 @@ def _get_processes() -> list:
                 cmdline = " ".join(proc.info.get("cmdline") or [])
                 if "python" in (proc.info.get("name") or "").lower() or "uvicorn" in cmdline:
                     procs.append({
-                        "pid": proc.info["pid"], "name": proc.info["name"],
+                        "pid":    proc.info["pid"],
+                        "name":   proc.info["name"],
                         "cmdline": cmdline[:80],
-                        "cpu": round(proc.info.get("cpu_percent") or 0, 1),
-                        "mem": round(proc.info.get("memory_percent") or 0, 1),
+                        "cpu":    round(proc.info.get("cpu_percent") or 0, 1),
+                        "mem":    round(proc.info.get("memory_percent") or 0, 1),
                         "status": proc.info.get("status", ""),
                     })
             except Exception:
@@ -97,7 +97,7 @@ def _get_processes() -> list:
 @router.get("", response_class=HTMLResponse)
 async def system_page(request: Request, session: dict = Depends(require_owner)):
     stats = _get_system_stats()
-    bots = _get_bot_status()
+    bots  = _get_bot_status()
     procs = _get_processes()
     return templates.TemplateResponse(request, "system.html", {
         "stats": stats, "bots": bots, "procs": procs,
@@ -108,12 +108,12 @@ async def system_page(request: Request, session: dict = Depends(require_owner)):
 @router.get("/api/stats")
 async def api_stats(session: dict = Depends(require_owner)):
     stats = _get_system_stats()
-    stats["mem_total_h"] = _fmt_bytes(stats["mem_total"])
-    stats["mem_used_h"] = _fmt_bytes(stats["mem_used"])
+    stats["mem_total_h"]  = _fmt_bytes(stats["mem_total"])
+    stats["mem_used_h"]   = _fmt_bytes(stats["mem_used"])
     stats["disk_total_h"] = _fmt_bytes(stats["disk_total"])
-    stats["disk_used_h"] = _fmt_bytes(stats["disk_used"])
-    stats["net_sent_h"] = _fmt_bytes(stats["net_sent"])
-    stats["net_recv_h"] = _fmt_bytes(stats["net_recv"])
+    stats["disk_used_h"]  = _fmt_bytes(stats["disk_used"])
+    stats["net_sent_h"]   = _fmt_bytes(stats["net_sent"])
+    stats["net_recv_h"]   = _fmt_bytes(stats["net_recv"])
     return stats
 
 

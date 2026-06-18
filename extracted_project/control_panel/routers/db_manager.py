@@ -4,8 +4,8 @@ from fastapi import APIRouter, Request, Depends
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from ..auth import require_owner
-from ..db_utils import main_db, support_db, dev_db, fmt_size
-from ..config import CONTROL_PANEL_DIR, MAIN_DB, SUPPORT_DB, DEV_DB
+from ..db_utils import main_db, support_db, fmt_size
+from ..config import CONTROL_PANEL_DIR, MAIN_DB, SUPPORT_DB
 
 router = APIRouter(prefix="/database")
 templates = Jinja2Templates(directory=os.path.join(CONTROL_PANEL_DIR, "templates"))
@@ -79,9 +79,8 @@ def _repair(action: str) -> dict:
 @router.get("", response_class=HTMLResponse)
 async def db_page(request: Request, session: dict = Depends(require_owner)):
     dbs = [
-        _db_info(MAIN_DB, "bot.db (رئيسي)"),
+        _db_info(MAIN_DB,    "bot.db (رئيسي)"),
         _db_info(SUPPORT_DB, "support.db (دعم)"),
-        _db_info(DEV_DB, "developer.db (مطور)"),
     ]
     dups = _find_duplicates()
     return templates.TemplateResponse(request, "db_manager.html", {
@@ -93,15 +92,14 @@ async def db_page(request: Request, session: dict = Depends(require_owner)):
 @router.get("/api/info")
 async def api_info(session: dict = Depends(require_owner)):
     return {
-        "main": _db_info(MAIN_DB, "bot.db"),
-        "support": _db_info(SUPPORT_DB, "support.db"),
-        "dev": _db_info(DEV_DB, "developer.db"),
+        "main":       _db_info(MAIN_DB,    "bot.db"),
+        "support":    _db_info(SUPPORT_DB, "support.db"),
         "duplicates": _find_duplicates(),
     }
 
 
 @router.post("/api/repair")
 async def api_repair(request: Request, session: dict = Depends(require_owner)):
-    body = await request.json()
+    body   = await request.json()
     action = body.get("action", "")
     return _repair(action)

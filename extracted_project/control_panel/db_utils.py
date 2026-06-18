@@ -1,7 +1,7 @@
 """Shared database utility functions for the control panel."""
 import sqlite3
 from contextlib import contextmanager
-from .config import MAIN_DB, SUPPORT_DB, DEV_DB
+from .config import MAIN_DB, SUPPORT_DB
 
 
 @contextmanager
@@ -33,20 +33,6 @@ def support_db():
     finally:
         conn.close()
 
-
-@contextmanager
-def dev_db():
-    conn = sqlite3.connect(DEV_DB, check_same_thread=False, timeout=10)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
 
 
 def fmt_size(b: int) -> str:

@@ -15,10 +15,8 @@ templates = Jinja2Templates(directory=os.path.join(CONTROL_PANEL_DIR, "templates
 PYTHONPATH = "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages"
 
 BOT_META = {
-    "main":    {"label": "البوت الرئيسي",  "icon": "🤖", "color": "accent"},
-    "admin":   {"label": "بوت الإدمن",     "icon": "🛡️", "color": "purple"},
-    "support": {"label": "بوت الدعم",      "icon": "🎧", "color": "cyan"},
-    "dev":     {"label": "بوت المطور",     "icon": "⚙️", "color": "yellow"},
+    "main":    {"label": "البوت الرئيسي", "icon": "🤖", "color": "accent"},
+    "support": {"label": "بوت الدعم",     "icon": "🎧", "color": "cyan"},
 }
 
 
@@ -39,13 +37,13 @@ def _bot_status_all() -> list:
         script = BOT_SCRIPTS.get(key, "")
         running, pid = _is_running(script)
         result.append({
-            "key": key,
-            "label": meta["label"],
-            "icon": meta["icon"],
-            "color": meta["color"],
-            "script": os.path.basename(script),
+            "key":     key,
+            "label":   meta["label"],
+            "icon":    meta["icon"],
+            "color":   meta["color"],
+            "script":  os.path.basename(script),
             "running": running,
-            "pid": pid,
+            "pid":     pid,
         })
     return result
 

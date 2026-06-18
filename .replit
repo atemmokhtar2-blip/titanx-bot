@@ -27,14 +27,6 @@ args = "Support Bot"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Admin Bot"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Developer Bot"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "TitanX Control Panel"
 
 [[workflows.workflow]]
@@ -58,28 +50,6 @@ outputType = "console"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd /home/runner/workspace/extracted_project && PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages python3 support_bot/bot.py"
-
-[[workflows.workflow]]
-name = "Admin Bot"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd /home/runner/workspace/extracted_project && PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages python3 admin_bot/bot.py"
-
-[[workflows.workflow]]
-name = "Developer Bot"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd /home/runner/workspace/extracted_project && PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages python3 developer_bot/bot.py"
 
 [[workflows.workflow]]
 name = "TitanX Control Panel"
