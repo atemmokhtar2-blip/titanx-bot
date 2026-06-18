@@ -10,7 +10,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="/static/css/style.css">
+<link rel="stylesheet" href="/static/css/style.css?v={{ VER }}">
 <script>
 (function(){
   const t = localStorage.getItem('titanx_theme') || 'dark';
@@ -46,7 +46,7 @@
       <div class="sidebar-logo-icon">🎛️</div>
       <div class="sidebar-logo-text-wrap">
         <div class="sidebar-logo-name">TitanX</div>
-        <div class="sidebar-logo-sub">Control Panel v4</div>
+        <div class="sidebar-logo-sub">Control Panel {{ UI_VERSION }}</div>
       </div>
     </a>
 
@@ -208,7 +208,7 @@
 </div>
 
 <div id="toast-container"></div>
-<script src="/static/js/app.js"></script>
+<script src="/static/js/app.js?v={{ VER }}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

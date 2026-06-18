@@ -1,9 +1,11 @@
 import os
+import time
 import asyncio
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from .config import CONTROL_PANEL_DIR, SECRET_KEY, OWNER_ID, PUBLIC_URL
 from .auth import (create_session, get_session, require_owner,
@@ -12,8 +14,25 @@ from .routers import (dashboard, users, broadcast, db_manager,
                       files, logs_router, system, updates, github_router, search)
 from .routers import bots, backups
 
+# Build-time version stamp — changes every restart, forces browser cache-bust
+_BUILD_TS = str(int(time.time()))
+
 app = FastAPI(title="TitanX Control Panel", docs_url=None, redoc_url=None)
 
+# ── No-cache middleware for static assets ────────────────────────────────────
+class NoCacheMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        path = request.url.path
+        if path.startswith("/static/"):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        elif not path.startswith("/static"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
+app.add_middleware(NoCacheMiddleware)
 from starlette.middleware.sessions import SessionMiddleware
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=SESSION_MAX_AGE)
 
@@ -21,6 +40,9 @@ _static = os.path.join(CONTROL_PANEL_DIR, "static")
 _templates_dir = os.path.join(CONTROL_PANEL_DIR, "templates")
 app.mount("/static", StaticFiles(directory=_static), name="static")
 templates = Jinja2Templates(directory=_templates_dir)
+# Inject build timestamp into every template so ?v= busts the browser cache
+templates.env.globals["VER"] = _BUILD_TS
+templates.env.globals["UI_VERSION"] = "v4.0"
 
 app.include_router(dashboard.router)
 app.include_router(users.router)
