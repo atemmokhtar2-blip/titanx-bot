@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+{% block title %}النظام — TitanX{% endblock %}
+{% block page_title %}🖥️ حالة النظام{% endblock %}
+
+{% block content %}
+<!-- Quick Actions Bar -->
+<div class="card" style="margin-bottom:20px;padding:14px 20px;background:linear-gradient(135deg,var(--card),rgba(59,130,246,0.06))">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span style="font-weight:700;color:var(--text2);font-size:.82rem">⚡ إجراءات سريعة:</span>
+    <a href="/bots" class="btn btn-primary btn-sm">🤖 مركز البوتات</a>
+    <a href="/backups" class="btn btn-success btn-sm">💾 نسخة احتياطية</a>
+    <a href="/ai" class="btn btn-ghost btn-sm">🛠️ مركز AI</a>
+    <a href="/github" class="btn btn-ghost btn-sm">🐙 GitHub</a>
+    <button class="btn btn-ghost btn-sm" onclick="refreshStats()">🔄 تحديث</button>
+    <div style="margin-right:auto;display:flex;align-items:center;gap:6px">
+      <span class="dot dot-green"></span>
+      <span style="font-size:.78rem;color:var(--text2)">وقت التشغيل: <b id="uptime-val">{{ stats.uptime }}</b></span>
+    </div>
+  </div>
+</div>
+
+<!-- Bot Status -->
+<div class="card" style="margin-bottom:20px">
+  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>🤖 حالة البوتات</span>
+    <a href="/bots" class="btn btn-ghost btn-sm">إدارة البوتات ›</a>
+  </div>
+  <div class="bot-cards">
+    {% for bot in bots %}
+    <div class="bot-card">
+      <div class="bot-card-header">
+        <div class="bot-avatar">{% if 'main' in bot.key %}🤖{% elif 'admin' in bot.key %}🛡️{% elif 'support' in bot.key %}🎧{% else %}⚙️{% endif %}</div>
+        <div>
+          <div class="bot-name">{{ bot.label }}</div>
+          <div class="bot-status">
+            {% if bot.running %}
+            <span class="dot dot-green"></span> يعمل
+            {% if bot.pid %}<span style="color:var(--text2);font-size:.7rem"> (PID: {{ bot.pid }})</span>{% endif %}
+            {% else %}
+            <span class="dot dot-red"></span> متوقف
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- System Gauges -->
+<div class="gauge-grid" style="margin-bottom:20px">
+  <div class="gauge-card">
+    <div class="gauge-label">⚡ المعالج (CPU)</div>
+    <div class="gauge-value" id="cpu-val">{{ stats.cpu_percent }}%</div>
+    <div class="progress"><div class="progress-bar" id="cpu-bar" style="width:{{ stats.cpu_percent }}%"></div></div>
+  </div>
+  <div class="gauge-card">
+    <div class="gauge-label">💾 الذاكرة (RAM)</div>
+    <div class="gauge-value" id="mem-val">{{ (stats.mem_used // 1048576)|string }} MB</div>
+    <div class="progress"><div class="progress-bar" id="mem-bar" style="width:{{ stats.mem_percent }}%"></div></div>
+    <div class="gauge-sub" id="mem-total">من {{ (stats.mem_total // 1048576)|string }} MB</div>
+  </div>
+  <div class="gauge-card">
+    <div class="gauge-label">💿 التخزين</div>
+    <div class="gauge-value" id="disk-val">{{ (stats.disk_used // 1073741824)|string }} GB</div>
+    <div class="progress"><div class="progress-bar" id="disk-bar" style="width:{{ stats.disk_percent }}%"></div></div>
+    <div class="gauge-sub">من {{ (stats.disk_total // 1073741824)|string }} GB</div>
+  </div>
+  <div class="gauge-card">
+    <div class="gauge-label">🕐 وقت التشغيل</div>
+    <div class="gauge-value" style="font-size:1.1rem">{{ stats.uptime }}</div>
+    <div class="gauge-sub">منذ آخر إعادة تشغيل</div>
+  </div>
+  <div class="gauge-card">
+    <div class="gauge-label">📤 شبكة مُرسَل</div>
+    <div class="gauge-value" id="net-sent" style="font-size:1.1rem">{{ (stats.net_sent // 1048576)|string }} MB</div>
+  </div>
+  <div class="gauge-card">
+    <div class="gauge-label">📥 شبكة مُستقبَل</div>
+    <div class="gauge-value" id="net-recv" style="font-size:1.1rem">{{ (stats.net_recv // 1048576)|string }} MB</div>
+  </div>
+</div>
+
+<!-- Live Charts -->
+<div class="grid-2" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-title">📈 CPU — مباشر</div>
+    <canvas id="cpu-chart" height="100"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title">💾 RAM — مباشر</div>
+    <canvas id="ram-chart" height="100"></canvas>
+  </div>
+</div>
+
+<!-- Processes -->
+<div class="card">
+  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>⚙️ العمليات الجارية (Python/uvicorn)</span>
+    <button class="btn btn-ghost btn-sm" onclick="refreshStats()">🔄 تحديث</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>PID</th>
+          <th>الاسم</th>
+          <th>الأمر</th>
+          <th>CPU %</th>
+          <th>RAM %</th>
+          <th>الحالة</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in procs %}
+        <tr>
+          <td><code>{{ p.pid }}</code></td>
+          <td>{{ p.name }}</td>
+          <td><code style="font-size:.75rem;color:var(--text2)">{{ p.cmdline[:60] }}</code></td>
+          <td>{{ p.cpu }}%</td>
+          <td>{{ p.mem }}%</td>
+          <td>
+            {% if p.status == 'running' %}<span class="badge badge-green">يعمل</span>
+            {% elif p.status == 'sleeping' %}<span class="badge badge-blue">نائم</span>
+            {% else %}<span class="badge badge-gray">{{ p.status }}</span>{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="text-align:center;color:var(--text2)">لا توجد عمليات</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<script>
+// ── Chart setup ───────────────────────────────────────────────────────────────
+const _chartDefaults = {
+  type: 'line',
+  options: {
+    responsive: true,
+    animation: { duration: 300 },
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { display: false },
+      y: {
+        min: 0, max: 100,
+        ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 10 } },
+        grid: { color: 'rgba(255,255,255,0.05)' },
+      }
+    },
+    elements: { point: { radius: 2 }, line: { tension: 0.4, borderWidth: 2 } }
+  }
+};
+
+function _makeChart(canvasId, color) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return null;
+  return new Chart(ctx, {
+    ...structuredClone(_chartDefaults),
+    data: {
+      labels: Array(20).fill(''),
+      datasets: [{
+        data: Array(20).fill(null),
+        borderColor: color,
+        backgroundColor: color.replace(')', ', 0.1)').replace('rgb', 'rgba'),
+        fill: true,
+      }]
+    }
+  });
+}
+
+const _cpuChart = _makeChart('cpu-chart', 'rgb(59,130,246)');
+const _ramChart = _makeChart('ram-chart', 'rgb(34,197,94)');
+
+let _chartLabels = Array(20).fill('');
+let _cpuData = Array(20).fill(null);
+let _ramData = Array(20).fill(null);
+
+async function _updateCharts() {
+  try {
+    const d = await apiGet('/system/api/stats');
+    _chartLabels.shift(); _chartLabels.push(d.ts);
+    _cpuData.shift(); _cpuData.push(d.cpu_percent);
+    _ramData.shift(); _ramData.push(d.mem_percent);
+
+    if (_cpuChart) {
+      _cpuChart.data.labels = [..._chartLabels];
+      _cpuChart.data.datasets[0].data = [..._cpuData];
+      _cpuChart.update('none');
+    }
+    if (_ramChart) {
+      _ramChart.data.labels = [..._chartLabels];
+      _ramChart.data.datasets[0].data = [..._ramData];
+      _ramChart.update('none');
+    }
+  } catch(e) {}
+}
+
+// Fetch existing history to seed charts
+async function _seedCharts() {
+  try {
+    const d = await apiGet('/system/api/chart_history');
+    if (d.labels && d.labels.length > 0) {
+      const n = d.labels.length;
+      _chartLabels = [...Array(20 - n).fill(''), ...d.labels];
+      _cpuData = [...Array(20 - n).fill(null), ...d.cpu];
+      _ramData = [...Array(20 - n).fill(null), ...d.ram];
+      if (_cpuChart) { _cpuChart.data.labels = [..._chartLabels]; _cpuChart.data.datasets[0].data = [..._cpuData]; _cpuChart.update(); }
+      if (_ramChart) { _ramChart.data.labels = [..._chartLabels]; _ramChart.data.datasets[0].data = [..._ramData]; _ramChart.update(); }
+    }
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  _seedCharts();
+  refreshStats();
+  _updateCharts();
+  setInterval(refreshStats, 3000);
+  setInterval(_updateCharts, 3000);
+});
+</script>
+{% endblock %}

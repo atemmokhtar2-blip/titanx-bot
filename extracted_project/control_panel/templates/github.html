@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}GitHub — TitanX{% endblock %}
+{% block page_title %}🐙 تكامل GitHub{% endblock %}
+
+{% block content %}
+<!-- Status Bar -->
+<div class="card" style="margin-bottom:20px;padding:14px 20px;background:linear-gradient(135deg,var(--card),rgba(168,85,247,0.06))">
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="font-size:1.2rem">🌿</span>
+      <span style="font-weight:700" id="git-branch-header">{{ git_info.branch or 'unknown' }}</span>
+    </div>
+    <div id="git-sync-status" style="display:flex;align-items:center;gap:6px;font-size:.85rem">
+      {% if git_info.status %}
+      <span class="badge badge-yellow">⚠️ {{ git_info.status.split('\n') | length }} تغيير معلق</span>
+      {% else %}
+      <span class="badge badge-green">✅ محدّث</span>
+      {% endif %}
+    </div>
+    <div style="margin-right:auto;display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm" id="pull-btn" onclick="gitPull()">⬇️ Pull</button>
+      <button class="btn btn-success btn-sm" id="push-btn" onclick="gitPush()">⬆️ Push</button>
+      <button class="btn btn-ghost btn-sm" onclick="refreshGitInfo()">🔄 تحديث</button>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2" style="align-items:start;gap:16px">
+  <!-- Left: Operations -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <div class="card">
+      <div class="card-title">💬 رسالة Commit</div>
+      <div class="form-group">
+        <input class="form-control" id="commit-msg"
+               placeholder="تحديث عبر TitanX Control Panel"
+               value="Update via TitanX Control Panel">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-ghost" onclick="gitCommit()">📝 Commit فقط</button>
+        <button class="btn btn-primary" onclick="gitPush()">📝+⬆️ Commit & Push</button>
+      </div>
+    </div>
+
+    <!-- Git Actions -->
+    <div class="card">
+      <div class="card-title">⚡ إجراءات GitHub</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-ghost" onclick="gitDiff()">🔍 عرض الفروقات</button>
+        <button class="btn btn-ghost" onclick="gitFetchRepos()">📋 قائمة المستودعات</button>
+        <button class="btn btn-warning btn-sm" onclick="createReleaseBackup()" style="text-align:right">
+          💾 نسخ احتياطي + Push إلى GitHub
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚙️ إعداد Git</div>
+      <div class="form-group">
+        <label class="form-label">اسم المستودع (user/repo)</label>
+        <input class="form-control" id="cfg-repo" placeholder="username/repo-name" value="{{ cfg.repo }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">GitHub Token</label>
+        <input class="form-control" type="password" id="cfg-token" placeholder="ghp_xxxxxxxxxxxx">
+        <div class="form-hint">يُستخدم للاتصال فقط ولا يُحفظ في قاعدة البيانات</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Git User Name</label>
+        <input class="form-control" id="cfg-name" placeholder="TitanX Bot" value="TitanX Bot">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Git Email</label>
+        <input class="form-control" id="cfg-email" placeholder="bot@titanx.local" value="bot@titanx.local">
+      </div>
+      <button class="btn btn-primary" onclick="configureGit()">💾 حفظ الإعدادات</button>
+    </div>
+  </div>
+
+  <!-- Right: History & Status -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <div class="card">
+      <div class="card-title">📜 سجل الإصدارات — آخر Commits</div>
+      <div class="scroll-list" id="git-commits" style="max-height:280px;direction:ltr;text-align:left">
+        {% for commit in git_info.commits %}
+        <div class="scroll-list-item">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:.65rem;background:rgba(168,85,247,0.15);border-radius:4px;padding:2px 6px;font-family:monospace;color:var(--purple)">
+              {{ commit[:7] }}
+            </span>
+            <code style="font-size:.75rem;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              {{ commit[8:] if commit|length > 8 else commit }}
+            </code>
+          </div>
+        </div>
+        {% else %}
+        <div style="color:var(--text2);padding:16px;text-align:center">لا توجد commits</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📊 التغييرات غير المحفوظة</div>
+      {% if git_info.status %}
+      <div class="code-block" style="max-height:200px;direction:ltr;text-align:left">{{ git_info.status }}</div>
+      <div style="margin-top:10px">
+        <button class="btn btn-ghost btn-sm" onclick="gitCommit()">📝 Commit هذه التغييرات</button>
+      </div>
+      {% else %}
+      <div class="alert alert-success">✅ لا توجد تغييرات معلقة — المستودع محدّث</div>
+      {% endif %}
+    </div>
+
+    {% if git_info.remotes %}
+    <div class="card">
+      <div class="card-title">🔗 Remotes</div>
+      <div class="code-block" style="direction:ltr;text-align:left;font-size:.75rem">{{ git_info.remotes }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Operation Output -->
+    <div class="card" id="git-output-card" style="display:none">
+      <div class="card-title">🖥️ نتيجة العملية</div>
+      <div class="code-block" id="git-output" style="max-height:200px;direction:ltr;text-align:left"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function _showGitOutput(text, ok) {
+  const card = document.getElementById('git-output-card');
+  const out = document.getElementById('git-output');
+  if (card) card.style.display = 'block';
+  if (out) out.textContent = text;
+  card?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function gitCommit() {
+  const msg = document.getElementById('commit-msg')?.value || 'Update via TitanX';
+  const data = await apiPost('/github/api/commit', { message: msg });
+  _showGitOutput(data.output || (data.ok ? 'تم Commit' : 'لا يوجد شيء للحفظ'), data.ok);
+  showToast(data.ok ? '✅ تم Commit' : data.output || 'لا تغييرات', data.ok ? 'success' : 'info');
+  refreshGitInfo();
+}
+
+async function configureGit() {
+  const repo = document.getElementById('cfg-repo')?.value;
+  const token = document.getElementById('cfg-token')?.value;
+  const name = document.getElementById('cfg-name')?.value;
+  const email = document.getElementById('cfg-email')?.value;
+  const data = await apiPost('/github/api/configure', { repo, token, name, email });
+  if (data.ok) showToast('✅ تم حفظ الإعدادات: ' + data.results.join(', '), 'success');
+  else showToast(data.error || 'فشل', 'error');
+}
+
+async function gitDiff() {
+  const data = await apiGet('/github/api/diff');
+  _showGitOutput(data.diff || 'لا فروقات', data.ok);
+  showToast('تم تحميل الفروقات', 'info');
+}
+
+async function gitFetchRepos() {
+  const data = await apiGet('/github/api/gh/repos');
+  if (data.repos) {
+    _showGitOutput(data.repos.map(r => `${r.private ? '🔒' : '🌐'} ${r.name}`).join('\n'), true);
+  } else {
+    _showGitOutput(data.error || 'فشل', false);
+    showToast(data.error || 'فشل', 'error');
+  }
+}
+
+async function createReleaseBackup() {
+  if (!confirm('إنشاء نسخة احتياطية ثم Push إلى GitHub؟')) return;
+  showToast('⏳ جارٍ إنشاء النسخة الاحتياطية…', 'info');
+  const bk = await apiPost('/backups/api/create', { label: 'release' });
+  if (!bk.ok) { showToast(bk.error || 'فشل النسخ', 'error'); return; }
+  showToast(`✅ نسخة احتياطية: ${bk.name}`, 'success');
+  const msg = `Release backup: ${bk.name} (${bk.size})`;
+  document.getElementById('commit-msg').value = msg;
+  const push = await apiPost('/github/api/push', { message: msg });
+  _showGitOutput(push.output || (push.ok ? 'تم Push' : 'فشل Push'), push.ok);
+  showToast(push.ok ? '✅ تم Push بنجاح' : push.output || 'فشل Push', push.ok ? 'success' : 'error');
+  refreshGitInfo();
+}
+
+async function refreshGitInfo() {
+  const data = await apiGet('/github/api/info');
+  _setText('git-branch', '🌿 ' + data.branch);
+  _setText('git-branch-header', data.branch);
+  const commits = document.getElementById('git-commits');
+  if (commits && data.commits) {
+    commits.innerHTML = data.commits.map(c => `
+      <div class="scroll-list-item">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:.65rem;background:rgba(168,85,247,0.15);border-radius:4px;padding:2px 6px;font-family:monospace;color:var(--purple)">${c.slice(0,7)}</span>
+          <code style="font-size:.75rem;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.slice(8)}</code>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+</script>
+{% endblock %}

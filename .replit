@@ -1,0 +1,134 @@
+modules = ["python-3.12", "nodejs-20", "web"]
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+run = ["bash", "-c", "PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages:$PYTHONPATH python3 /home/runner/workspace/extracted_project/control_panel/server.py"]
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "PrimeDownloader Bot"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Support Bot"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Admin Bot"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Developer Bot"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "TitanX Control Panel"
+
+[[workflows.workflow]]
+name = "PrimeDownloader Bot"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 python3 /home/runner/workspace/extracted_project/bot.py"
+
+[[workflows.workflow]]
+name = "Support Bot"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 python3 /home/runner/workspace/extracted_project/support_bot/bot.py"
+
+[[workflows.workflow]]
+name = "Admin Bot"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 python3 /home/runner/workspace/extracted_project/admin_bot/bot.py"
+
+[[workflows.workflow]]
+name = "Developer Bot"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 python3 /home/runner/workspace/extracted_project/developer_bot/bot.py"
+
+[[workflows.workflow]]
+name = "TitanX Control Panel"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages PYTHONDONTWRITEBYTECODE=1 python3 extracted_project/control_panel/server.py"
+waitForPort = 5000
+
+[agent]
+stack = "BEST_EFFORT_FALLBACK"
+expertMode = true
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 8081
+externalPort = 80
+
+[[ports]]
+localPort = 8082
+externalPort = 3000
+
+[userenv]
+
+[userenv.shared]
+OWNER_ID = "7631249810"
+ADMIN_IDS = "7631249810"
+SUPPORT_BOT_USERNAME = "x_support_team_bot"
+ADMIN_BOT_USERNAME = "x_admin_dev_bot"
+REQUIRED_CHANNEL = "@Sounnnd"
+SUPPORT_BOT_TOKEN = "8868557719:AAHOjjnbU8l8SOCTqChAN5XmNjaeHMt7xaY"
+TELEGRAM_BOT_TOKEN = "8994985055:AAGQ-2RCAVmPtclxB2knhfgc759ifcEUHhg"
+DEVELOPER_BOT_TOKEN = "8958110006:AAHnf5pb_fWc8S8XBSdVd_W0xv4GTMOMj0Q"
+ADMIN_BOT_TOKEN = "8883059503:AAEj5NMTtuyxT2-fI4tIRzjFu1wrFaWnd40"
+PANEL_PASSWORD = "9,c4A,tw_Q!*iL"
+CONTROL_PANEL_PORT = "5000"
+PYTHONPATH = "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages"
+
+[nix]
+packages = ["cargo", "freetype", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "rustc", "tcl", "tk", "zip", "zlib"]
+channel = "stable-25_05"

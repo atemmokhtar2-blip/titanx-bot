@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+{% block title %}مركز التحكم بالبوتات — TitanX{% endblock %}
+{% block page_title %}🤖 مركز التحكم بالبوتات{% endblock %}
+
+{% block content %}
+<div class="page-title">
+  <span class="icon">🤖</span>
+  مركز التحكم بالبوتات
+</div>
+
+<!-- Bot Status Grid -->
+<div class="bots-control-grid" id="bots-grid">
+  {% for bot in bots %}
+  <div class="bot-control-card" id="bot-card-{{ bot.key }}">
+    <div class="bot-ctrl-header">
+      <div class="bot-ctrl-avatar" style="background:linear-gradient(135deg,{{ bot.color }},{{ bot.color }}66)">
+        {{ bot.icon }}
+      </div>
+      <div class="bot-ctrl-info">
+        <div class="bot-ctrl-name">{{ bot.label }}</div>
+        <div class="bot-ctrl-pid" id="bot-status-{{ bot.key }}">
+          {% if bot.running %}
+          <span class="dot dot-green"></span>
+          يعمل{% if bot.pid %} · <code style="font-size:.68rem">PID {{ bot.pid }}</code>{% endif %}
+          {% else %}
+          <span class="dot dot-red"></span> متوقف
+          {% endif %}
+        </div>
+      </div>
+      <div id="bot-badge-{{ bot.key }}">
+        {% if bot.running %}
+        <span class="badge badge-green">🟢 نشط</span>
+        {% else %}
+        <span class="badge badge-red">🔴 متوقف</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="bot-ctrl-script">
+      <code>{{ bot.script }}</code>
+    </div>
+
+    <div class="bot-ctrl-actions">
+      <button class="btn btn-success btn-sm" onclick="botStart('{{ bot.key }}')" id="start-{{ bot.key }}"
+        {% if bot.running %}disabled{% endif %}>▶️ تشغيل</button>
+      <button class="btn btn-danger btn-sm" onclick="botStop('{{ bot.key }}')" id="stop-{{ bot.key }}"
+        {% if not bot.running %}disabled{% endif %}>⏹️ إيقاف</button>
+      <button class="btn btn-warning btn-sm" onclick="botRestart('{{ bot.key }}')" id="restart-{{ bot.key }}">🔄 إعادة</button>
+      <button class="btn btn-ghost btn-sm" onclick="botLogs('{{ bot.key }}')">📋 سجلات</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Emergency Panel -->
+<div class="card" style="margin-top:24px;border-color:rgba(239,68,68,0.25);background:linear-gradient(135deg,var(--card),rgba(239,68,68,0.04))">
+  <div class="card-title" style="color:var(--red)">🚨 لوحة التحكم الطارئة</div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+    <button class="btn btn-danger" onclick="restartAll()" id="restart-all-btn">🔄 إعادة تشغيل الكل</button>
+    <button class="btn btn-primary" onclick="stopAll()" id="stop-all-btn">⏹️ إيقاف الكل</button>
+    <button class="btn btn-ghost" onclick="refreshAllStatus(true)">📊 تحديث الحالة</button>
+    <a href="/ai" class="btn btn-ghost">🤖 مركز AI</a>
+  </div>
+  <div style="color:var(--text2);font-size:.82rem;margin-bottom:8px">⚠️ إعادة التشغيل ستوقف البوتات مؤقتاً ثم تعيد تشغيلها</div>
+  <div id="emergency-log" class="code-block" style="max-height:160px;display:none"></div>
+</div>
+
+<!-- Log Viewer -->
+<div class="card" style="margin-top:24px;display:none" id="log-viewer-card">
+  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span id="log-viewer-title">📋 سجلات البوت</span>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" id="log-refresh-btn">🔄 تحديث</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('log-viewer-card').style.display='none'">✕ إغلاق</button>
+    </div>
+  </div>
+  <div class="code-block" id="bot-log-view" style="max-height:450px">جارٍ التحميل…</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── State management ──────────────────────────────────────────────────────────
+const BOT_LABELS = {
+  main: 'البوت الرئيسي',
+  admin: 'بوت الإدمن',
+  support: 'بوت الدعم',
+  dev: 'بوت المطور'
+};
+
+function _setBotState(key, state, pid) {
+  // state: 'running' | 'stopped' | 'restarting' | 'error'
+  const badge = document.getElementById(`bot-badge-${key}`);
+  const status = document.getElementById(`bot-status-${key}`);
+  const startBtn = document.getElementById(`start-${key}`);
+  const stopBtn = document.getElementById(`stop-${key}`);
+  const restartBtn = document.getElementById(`restart-${key}`);
+
+  const states = {
+    running: {
+      badge: '<span class="badge badge-green">🟢 نشط</span>',
+      status: `<span class="dot dot-green"></span> يعمل${pid ? ` · <code style="font-size:.68rem">PID ${pid}</code>` : ''}`,
+      startDis: true, stopDis: false,
+    },
+    stopped: {
+      badge: '<span class="badge badge-red">🔴 متوقف</span>',
+      status: '<span class="dot dot-red"></span> متوقف',
+      startDis: false, stopDis: true,
+    },
+    restarting: {
+      badge: '<span class="badge badge-yellow">🟡 إعادة تشغيل</span>',
+      status: '<span class="dot dot-yellow"></span> جارٍ إعادة التشغيل…',
+      startDis: true, stopDis: true,
+    },
+    error: {
+      badge: '<span class="badge badge-red">🔴 خطأ</span>',
+      status: '<span class="dot dot-red"></span> خطأ',
+      startDis: false, stopDis: true,
+    },
+  };
+
+  const s = states[state] || states.stopped;
+  if (badge) badge.innerHTML = s.badge;
+  if (status) status.innerHTML = s.status;
+  if (startBtn) startBtn.disabled = s.startDis;
+  if (stopBtn) stopBtn.disabled = s.stopDis;
+  if (restartBtn) restartBtn.disabled = state === 'restarting';
+}
+
+async function _pollBotStatus(key, maxTries = 8) {
+  for (let i = 0; i < maxTries; i++) {
+    await new Promise(r => setTimeout(r, 1500));
+    const data = await apiGet('/bots/api/status').catch(() => null);
+    if (!data) continue;
+    const bot = data.bots?.find(b => b.key === key);
+    if (bot) {
+      _setBotState(key, bot.running ? 'running' : 'stopped', bot.pid);
+      return bot.running;
+    }
+  }
+  _setBotState(key, 'error');
+  return false;
+}
+
+// ── Bot controls ──────────────────────────────────────────────────────────────
+async function botStart(key) {
+  _setBotState(key, 'restarting');
+  const btn = document.getElementById(`start-${key}`);
+  if (btn) { btn.innerHTML = '<span class="spinner"></span>'; }
+  const data = await apiPost(`/bots/api/start/${key}`, {});
+  if (btn) btn.innerHTML = '▶️ تشغيل';
+  if (data.ok) {
+    showToast(data.message, 'success');
+    await _pollBotStatus(key);
+  } else {
+    _setBotState(key, 'error');
+    showToast(data.error || 'فشل التشغيل', 'error');
+  }
+}
+
+async function botStop(key) {
+  if (!confirm(`إيقاف ${BOT_LABELS[key] || key}؟`)) return;
+  _setBotState(key, 'restarting');
+  const btn = document.getElementById(`stop-${key}`);
+  if (btn) btn.innerHTML = '<span class="spinner"></span>';
+  const data = await apiPost(`/bots/api/stop/${key}`, {});
+  if (btn) btn.innerHTML = '⏹️ إيقاف';
+  if (data.ok) {
+    showToast(data.message, 'success');
+    // Give it time to die, then poll
+    await new Promise(r => setTimeout(r, 1000));
+    await _pollBotStatus(key);
+  } else {
+    _setBotState(key, 'error');
+    showToast(data.error || 'فشل الإيقاف', 'error');
+  }
+}
+
+async function botRestart(key) {
+  _setBotState(key, 'restarting');
+  const btn = document.getElementById(`restart-${key}`);
+  if (btn) btn.innerHTML = '<span class="spinner"></span>';
+  showToast(`جارٍ إعادة تشغيل ${BOT_LABELS[key] || key}…`, 'info');
+  // Stop first
+  await apiPost(`/bots/api/stop/${key}`, {}).catch(() => {});
+  await new Promise(r => setTimeout(r, 2000));
+  const startData = await apiPost(`/bots/api/start/${key}`, {});
+  if (btn) btn.innerHTML = '🔄 إعادة';
+  if (startData.ok) {
+    showToast(`✅ تم إعادة تشغيل ${BOT_LABELS[key] || key}`, 'success');
+    await _pollBotStatus(key);
+  } else {
+    _setBotState(key, 'error');
+    showToast(startData.error || 'فشل', 'error');
+  }
+}
+
+async function stopAll() {
+  if (!confirm('إيقاف جميع البوتات؟')) return;
+  const btn = document.getElementById('stop-all-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>'; }
+  for (const k of Object.keys(BOT_LABELS)) _setBotState(k, 'restarting');
+  for (const k of Object.keys(BOT_LABELS)) await apiPost(`/bots/api/stop/${k}`, {}).catch(() => {});
+  if (btn) { btn.disabled = false; btn.innerHTML = '⏹️ إيقاف الكل'; }
+  showToast('تم إيقاف جميع البوتات', 'warning');
+  await new Promise(r => setTimeout(r, 2000));
+  refreshAllStatus(true);
+}
+
+async function restartAll() {
+  if (!confirm('إعادة تشغيل جميع البوتات؟ سيتم إيقافها مؤقتاً.')) return;
+  const btn = document.getElementById('restart-all-btn');
+  const log = document.getElementById('emergency-log');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> جارٍ…'; }
+  if (log) { log.style.display = 'block'; log.textContent = '⏳ جارٍ إعادة تشغيل جميع البوتات…\n'; }
+  for (const k of Object.keys(BOT_LABELS)) _setBotState(k, 'restarting');
+  const data = await apiPost('/bots/api/restart_all', {});
+  if (btn) { btn.disabled = false; btn.innerHTML = '🔄 إعادة تشغيل الكل'; }
+  if (log && data.results) log.textContent = '✅ النتائج:\n' + data.results.join('\n');
+  showToast('تمت إعادة تشغيل جميع البوتات', 'success');
+  await new Promise(r => setTimeout(r, 3000));
+  refreshAllStatus(true);
+}
+
+async function refreshAllStatus(toast = false) {
+  const data = await apiGet('/bots/api/status').catch(() => null);
+  if (!data) return;
+  data.bots?.forEach(bot => _setBotState(bot.key, bot.running ? 'running' : 'stopped', bot.pid));
+  if (toast) showToast('تم تحديث الحالة', 'info');
+}
+
+// ── Log viewer ────────────────────────────────────────────────────────────────
+let _currentLogKey = '';
+async function botLogs(key) {
+  _currentLogKey = key;
+  const card = document.getElementById('log-viewer-card');
+  const title = document.getElementById('log-viewer-title');
+  const view = document.getElementById('bot-log-view');
+  const refreshBtn = document.getElementById('log-refresh-btn');
+  if (card) card.style.display = 'block';
+  if (title) title.textContent = `📋 سجلات ${BOT_LABELS[key] || key}`;
+  if (refreshBtn) refreshBtn.onclick = () => _loadBotLogs(key);
+  await _loadBotLogs(key);
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+async function _loadBotLogs(key) {
+  const view = document.getElementById('bot-log-view');
+  if (view) view.textContent = '⏳ جارٍ التحميل…';
+  const data = await apiGet(`/bots/api/logs/${key}?lines=150`).catch(() => ({ lines: ['خطأ في الاتصال'] }));
+  if (!view) return;
+  if (!data.lines || data.lines.length === 0) {
+    view.innerHTML = '<div style="color:var(--text2);padding:16px;text-align:center">لا توجد سجلات متاحة</div>';
+  } else {
+    view.innerHTML = data.lines.map(l => {
+      const cls = /ERROR|error/i.test(l) ? 'error' : /WARN/i.test(l) ? 'warning' : /INFO/.test(l) ? 'info' : '';
+      return `<div class="log-line ${cls}">${l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+    }).join('');
+    view.scrollTop = view.scrollHeight;
+  }
+}
+
+// Auto-refresh every 10s
+setInterval(() => refreshAllStatus(false), 10000);
+</script>
+{% endblock %}

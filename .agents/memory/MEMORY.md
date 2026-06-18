@@ -1,0 +1,1 @@
+- [TitanX Control Panel](titanx-panel.md) — FastAPI panel on port 5000; password login at POST /login; PYTHONPATH must be set in workflow command; cookie secure flag is dynamic (HTTPS-aware).

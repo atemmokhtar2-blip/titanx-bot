@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+{% block title %}لوحة التحكم — TitanX{% endblock %}
+{% block page_title %}📊 لوحة التحكم{% endblock %}
+
+{% block content %}
+<!-- Stats Grid -->
+<div class="stats-grid">
+  <div class="stat-card" style="--accent-color:var(--accent);--accent-rgb:59,130,246">
+    <div class="stat-icon">👥</div>
+    <div class="stat-value" data-count="{{ stats.total_users }}">0</div>
+    <div class="stat-label">إجمالي المستخدمين</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--yellow);--accent-rgb:245,158,11">
+    <div class="stat-icon">⭐</div>
+    <div class="stat-value" data-count="{{ stats.vip_users }}">0</div>
+    <div class="stat-label">مستخدمو VIP</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--green);--accent-rgb:34,197,94">
+    <div class="stat-icon">📥</div>
+    <div class="stat-value" data-count="{{ stats.total_downloads }}">0</div>
+    <div class="stat-label">إجمالي التحميلات</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--cyan);--accent-rgb:6,182,212">
+    <div class="stat-icon">📅</div>
+    <div class="stat-value" data-count="{{ stats.today_downloads }}">0</div>
+    <div class="stat-label">تحميلات اليوم</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--purple);--accent-rgb:168,85,247">
+    <div class="stat-icon">🔗</div>
+    <div class="stat-value" data-count="{{ stats.total_referrals }}">0</div>
+    <div class="stat-label">الإحالات</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--green);--accent-rgb:34,197,94">
+    <div class="stat-icon">🟢</div>
+    <div class="stat-value" data-count="{{ stats.active_today }}">0</div>
+    <div class="stat-label">نشطون اليوم</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--red);--accent-rgb:239,68,68">
+    <div class="stat-icon">🎫</div>
+    <div class="stat-value" data-count="{{ stats.open_tickets }}">0</div>
+    <div class="stat-label">تذاكر مفتوحة</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--orange);--accent-rgb:249,115,22">
+    <div class="stat-icon">🎯</div>
+    <div class="stat-value" data-count="{{ stats.total_points_issued }}">0</div>
+    <div class="stat-label">إجمالي النقاط</div>
+  </div>
+</div>
+
+<!-- Live System Metrics -->
+<div class="system-metrics-strip" style="margin-bottom:24px">
+  <div class="metric-pill">
+    <span class="metric-pill-icon">⚡</span>
+    <span class="metric-pill-label">CPU</span>
+    <span class="metric-pill-value" id="dash-cpu">--</span>
+    <div class="metric-pill-bar"><div class="metric-pill-fill" id="dash-cpu-bar" style="width:0%"></div></div>
+  </div>
+  <div class="metric-pill">
+    <span class="metric-pill-icon">💾</span>
+    <span class="metric-pill-label">RAM</span>
+    <span class="metric-pill-value" id="dash-ram">--</span>
+    <div class="metric-pill-bar"><div class="metric-pill-fill" id="dash-ram-bar" style="width:0%;background:var(--green)"></div></div>
+  </div>
+  <div class="metric-pill">
+    <span class="metric-pill-icon">💿</span>
+    <span class="metric-pill-label">قرص</span>
+    <span class="metric-pill-value" id="dash-disk">--</span>
+    <div class="metric-pill-bar"><div class="metric-pill-fill" id="dash-disk-bar" style="width:0%;background:var(--purple)"></div></div>
+  </div>
+  <div class="metric-pill">
+    <span class="metric-pill-icon">🕐</span>
+    <span class="metric-pill-label">تشغيل</span>
+    <span class="metric-pill-value" id="dash-uptime" style="font-size:.72rem">--</span>
+  </div>
+  <div class="metric-pill">
+    <span class="metric-pill-icon">📤</span>
+    <span class="metric-pill-label">شبكة</span>
+    <span class="metric-pill-value" id="dash-net" style="font-size:.72rem">--</span>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-bottom:24px">
+  <!-- Downloads Chart -->
+  <div class="card">
+    <div class="card-title">📈 التحميلات — آخر 7 أيام</div>
+    {% if chart %}
+    {% set max_val = chart | map(attribute='cnt') | max %}
+    <div class="chart-bar-wrap" id="dl-chart">
+      {% for point in chart %}
+      <div class="chart-bar"
+           style="height:{{ ((point.cnt / max_val) * 100) | int if max_val > 0 else 5 }}%"
+           data-val="{{ point.cnt }} — {{ point.day }}"
+           title="{{ point.day }}: {{ point.cnt }}">
+      </div>
+      {% endfor %}
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px">
+      {% for point in chart %}
+      <span style="font-size:.65rem;color:var(--text2)">{{ point.day[-5:] }}</span>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="color:var(--text2);text-align:center;padding:24px">لا توجد بيانات بعد</div>
+    {% endif %}
+  </div>
+
+  <!-- Bot Status + Live Chart -->
+  <div class="card">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>🤖 حالة البوتات</span>
+      <a href="/bots" class="btn btn-ghost btn-sm">إدارة ›</a>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px" id="dash-bot-status">
+      <div class="dash-bot-row" id="dash-bot-main">
+        <div class="dash-bot-avatar">🤖</div>
+        <div class="dash-bot-info">
+          <div class="dash-bot-name">البوت الرئيسي</div>
+          <div class="dash-bot-stat"><span class="dot dot-yellow"></span> جارٍ التحقق…</div>
+        </div>
+        <div class="dash-bot-badge"></div>
+      </div>
+      <div class="dash-bot-row" id="dash-bot-admin">
+        <div class="dash-bot-avatar">🛡️</div>
+        <div class="dash-bot-info">
+          <div class="dash-bot-name">بوت الإدمن</div>
+          <div class="dash-bot-stat"><span class="dot dot-yellow"></span> جارٍ التحقق…</div>
+        </div>
+        <div class="dash-bot-badge"></div>
+      </div>
+      <div class="dash-bot-row" id="dash-bot-support">
+        <div class="dash-bot-avatar">🎧</div>
+        <div class="dash-bot-info">
+          <div class="dash-bot-name">بوت الدعم</div>
+          <div class="dash-bot-stat"><span class="dot dot-yellow"></span> جارٍ التحقق…</div>
+        </div>
+        <div class="dash-bot-badge"></div>
+      </div>
+      <div class="dash-bot-row" id="dash-bot-dev">
+        <div class="dash-bot-avatar">⚙️</div>
+        <div class="dash-bot-info">
+          <div class="dash-bot-name">بوت المطور</div>
+          <div class="dash-bot-stat"><span class="dot dot-yellow"></span> جارٍ التحقق…</div>
+        </div>
+        <div class="dash-bot-badge"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Live Activity Feed + Recent Activity -->
+<div class="grid-2" style="margin-bottom:24px;align-items:start">
+  <!-- Live Activity -->
+  <div class="card">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>⚡ النشاط المباشر</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="dot dot-green" style="width:6px;height:6px"></span>
+        <span style="font-size:.75rem;color:var(--text2)">مباشر</span>
+      </div>
+    </div>
+    <div id="live-activity-feed" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:6px">
+      <div style="text-align:center;color:var(--text2);padding:20px;font-size:.85rem">جارٍ تحميل الأحداث…</div>
+    </div>
+  </div>
+
+  <!-- Recent Downloads -->
+  <div class="card">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>📥 النشاط الأخير</span>
+      <a href="/users" class="btn btn-ghost btn-sm">عرض الكل</a>
+    </div>
+    {% if activity %}
+    <div style="display:flex;flex-direction:column;gap:8px">
+      {% for a in activity[:6] %}
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:1.1rem">
+          {% set icons = {'youtube':'▶️','tiktok':'🎵','instagram':'📸','facebook':'📘','twitter':'🐦','pinterest':'📌','spotify':'🎧','soundcloud':'🔊','reddit':'🤖','vimeo':'🎬'} %}
+          {% set plat = (a.platform or '').lower() %}
+          {{ icons.get(plat, '🌐') }}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            {{ a.first_name or '---' }}{% if a.username %} · @{{ a.username }}{% endif %}
+          </div>
+          <div style="font-size:.73rem;color:var(--text2)">{{ a.platform or '---' }} · {{ (a.created_at or '')[:16] }}</div>
+        </div>
+        {% if a.media_type == 'video' %}<span class="badge badge-blue" style="font-size:.65rem">فيديو</span>
+        {% elif a.media_type == 'audio' %}<span class="badge badge-purple" style="font-size:.65rem">صوت</span>
+        {% else %}<span class="badge badge-gray" style="font-size:.65rem">{{ a.media_type or '---' }}</span>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align:center;color:var(--text2);padding:32px">لا يوجد نشاط بعد</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Quick Links -->
+<div class="grid-3" style="margin-top:0">
+  <a href="/users" class="card" style="text-decoration:none;cursor:pointer">
+    <div style="font-size:2rem;margin-bottom:8px">👥</div>
+    <div style="font-weight:700">إدارة المستخدمين</div>
+    <div style="color:var(--text2);font-size:.85rem;margin-top:4px">{{ stats.total_users }} مستخدم</div>
+  </a>
+  <a href="/bots" class="card" style="text-decoration:none;cursor:pointer">
+    <div style="font-size:2rem;margin-bottom:8px">🤖</div>
+    <div style="font-weight:700">مركز البوتات</div>
+    <div style="color:var(--text2);font-size:.85rem;margin-top:4px">تشغيل وإيقاف ومراقبة</div>
+  </a>
+  <a href="/ai" class="card" style="text-decoration:none;cursor:pointer;border-color:rgba(59,130,246,0.2)">
+    <div style="font-size:2rem;margin-bottom:8px">🤖</div>
+    <div style="font-weight:700">مركز AI والاسترداد</div>
+    <div style="color:var(--text2);font-size:.85rem;margin-top:4px">فحص وإصلاح المشروع</div>
+  </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Live system metrics strip ─────────────────────────────────────────────────
+async function _updateDashMetrics() {
+  try {
+    const d = await apiGet('/system/api/stats');
+    _setText('dash-cpu', d.cpu_percent.toFixed(1) + '%');
+    _setText('dash-ram', d.mem_used_h + '/' + d.mem_total_h);
+    _setText('dash-disk', d.disk_used_h);
+    _setText('dash-uptime', d.uptime);
+    _setText('dash-net', '↑' + d.net_sent_h + ' ↓' + d.net_recv_h);
+    const cpuBar = document.getElementById('dash-cpu-bar');
+    if (cpuBar) {
+      cpuBar.style.width = d.cpu_percent + '%';
+      cpuBar.style.background = d.cpu_percent > 85 ? 'var(--red)' : d.cpu_percent > 60 ? 'var(--yellow)' : 'var(--accent)';
+    }
+    const ramBar = document.getElementById('dash-ram-bar');
+    if (ramBar) {
+      ramBar.style.width = d.mem_percent + '%';
+      ramBar.style.background = d.mem_percent > 85 ? 'var(--red)' : d.mem_percent > 60 ? 'var(--yellow)' : 'var(--green)';
+    }
+    const diskBar = document.getElementById('dash-disk-bar');
+    if (diskBar) {
+      diskBar.style.width = d.disk_percent + '%';
+      diskBar.style.background = d.disk_percent > 85 ? 'var(--red)' : 'var(--purple)';
+    }
+  } catch(e) {}
+}
+
+// ── Live bot status ───────────────────────────────────────────────────────────
+async function _updateDashBots() {
+  try {
+    const d = await apiGet('/bots/api/status');
+    d.bots?.forEach(bot => {
+      const row = document.getElementById(`dash-bot-${bot.key}`);
+      if (!row) return;
+      const stat = row.querySelector('.dash-bot-stat');
+      const badge = row.querySelector('.dash-bot-badge');
+      if (stat) stat.innerHTML = bot.running
+        ? `<span class="dot dot-green"></span> يعمل`
+        : `<span class="dot dot-red"></span> متوقف`;
+      if (badge) badge.innerHTML = bot.running
+        ? '<span class="badge badge-green" style="font-size:.68rem">نشط</span>'
+        : '<span class="badge badge-red" style="font-size:.68rem">متوقف</span>';
+    });
+  } catch(e) {}
+}
+
+// ── Activity feed ─────────────────────────────────────────────────────────────
+async function _updateActivityFeed() {
+  try {
+    const d = await apiGet('/activity/api/events?n=15');
+    const feed = document.getElementById('live-activity-feed');
+    if (!feed) return;
+    const events = d.events || [];
+    if (events.length === 0) {
+      feed.innerHTML = '<div style="text-align:center;color:var(--text2);padding:20px;font-size:.85rem">لا توجد أحداث بعد</div>';
+      return;
+    }
+    feed.innerHTML = events.map(e => `
+      <div class="activity-item">
+        <div class="activity-icon activity-${e.color}">${e.icon}</div>
+        <div class="activity-info">
+          <div class="activity-msg">${e.message}</div>
+          ${e.detail ? `<div class="activity-detail">${e.detail}</div>` : ''}
+        </div>
+        <div class="activity-time">${e.time}</div>
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  _updateDashMetrics();
+  _updateDashBots();
+  _updateActivityFeed();
+  setInterval(_updateDashMetrics, 4000);
+  setInterval(_updateDashBots, 8000);
+  setInterval(_updateActivityFeed, 6000);
+});
+</script>
+{% endblock %}

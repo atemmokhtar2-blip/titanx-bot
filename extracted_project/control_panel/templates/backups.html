@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}مركز النسخ الاحتياطية — TitanX{% endblock %}
+{% block page_title %}💾 مركز النسخ الاحتياطية{% endblock %}
+
+{% block content %}
+<div class="page-title">
+  <span class="icon">💾</span>
+  مركز النسخ الاحتياطية
+</div>
+
+<div class="grid-2" style="align-items:start;gap:20px">
+
+  <!-- Left: Create + Info -->
+  <div style="display:flex;flex-direction:column;gap:20px">
+
+    <div class="card" style="border-color:rgba(59,130,246,0.25)">
+      <div class="card-title">📦 إنشاء نسخة احتياطية</div>
+      <div class="form-group">
+        <label class="form-label">نوع النسخة</label>
+        <select class="form-control" id="backup-strategy">
+          <option value="manual">يدوية (manual)</option>
+          <option value="daily">يومية (daily)</option>
+          <option value="weekly">أسبوعية (weekly)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">تسمية <span style="color:var(--text3)">(اختياري)</span></label>
+        <input class="form-control" id="backup-label" placeholder="مثال: قبل_التحديث">
+      </div>
+      <button class="btn btn-primary btn-lg" id="create-backup-btn" onclick="createBackupNew()" style="width:100%">
+        💾 إنشاء نسخة احتياطية
+      </button>
+      <div id="backup-progress" style="margin-top:14px;display:none">
+        <div class="alert alert-info">⏳ جارٍ إنشاء النسخة والتحقق منها…</div>
+      </div>
+      <!-- Integrity Report -->
+      <div id="backup-integrity-report" style="margin-top:14px;display:none"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">ℹ️ ماذا تشمل النسخة؟</div>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:.875rem">
+        <div class="backup-info-row">
+          <span class="backup-info-icon">✅</span>
+          <div>
+            <div style="font-weight:600">الكود المصدري</div>
+            <div style="color:var(--text2)">bot.py، admin_bot، support_bot، developer_bot، control_panel</div>
+          </div>
+        </div>
+        <div class="backup-info-row">
+          <span class="backup-info-icon">✅</span>
+          <div>
+            <div style="font-weight:600">قواعد البيانات</div>
+            <div style="color:var(--text2)">bot.db، support.db، developer.db</div>
+          </div>
+        </div>
+        <div class="backup-info-row">
+          <span class="backup-info-icon">✅</span>
+          <div>
+            <div style="font-weight:600">ملفات الإعداد والسجلات</div>
+            <div style="color:var(--text2)">JSON، YAML، INI، logs</div>
+          </div>
+        </div>
+        <div class="backup-info-row">
+          <span class="backup-info-icon" style="opacity:.5">❌</span>
+          <div>
+            <div style="font-weight:600;color:var(--text2)">مستبعد</div>
+            <div style="color:var(--text3)">__pycache__, .git, venv, node_modules, backups</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right: Backup List -->
+  <div class="card">
+    <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>📋 النسخ الاحتياطية (<span id="backup-count">{{ backups | length }}</span>)</span>
+      <button class="btn btn-ghost btn-sm" onclick="loadBackups()">🔄 تحديث</button>
+    </div>
+
+    <!-- Filter tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="btn btn-sm btn-ghost active" id="filter-all" onclick="filterBackups('all')">الكل</button>
+      <button class="btn btn-sm btn-ghost" id="filter-manual" onclick="filterBackups('manual')">يدوية</button>
+      <button class="btn btn-sm btn-ghost" id="filter-daily" onclick="filterBackups('daily')">يومية</button>
+      <button class="btn btn-sm btn-ghost" id="filter-weekly" onclick="filterBackups('weekly')">أسبوعية</button>
+      <button class="btn btn-sm btn-ghost" id="filter-ai" onclick="filterBackups('ai')">AI</button>
+    </div>
+
+    <div id="backups-list">
+      {% if backups %}
+        {% for b in backups %}
+        <div class="backup-item" data-name="{{ b.name }}" data-category="{{ b.category }}">
+          <div class="backup-item-icon">📦</div>
+          <div class="backup-item-info">
+            <div class="backup-item-name">{{ b.name }}</div>
+            <div class="backup-item-meta">
+              <span class="badge badge-blue">{{ b.size }}</span>
+              {% if b.category == 'daily' %}<span class="badge badge-green">يومية</span>
+              {% elif b.category == 'weekly' %}<span class="badge badge-purple">أسبوعية</span>
+              {% elif b.category == 'ai' %}<span class="badge badge-cyan">AI</span>
+              {% else %}<span class="badge badge-gray">يدوية</span>{% endif %}
+              <span style="color:var(--text2);font-size:.74rem">🕐 {{ b.created }}</span>
+            </div>
+          </div>
+          <div class="backup-item-actions">
+            <button class="btn btn-ghost btn-sm" onclick="verifyBackup('{{ b.name }}')" title="التحقق">🔍</button>
+            <a href="/backups/api/download/{{ b.name }}" class="btn btn-success btn-sm">⬇️</a>
+            <button class="btn btn-danger btn-sm" onclick="deleteBackup('{{ b.name }}')">🗑️</button>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div id="no-backups-msg" style="text-align:center;color:var(--text2);padding:40px 20px">
+          <div style="font-size:3rem;margin-bottom:12px">📭</div>
+          <div style="font-weight:600;margin-bottom:6px">لا توجد نسخ احتياطية بعد</div>
+          <div style="font-size:.82rem">أنشئ أول نسخة لحماية بياناتك</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let _allBackups = [];
+let _currentFilter = 'all';
+
+async function createBackupNew() {
+  const label = document.getElementById('backup-label')?.value || '';
+  const strategy = document.getElementById('backup-strategy')?.value || 'manual';
+  const btn = document.getElementById('create-backup-btn');
+  const progress = document.getElementById('backup-progress');
+  const report = document.getElementById('backup-integrity-report');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> جارٍ الإنشاء والتحقق…'; }
+  if (progress) progress.style.display = 'block';
+  if (report) report.style.display = 'none';
+  const data = await apiPost('/backups/api/create', { label, strategy });
+  if (btn) { btn.disabled = false; btn.innerHTML = '💾 إنشاء نسخة احتياطية'; }
+  if (progress) progress.style.display = 'none';
+  if (data.ok) {
+    if (report) {
+      report.style.display = 'block';
+      const v = data.verification || {};
+      report.innerHTML = `
+        <div class="alert alert-success">
+          ✅ <b>تم إنشاء النسخة والتحقق منها بنجاح</b><br>
+          📦 ${data.name}<br>
+          📏 الحجم: ${data.size} · 📁 الملفات: ${data.file_count}<br>
+          🔒 الأرشيف سليم وجاهز للاستخدام
+        </div>`;
+    }
+    showToast(`✅ تم الإنشاء: ${data.name}`, 'success');
+    loadBackups();
+  } else {
+    if (report) {
+      report.style.display = 'block';
+      report.innerHTML = `<div class="alert alert-danger">❌ فشل إنشاء النسخة: ${data.error}</div>`;
+    }
+    showToast(data.error || 'فشل الإنشاء', 'error');
+  }
+}
+
+async function loadBackups() {
+  const data = await apiGet('/backups/api/list');
+  _allBackups = data.backups || [];
+  document.getElementById('backup-count').textContent = _allBackups.length;
+  renderBackups(_allBackups, _currentFilter);
+}
+
+function filterBackups(cat) {
+  _currentFilter = cat;
+  document.querySelectorAll('[id^="filter-"]').forEach(b => b.classList.remove('active'));
+  document.getElementById('filter-' + cat)?.classList.add('active');
+  renderBackups(_allBackups, cat);
+}
+
+function renderBackups(backups, filter) {
+  const list = document.getElementById('backups-list');
+  if (!list) return;
+  const filtered = filter === 'all' ? backups : backups.filter(b => b.category === filter);
+  if (filtered.length === 0) {
+    list.innerHTML = `<div style="text-align:center;color:var(--text2);padding:40px">
+      <div style="font-size:2.5rem;margin-bottom:8px">📭</div>
+      <div>لا توجد نسخ في هذه الفئة</div>
+    </div>`;
+    return;
+  }
+  const catBadges = {
+    daily: '<span class="badge badge-green">يومية</span>',
+    weekly: '<span class="badge badge-purple">أسبوعية</span>',
+    ai: '<span class="badge badge-cyan">AI</span>',
+    manual: '<span class="badge badge-gray">يدوية</span>',
+  };
+  list.innerHTML = filtered.map(b => `
+    <div class="backup-item" data-name="${b.name}" data-category="${b.category}">
+      <div class="backup-item-icon">📦</div>
+      <div class="backup-item-info">
+        <div class="backup-item-name">${b.name}</div>
+        <div class="backup-item-meta">
+          <span class="badge badge-blue">${b.size}</span>
+          ${catBadges[b.category] || ''}
+          <span style="color:var(--text2);font-size:.74rem">🕐 ${b.created}</span>
+        </div>
+      </div>
+      <div class="backup-item-actions">
+        <button class="btn btn-ghost btn-sm" onclick="verifyBackup('${b.name}')" title="التحقق من السلامة">🔍</button>
+        <a href="/backups/api/download/${b.name}" class="btn btn-success btn-sm">⬇️</a>
+        <button class="btn btn-danger btn-sm" onclick="deleteBackup('${b.name}')">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function verifyBackup(name) {
+  showToast('⏳ جارٍ التحقق من سلامة الأرشيف…', 'info');
+  const data = await apiGet(`/backups/api/verify/${encodeURIComponent(name)}`);
+  if (data.ok) {
+    showToast(`✅ الأرشيف سليم — ${data.file_count} ملف — ${data.size}`, 'success');
+  } else {
+    showToast(`❌ فشل التحقق: ${data.error}`, 'error');
+  }
+}
+
+async function deleteBackup(name) {
+  if (!confirm(`هل تريد حذف "${name}"؟ لا يمكن التراجع.`)) return;
+  const r = await fetch(`/backups/api/delete/${encodeURIComponent(name)}`, { method: 'DELETE' });
+  const data = await r.json();
+  if (data.ok) { showToast('✅ تم الحذف', 'success'); loadBackups(); }
+  else showToast(data.error || 'فشل', 'error');
+}
+
+// Init: load backups list from current page data
+document.addEventListener('DOMContentLoaded', () => {
+  // Populate _allBackups from server-rendered data
+  document.querySelectorAll('.backup-item[data-name]').forEach(el => {
+    _allBackups.push({
+      name: el.dataset.name,
+      category: el.dataset.category || 'manual',
+    });
+  });
+});
+</script>
+{% endblock %}

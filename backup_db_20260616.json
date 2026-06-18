@@ -1,0 +1,37 @@
+{
+  "users": [
+    {
+      "user_id": 7631249810,
+      "username": "hatem901",
+      "first_name": "hatem",
+      "last_name": "",
+      "language": "ar",
+      "is_banned": 0,
+      "is_admin": 0,
+      "role": "user",
+      "points": 10,
+      "downloads": 0,
+      "referrals": 0,
+      "referral_code": "0D1288B2",
+      "referred_by": null,
+      "join_date": "2026-06-16 22:11:26",
+      "last_seen": "2026-06-16 22:11:26",
+      "last_daily": null,
+      "vip_until": null
+    }
+  ],
+  "downloads": [],
+  "sqlite_sequence": [],
+  "file_cache": [],
+  "favorites": [],
+  "achievements": [],
+  "reports": [],
+  "support_tickets": [],
+  "broadcast_log": [],
+  "rewards_log": [],
+  "feedback": [],
+  "referrals": [],
+  "referral_audit_log": [],
+  "bot_settings": [],
+  "settings": []
+}

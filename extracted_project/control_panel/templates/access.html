@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TitanX — لوحة التحكم</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="/static/css/style.css">
+<script>
+(function(){
+  const t = localStorage.getItem('titanx_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<style>
+.pw-form{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+.pw-input{background:var(--surface2,#1e293b);border:1.5px solid var(--border,#334155);border-radius:10px;color:var(--text,#f1f5f9);font-family:inherit;font-size:.97rem;padding:11px 14px;text-align:right;transition:border .2s;width:100%;box-sizing:border-box}
+.pw-input:focus{border-color:var(--accent,#6366f1);outline:none}
+.pw-btn{background:linear-gradient(135deg,var(--accent,#6366f1),#8b5cf6);border:none;border-radius:10px;color:#fff;cursor:pointer;font-family:inherit;font-size:1rem;font-weight:700;padding:12px;transition:opacity .2s;width:100%}
+.pw-btn:hover{opacity:.88}
+.pw-divider{align-items:center;color:var(--text2,#94a3b8);display:flex;font-size:.8rem;gap:8px;margin:8px 0}
+.pw-divider::before,.pw-divider::after{content:'';flex:1;height:1px;background:var(--border,#334155)}
+</style>
+</head>
+<body>
+
+<div class="access-page">
+  <div class="access-orbs">
+    <div class="access-orb orb-1"></div>
+    <div class="access-orb orb-2"></div>
+    <div class="access-orb orb-3"></div>
+  </div>
+
+  <div class="access-card slide-up">
+
+    <div class="access-logo-wrap">
+      <div class="access-logo-ring">
+        <div class="access-logo-inner">🎛️</div>
+      </div>
+    </div>
+
+    <h1 class="access-title">TitanX</h1>
+    <p class="access-sub">لوحة التحكم الاحترافية</p>
+
+    {% if error %}
+    <div class="access-alert access-alert-error">
+      <span>⚠️</span>
+      <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Password Login Form -->
+    <form method="post" action="/login" class="pw-form">
+      <input
+        type="password"
+        name="password"
+        class="pw-input"
+        placeholder="كلمة المرور"
+        autocomplete="current-password"
+        required
+      >
+      <button type="submit" class="pw-btn">🔓 دخول</button>
+    </form>
+
+    <div class="access-status-box" style="margin-top:18px">
+      <div class="access-status-row">
+        <span class="access-status-icon">🔐</span>
+        <div>
+          <div class="access-status-label">نظام الحماية</div>
+          <div class="access-status-value">كلمة مرور + رمز دخول</div>
+        </div>
+        <span class="dot dot-green" style="margin-right:auto"></span>
+      </div>
+      <div class="access-status-row" style="margin-top:12px">
+        <span class="access-status-icon">👑</span>
+        <div>
+          <div class="access-status-label">المعرف المصرح له</div>
+          <div class="access-status-value"><code>{{ owner_id }}</code></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="access-theme-btn" onclick="toggleTheme()" title="تبديل الوضع">
+      <span id="theme-icon">☀️</span>
+    </button>
+
+  </div>
+</div>
+
+<script src="/static/js/app.js"></script>
+<script>
+  const t = localStorage.getItem('titanx_theme') || 'dark';
+  document.getElementById('theme-icon').textContent = t === 'dark' ? '☀️' : '🌙';
+</script>
+</body>
+</html>
