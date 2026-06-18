@@ -3,94 +3,118 @@
 {% block page_title %}💾 مركز النسخ الاحتياطية{% endblock %}
 
 {% block content %}
-
-<!-- Header -->
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
-  <div>
-    <div class="page-title" style="margin-bottom:4px">💾 النسخ الاحتياطية</div>
-    <div style="color:var(--text2);font-size:.875rem">إنشاء، تحقق، تنزيل، وحذف النسخ الاحتياطية</div>
-  </div>
-  <button class="btn btn-primary btn-lg" onclick="createBackup()" id="create-btn">
-    ➕ إنشاء نسخة احتياطية
-  </button>
+<div class="page-title fade-up">
+  <span class="icon">💾</span>
+  مركز النسخ الاحتياطية
 </div>
 
-<!-- Create Card -->
-<div class="card mb-3 success-zone">
-  <div class="card-title">🆕 إنشاء نسخة جديدة</div>
-  <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
-    <div class="form-group mb-0" style="flex:1;min-width:200px">
-      <label class="form-label">وسم النسخة (اختياري)</label>
-      <input class="form-control" id="backup-label" placeholder="مثال: قبل_التحديث أو يدوي" maxlength="30">
-    </div>
-    <button class="btn btn-success btn-lg" onclick="createBackup()" id="create-btn-2">
-      💾 إنشاء الآن
-    </button>
+<!-- Stats Overview -->
+<div class="stats-grid mb-3 fade-up">
+  <div class="stat-card" style="--accent-color:var(--accent);--accent-rgb:59,130,246">
+    <div class="stat-icon">📦</div>
+    <div class="stat-value" id="backup-count">{{ backups|length }}</div>
+    <div class="stat-label">نسخة محفوظة</div>
   </div>
-  <div id="create-result" style="margin-top:14px"></div>
-</div>
-
-<!-- Stats Row -->
-<div class="grid-3 mb-3">
-  <div class="card" style="text-align:center;padding:18px">
-    <div style="font-size:2rem;margin-bottom:8px">📦</div>
-    <div class="fw-900" style="font-size:1.8rem" id="backup-count">{{ backups|length }}</div>
-    <div style="color:var(--text2);font-size:.8rem">نسخة محفوظة</div>
-  </div>
-  <div class="card" style="text-align:center;padding:18px">
-    <div style="font-size:2rem;margin-bottom:8px">💿</div>
-    <div class="fw-900" style="font-size:1.8rem" id="backup-total-size">
+  <div class="stat-card" style="--accent-color:var(--cyan);--accent-rgb:6,182,212">
+    <div class="stat-icon">💿</div>
+    <div class="stat-value" id="backup-total-size" style="font-size:1.4rem">
       {% if backups %}
         {% set total = namespace(v=0) %}{% for b in backups %}{% set total.v = total.v + b.size %}{% endfor %}
         {{ (total.v // 1048576) }} MB
       {% else %}0 MB{% endif %}
     </div>
-    <div style="color:var(--text2);font-size:.8rem">حجم إجمالي</div>
+    <div class="stat-label">الحجم الإجمالي</div>
   </div>
-  <div class="card" style="text-align:center;padding:18px">
-    <div style="font-size:2rem;margin-bottom:8px">🕐</div>
-    <div class="fw-700" style="font-size:1rem" id="backup-last">
+  <div class="stat-card" style="--accent-color:var(--green);--accent-rgb:34,197,94">
+    <div class="stat-icon">🕐</div>
+    <div class="stat-value" id="backup-last" style="font-size:1rem">
       {% if backups %}{{ backups[0].mtime }}{% else %}—{% endif %}
     </div>
-    <div style="color:var(--text2);font-size:.8rem">آخر نسخة</div>
+    <div class="stat-label">آخر نسخة</div>
+  </div>
+  <div class="stat-card" style="--accent-color:var(--purple);--accent-rgb:168,85,247">
+    <div class="stat-icon">🛡️</div>
+    <div class="stat-value" style="font-size:1.3rem">محمي</div>
+    <div class="stat-label">حالة البيانات</div>
   </div>
 </div>
 
+<!-- Create Backup -->
+<div class="card mb-3 fade-up anim-delay-1 success-zone">
+  <div class="card-title">🆕 إنشاء نسخة احتياطية جديدة</div>
+  <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+    <div class="form-group mb-0" style="flex:1;min-width:200px">
+      <label class="form-label">وسم النسخة (اختياري)</label>
+      <input class="form-control" id="backup-label"
+             placeholder="مثال: قبل_التحديث أو يدوي" maxlength="30">
+    </div>
+    <button class="btn btn-success btn-lg" onclick="createBackup()" id="create-btn-2">
+      💾 إنشاء الآن
+    </button>
+    <button class="btn btn-primary btn-lg" onclick="createAndPush()" id="create-push-btn">
+      💾+⬆️ إنشاء ورفع لـ GitHub
+    </button>
+  </div>
+  <div id="create-result" style="margin-top:14px"></div>
+</div>
+
+<!-- Storage usage bar -->
+{% if backups %}
+{% set total = namespace(v=0) %}{% for b in backups %}{% set total.v = total.v + b.size %}{% endfor %}
+<div class="card mb-3 fade-up anim-delay-2">
+  <div class="card-title">📊 استخدام مساحة النسخ</div>
+  <div style="display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:8px">
+    <span class="text-muted">{{ (total.v // 1048576) }} MB مستخدم</span>
+    <span class="text-muted">{{ backups|length }} نسخة</span>
+  </div>
+  <div class="progress" style="height:10px">
+    <div class="progress-bar cyan" style="width:{{ [((total.v // 1048576) / 500 * 100)|int, 100]|min }}%"></div>
+  </div>
+  <div class="form-hint mt-1">من 500 MB تقريباً</div>
+</div>
+{% endif %}
+
 <!-- Backups List -->
-<div class="card">
+<div class="card fade-up anim-delay-2">
   <div class="card-title" style="justify-content:space-between">
     <span>📋 قائمة النسخ الاحتياطية</span>
-    <button class="btn btn-ghost btn-sm" onclick="loadBackups()">🔄 تحديث</button>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="loadBackups()">🔄 تحديث</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteAll()" id="delete-all-btn">🗑️ حذف الكل</button>
+    </div>
   </div>
 
   <div id="backups-list">
     {% if backups %}
       {% for backup in backups %}
-      <div class="backup-item" id="backup-{{ loop.index }}">
-        <div class="backup-icon">💾</div>
-        <div class="backup-info">
-          <div class="backup-name">{{ backup.name }}</div>
-          <div class="backup-meta">
-            📅 {{ backup.mtime }} &nbsp;·&nbsp; 📦 {{ backup.size_h }}
+      <div class="backup-item-v2 unverified" id="backup-item-{{ loop.index }}">
+        <div style="font-size:1.8rem;flex-shrink:0">
+          {% if 'github' in backup.name %}🐙{% elif 'auto' in backup.name %}🤖{% else %}💾{% endif %}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div class="backup-name" style="font-weight:700;font-size:.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            {{ backup.name }}
+          </div>
+          <div style="font-size:.74rem;color:var(--text2);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap">
+            <span>📅 {{ backup.mtime }}</span>
+            <span>📦 {{ backup.size_h }}</span>
+          </div>
+          <div class="backup-size-bar mt-1">
+            <div class="backup-size-fill" style="width:{{ [((backup.size // 1024) / 1000 * 100)|int, 100]|min }}%"></div>
           </div>
         </div>
-        <div class="backup-actions">
-          <button class="btn btn-ghost btn-sm" onclick="verifyBackup('{{ backup.name }}')" title="تحقق من السلامة">
-            ✅ تحقق
-          </button>
-          <a href="/backups/api/download/{{ backup.name }}" class="btn btn-primary btn-sm" download>
-            ⬇️ تنزيل
-          </a>
-          <button class="btn btn-danger btn-sm" onclick="deleteBackup('{{ backup.name }}')" title="حذف">
-            🗑️
-          </button>
+        <div style="display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="verifyBackup('{{ backup.name }}')" title="تحقق من السلامة">✅ تحقق</button>
+          <a href="/backups/api/download/{{ backup.name }}" class="btn btn-primary btn-sm" download title="تنزيل">⬇️</a>
+          <button class="btn btn-warning btn-sm" onclick="pushBackup('{{ backup.name }}')" title="رفع لـ GitHub">⬆️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteBackup('{{ backup.name }}')" title="حذف">🗑️</button>
         </div>
       </div>
       {% endfor %}
     {% else %}
-      <div id="no-backups" style="text-align:center;color:var(--text2);padding:48px 24px">
-        <div style="font-size:3rem;margin-bottom:12px">💾</div>
-        <div style="font-size:1rem;font-weight:700;margin-bottom:6px">لا توجد نسخ احتياطية</div>
+      <div id="no-backups" style="text-align:center;color:var(--text2);padding:56px 24px">
+        <div style="font-size:4rem;margin-bottom:14px;opacity:0.4">💾</div>
+        <div style="font-size:1.05rem;font-weight:700;margin-bottom:6px">لا توجد نسخ احتياطية</div>
         <div style="font-size:.875rem">أنشئ أول نسخة احتياطية الآن لحماية مشروعك</div>
       </div>
     {% endif %}
@@ -115,6 +139,8 @@
 
 {% block scripts %}
 <script>
+var _maxBackupSize = 500; // MB reference
+
 async function createBackup() {
   const label = (document.getElementById('backup-label') || {}).value || '';
   const btn1 = document.getElementById('create-btn');
@@ -126,7 +152,7 @@ async function createBackup() {
   try {
     const data = await apiPost('/backups/api/create', { label: label });
     hideLoading();
-    if (btn1) { btn1.disabled = false; btn1.textContent = '➕ إنشاء نسخة احتياطية'; }
+    if (btn1) { btn1.disabled = false; btn1.textContent = '➕ إنشاء نسخة'; }
     if (btn2) { btn2.disabled = false; btn2.textContent = '💾 إنشاء الآن'; }
     if (data.ok) {
       showToast('✅ تم الإنشاء: ' + data.name + ' (' + Math.round(data.size / 1024) + ' KB)', 'success', 5000);
@@ -136,12 +162,36 @@ async function createBackup() {
       showToast('فشل الإنشاء: ' + (data.error || ''), 'error');
       if (result) result.innerHTML = '<div class="alert alert-error">❌ ' + (data.error || 'فشل الإنشاء') + '</div>';
     }
-  } catch (e) {
+  } catch(e) {
     hideLoading();
-    if (btn1) { btn1.disabled = false; btn1.textContent = '➕ إنشاء نسخة احتياطية'; }
+    if (btn1) { btn1.disabled = false; btn1.textContent = '➕ إنشاء نسخة'; }
     if (btn2) { btn2.disabled = false; btn2.textContent = '💾 إنشاء الآن'; }
     showToast('خطأ في الاتصال', 'error');
   }
+}
+
+async function createAndPush() {
+  const btn = document.getElementById('create-push-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري...'; }
+  showLoading('جاري الإنشاء والرفع...');
+  try {
+    const data = await apiPost('/backups/api/create', { label: 'github' });
+    if (!data.ok) { hideLoading(); showToast('فشل الإنشاء', 'error'); if (btn) { btn.disabled = false; btn.textContent = '💾+⬆️ إنشاء ورفع لـ GitHub'; } return; }
+    const push = await apiPost('/github/api/push', { message: 'Backup: ' + data.name });
+    hideLoading();
+    if (btn) { btn.disabled = false; btn.textContent = '💾+⬆️ إنشاء ورفع لـ GitHub'; }
+    showToast(push.ok ? '✅ تم الإنشاء والرفع بنجاح' : '⚠️ الإنشاء تم لكن الرفع فشل', push.ok ? 'success' : 'warning');
+    loadBackups();
+  } catch(e) { hideLoading(); if (btn) { btn.disabled = false; btn.textContent = '💾+⬆️ إنشاء ورفع لـ GitHub'; } showToast('خطأ في الاتصال', 'error'); }
+}
+
+async function pushBackup(name) {
+  showLoading('جاري رفع النسخة إلى GitHub...');
+  try {
+    const push = await apiPost('/github/api/push', { message: 'Backup upload: ' + name });
+    hideLoading();
+    showToast(push.ok ? '✅ تم الرفع إلى GitHub' : '❌ فشل الرفع: ' + (push.output || ''), push.ok ? 'success' : 'error');
+  } catch(e) { hideLoading(); showToast('خطأ في الاتصال', 'error'); }
 }
 
 async function verifyBackup(name) {
@@ -152,18 +202,13 @@ async function verifyBackup(name) {
     document.getElementById('verify-name').textContent = name;
     const resEl = document.getElementById('verify-result');
     if (resEl) {
-      if (data.ok) {
-        resEl.innerHTML = '<div class="alert alert-success">✅ ' + (data.msg || 'النسخة سليمة') + '</div>';
-      } else {
-        resEl.innerHTML = '<div class="alert alert-error">❌ ' + (data.error || 'فشل التحقق') + '</div>';
-      }
+      resEl.innerHTML = data.ok
+        ? '<div class="alert alert-success">✅ النسخة سليمة — ' + (data.files || 0) + ' ملف<br>' + (data.msg || '') + '</div>'
+        : '<div class="alert alert-error">❌ ' + (data.error || 'فشل التحقق') + '</div>';
     }
     openModal('verify-modal');
-    showToast(data.ok ? ('✅ النسخة سليمة — ' + (data.files || 0) + ' ملف') : '❌ النسخة تالفة', data.ok ? 'success' : 'error');
-  } catch (e) {
-    hideLoading();
-    showToast('فشل الفحص', 'error');
-  }
+    showToast(data.ok ? '✅ النسخة سليمة — ' + (data.files || 0) + ' ملف' : '❌ النسخة تالفة', data.ok ? 'success' : 'error');
+  } catch(e) { hideLoading(); showToast('فشل الفحص', 'error'); }
 }
 
 async function deleteBackup(name) {
@@ -172,48 +217,64 @@ async function deleteBackup(name) {
   try {
     const data = await apiDelete('/backups/api/delete/' + encodeURIComponent(name));
     hideLoading();
-    if (data.ok) {
-      showToast('تم الحذف بنجاح', 'success');
-      loadBackups();
-    } else {
-      showToast(data.error || 'فشل الحذف', 'error');
+    if (data.ok) { showToast('تم الحذف بنجاح', 'success'); loadBackups(); }
+    else showToast(data.error || 'فشل الحذف', 'error');
+  } catch(e) { hideLoading(); showToast('خطأ في الاتصال', 'error'); }
+}
+
+async function deleteAll() {
+  if (!confirm('هل أنت متأكد من حذف جميع النسخ الاحتياطية؟\nهذا الإجراء لا يمكن التراجع عنه!')) return;
+  showLoading('جاري حذف جميع النسخ...');
+  try {
+    const list = await apiGet('/backups/api/list');
+    for (const b of list) {
+      await apiDelete('/backups/api/delete/' + encodeURIComponent(b.name));
     }
-  } catch (e) {
     hideLoading();
-    showToast('خطأ في الاتصال', 'error');
-  }
+    showToast('تم حذف جميع النسخ الاحتياطية', 'success');
+    loadBackups();
+  } catch(e) { hideLoading(); showToast('خطأ في الاتصال', 'error'); }
 }
 
 async function loadBackups() {
   try {
     const backups = await apiGet('/backups/api/list');
-    const list = document.getElementById('backups-list');
-    const countEl = document.getElementById('backup-count');
-    const lastEl  = document.getElementById('backup-last');
+    const list     = document.getElementById('backups-list');
+    const countEl  = document.getElementById('backup-count');
+    const lastEl   = document.getElementById('backup-last');
+    const totalEl  = document.getElementById('backup-total-size');
     if (countEl) countEl.textContent = backups.length;
     if (lastEl)  lastEl.textContent  = backups.length ? backups[0].mtime : '—';
+    if (totalEl) {
+      var total = backups.reduce(function(s, b) { return s + (b.size || 0); }, 0);
+      totalEl.textContent = Math.round(total / 1048576) + ' MB';
+    }
     if (!list) return;
     if (!backups.length) {
-      list.innerHTML = '<div style="text-align:center;color:var(--text2);padding:48px 24px"><div style="font-size:3rem;margin-bottom:12px">💾</div><div style="font-size:1rem;font-weight:700">لا توجد نسخ احتياطية</div></div>';
+      list.innerHTML = '<div style="text-align:center;color:var(--text2);padding:56px 24px"><div style="font-size:4rem;margin-bottom:14px;opacity:.4">💾</div><div style="font-size:1.05rem;font-weight:700;margin-bottom:6px">لا توجد نسخ احتياطية</div></div>';
       return;
     }
-    list.innerHTML = backups.map(function(b) {
-      return '<div class="backup-item">' +
-        '<div class="backup-icon">💾</div>' +
-        '<div class="backup-info">' +
-          '<div class="backup-name">' + b.name + '</div>' +
-          '<div class="backup-meta">📅 ' + b.mtime + ' &nbsp;·&nbsp; 📦 ' + b.size_h + '</div>' +
+    list.innerHTML = backups.map(function(b, i) {
+      var icon = b.name.includes('github') ? '🐙' : b.name.includes('auto') ? '🤖' : '💾';
+      var sizePct = Math.min(Math.round((b.size / 1024) / 1000 * 100), 100);
+      return '<div class="backup-item-v2 unverified" id="backup-dyn-' + i + '">' +
+        '<div style="font-size:1.8rem;flex-shrink:0">' + icon + '</div>' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:700;font-size:.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + b.name + '</div>' +
+          '<div style="font-size:.74rem;color:var(--text2);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap">' +
+            '<span>📅 ' + b.mtime + '</span><span>📦 ' + b.size_h + '</span>' +
+          '</div>' +
+          '<div class="backup-size-bar" style="margin-top:5px"><div class="backup-size-fill" style="width:' + sizePct + '%"></div></div>' +
         '</div>' +
-        '<div class="backup-actions">' +
+        '<div style="display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap">' +
           '<button class="btn btn-ghost btn-sm" onclick="verifyBackup(\'' + b.name + '\')">✅ تحقق</button>' +
-          '<a href="/backups/api/download/' + encodeURIComponent(b.name) + '" class="btn btn-primary btn-sm" download>⬇️ تنزيل</a>' +
+          '<a href="/backups/api/download/' + encodeURIComponent(b.name) + '" class="btn btn-primary btn-sm" download>⬇️</a>' +
+          '<button class="btn btn-warning btn-sm" onclick="pushBackup(\'' + b.name + '\')">⬆️</button>' +
           '<button class="btn btn-danger btn-sm" onclick="deleteBackup(\'' + b.name + '\')">🗑️</button>' +
         '</div>' +
       '</div>';
     }).join('');
-  } catch (e) {
-    showToast('فشل تحميل القائمة', 'error');
-  }
+  } catch(e) { showToast('فشل تحميل القائمة', 'error'); }
 }
 </script>
 {% endblock %}

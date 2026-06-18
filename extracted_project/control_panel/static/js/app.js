@@ -15,22 +15,40 @@ function toggleTheme() {
 }
 (function () { applyTheme(localStorage.getItem(THEME_KEY) || 'dark'); })();
 
-// ── Back Button ──────────────────────────────────────────────
+// ── Back Button (fixed floating button, all pages) ───────────
 (function () {
   document.addEventListener('DOMContentLoaded', function () {
-    const btn = document.getElementById('back-btn');
-    if (!btn) return;
-    const p = window.location.pathname;
-    if (p !== '/' && p !== '/panel' && p !== '/login') {
-      btn.classList.add('visible');
-    }
-    btn.addEventListener('click', function () {
-      if (document.referrer && document.referrer !== window.location.href) {
-        window.history.back();
-      } else {
-        window.location.href = '/';
+    // Fixed floating back button (new design)
+    var fixedBtn = document.getElementById('fixed-back-btn');
+    if (fixedBtn) {
+      var p = window.location.pathname;
+      if (p !== '/' && p !== '/panel' && p !== '/login') {
+        fixedBtn.classList.add('visible');
       }
-    });
+      fixedBtn.addEventListener('click', function () {
+        if (document.referrer && document.referrer !== window.location.href &&
+            document.referrer.indexOf(window.location.host) !== -1) {
+          window.history.back();
+        } else {
+          window.location.href = '/';
+        }
+      });
+    }
+    // Legacy back-btn (header button — kept for compatibility)
+    var btn = document.getElementById('back-btn');
+    if (btn) {
+      var p2 = window.location.pathname;
+      if (p2 !== '/' && p2 !== '/panel' && p2 !== '/login') {
+        btn.classList.add('visible');
+      }
+      btn.addEventListener('click', function () {
+        if (document.referrer && document.referrer !== window.location.href) {
+          window.history.back();
+        } else {
+          window.location.href = '/';
+        }
+      });
+    }
   });
 })();
 

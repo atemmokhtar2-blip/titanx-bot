@@ -29,184 +29,239 @@
 </div>
 
 <!-- STATS GRID -->
-<div class="stats-grid">
-  <div class="stat-card fade-up anim-delay-1" style="--accent-color:var(--accent);--accent-rgb:var(--accent-rgb)">
+<div class="stats-grid mb-3">
+  <div class="stat-card" style="--accent-color:var(--accent);--accent-rgb:59,130,246">
     <div class="stat-icon">👥</div>
     <div class="stat-value" data-count="{{ stats.total_users }}">0</div>
     <div class="stat-label">إجمالي المستخدمين</div>
   </div>
-  <div class="stat-card fade-up anim-delay-2" style="--accent-color:var(--yellow);--accent-rgb:var(--yellow-rgb)">
+  <div class="stat-card" style="--accent-color:var(--yellow);--accent-rgb:245,158,11">
     <div class="stat-icon">⭐</div>
     <div class="stat-value" data-count="{{ stats.vip_users }}">0</div>
     <div class="stat-label">مستخدمو VIP</div>
   </div>
-  <div class="stat-card fade-up anim-delay-3" style="--accent-color:var(--green);--accent-rgb:var(--green-rgb)">
+  <div class="stat-card" style="--accent-color:var(--green);--accent-rgb:34,197,94">
     <div class="stat-icon">📥</div>
     <div class="stat-value" data-count="{{ stats.total_downloads }}">0</div>
     <div class="stat-label">إجمالي التحميلات</div>
   </div>
-  <div class="stat-card fade-up anim-delay-4" style="--accent-color:var(--cyan);--accent-rgb:var(--cyan-rgb)">
+  <div class="stat-card" style="--accent-color:var(--cyan);--accent-rgb:6,182,212">
     <div class="stat-icon">📅</div>
     <div class="stat-value" data-count="{{ stats.today_downloads }}">0</div>
     <div class="stat-label">تحميلات اليوم</div>
   </div>
-  <div class="stat-card fade-up" style="--accent-color:var(--purple);--accent-rgb:var(--purple-rgb)">
+  <div class="stat-card" style="--accent-color:var(--purple);--accent-rgb:168,85,247">
     <div class="stat-icon">🔗</div>
     <div class="stat-value" data-count="{{ stats.total_referrals }}">0</div>
     <div class="stat-label">الإحالات</div>
   </div>
-  <div class="stat-card fade-up" style="--accent-color:var(--green);--accent-rgb:var(--green-rgb)">
+  <div class="stat-card" style="--accent-color:var(--green);--accent-rgb:34,197,94">
     <div class="stat-icon">🟢</div>
     <div class="stat-value" data-count="{{ stats.active_today }}">0</div>
     <div class="stat-label">نشطون اليوم</div>
   </div>
-  <div class="stat-card fade-up" style="--accent-color:var(--red);--accent-rgb:var(--red-rgb)">
+  <div class="stat-card" style="--accent-color:var(--red);--accent-rgb:239,68,68">
     <div class="stat-icon">🎫</div>
     <div class="stat-value" data-count="{{ stats.open_tickets }}">0</div>
     <div class="stat-label">تذاكر مفتوحة</div>
   </div>
-  <div class="stat-card fade-up" style="--accent-color:var(--orange);--accent-rgb:var(--orange-rgb)">
+  <div class="stat-card" style="--accent-color:var(--orange);--accent-rgb:249,115,22">
     <div class="stat-icon">🎯</div>
     <div class="stat-value" data-count="{{ stats.total_points_issued }}">0</div>
     <div class="stat-label">إجمالي النقاط</div>
   </div>
 </div>
 
-<div class="grid-2">
-  <!-- Downloads Chart -->
-  <div class="card fade-up">
-    <div class="card-title" style="justify-content:space-between">
+<!-- CHARTS ROW -->
+<div class="grid-2 mb-3">
+
+  <!-- Downloads Chart.js -->
+  <div class="card">
+    <div class="card-title" style="justify-content:space-between;margin-bottom:14px">
       <span>📈 التحميلات — آخر 7 أيام</span>
       <span class="live-badge">مباشر</span>
     </div>
+    <div class="chart-container">
+      <canvas id="downloads-chart"></canvas>
+    </div>
     {% if chart %}
-    {% set max_val = chart | map(attribute='cnt') | max %}
-    <div class="chart-bar-wrap" id="dl-chart">
+    <div style="display:flex;justify-content:space-between;margin-top:8px">
       {% for point in chart %}
-      <div class="chart-bar"
-           style="height:{{ ((point.cnt / max_val) * 100)|int if max_val > 0 else 5 }}%"
-           title="{{ point.day }}: {{ point.cnt }} تحميل">
-      </div>
+      <span style="font-size:.62rem;color:var(--text3)">{{ point.day[-5:] }}</span>
       {% endfor %}
-    </div>
-    <div style="display:flex;justify-content:space-between;margin-top:7px">
-      {% for point in chart %}
-      <span style="font-size:.63rem;color:var(--text2)">{{ point.day[-5:] }}</span>
-      {% endfor %}
-    </div>
-    {% else %}
-    <div style="color:var(--text2);text-align:center;padding:32px;font-size:.9rem">
-      📊 لا توجد بيانات بعد
     </div>
     {% endif %}
   </div>
 
   <!-- Bot Status Live -->
-  <div class="card fade-up">
-    <div class="card-title" style="justify-content:space-between">
-      <span>🤖 حالة البوتات</span>
+  <div class="card">
+    <div class="card-title" style="justify-content:space-between;margin-bottom:14px">
+      <span>🤖 حالة البوتات المباشرة</span>
       <a href="/bots" class="btn btn-ghost btn-sm">إدارة ←</a>
     </div>
-    <div style="display:flex;flex-direction:column;gap:11px">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:1.3rem">🤖</span>
-          <span style="font-weight:700;font-size:.875rem">البوت الرئيسي</span>
+    <div id="dash-bots-list">
+      <div class="bot-status-row" id="dash-row-main">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:1.4rem">🤖</span>
+          <div>
+            <div style="font-weight:700;font-size:.88rem">البوت الرئيسي</div>
+            <div style="font-size:.72rem;color:var(--text3)" id="bot-pid-main">—</div>
+          </div>
         </div>
-        <div class="bot-status" id="dash-bot-main">
-          <span class="dot dot-green"></span> يعمل
+        <div id="dash-bot-main">
+          <span class="status-pill status-pill-restart">
+            <span class="dot dot-yellow"></span> جاري التحقق
+          </span>
         </div>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:1.3rem">🎧</span>
-          <span style="font-weight:700;font-size:.875rem">بوت الدعم</span>
+      <div class="bot-status-row" id="dash-row-support">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:1.4rem">🎧</span>
+          <div>
+            <div style="font-weight:700;font-size:.88rem">بوت الدعم</div>
+            <div style="font-size:.72rem;color:var(--text3)" id="bot-pid-support">—</div>
+          </div>
         </div>
-        <div class="bot-status" id="dash-bot-support">
-          <span class="dot dot-gray"></span> جاري التحقق...
+        <div id="dash-bot-support">
+          <span class="status-pill status-pill-restart">
+            <span class="dot dot-yellow"></span> جاري التحقق
+          </span>
         </div>
       </div>
     </div>
+    <!-- Mini Chart.js for bot uptime -->
+    <div style="margin-top:14px">
+      <div class="chart-container-sm">
+        <canvas id="bots-activity-chart"></canvas>
+      </div>
+    </div>
   </div>
+
 </div>
 
-<!-- Recent Activity -->
-<div class="card mb-3">
-  <div class="card-title" style="justify-content:space-between">
-    <span>⚡ النشاط الأخير</span>
-    <a href="/users" class="btn btn-ghost btn-sm">عرض الكل ←</a>
+<!-- SECOND ROW: Activity + System -->
+<div class="grid-2 mb-3">
+
+  <!-- Recent Activity -->
+  <div class="card">
+    <div class="card-title" style="justify-content:space-between;margin-bottom:14px">
+      <span>⚡ النشاط الأخير</span>
+      <a href="/users" class="btn btn-ghost btn-sm">عرض الكل ←</a>
+    </div>
+    {% if activity %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>المستخدم</th>
+            <th>المنصة</th>
+            <th>النوع</th>
+            <th>الوقت</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in activity %}
+          <tr>
+            <td>
+              <span class="fw-700">{{ a.first_name or '---' }}</span>
+              {% if a.username %}<span style="color:var(--text2);font-size:.8rem"> @{{ a.username }}</span>{% endif %}
+            </td>
+            <td>
+              {% set icons = {'youtube':'▶️','tiktok':'🎵','instagram':'📸','facebook':'📘','twitter':'🐦','pinterest':'📌','spotify':'🎧','soundcloud':'🔊','reddit':'🤖','vimeo':'🎬'} %}
+              {% set plat = (a.platform or '').lower() %}
+              <span style="font-size:.82rem">{{ icons.get(plat,'🌐') }} {{ a.platform or '---' }}</span>
+            </td>
+            <td>
+              {% if a.media_type == 'video' %}<span class="badge badge-blue">فيديو</span>
+              {% elif a.media_type == 'audio' %}<span class="badge badge-purple">صوت</span>
+              {% elif a.media_type == 'image' %}<span class="badge badge-yellow">صورة</span>
+              {% else %}<span class="badge badge-gray">{{ a.media_type or '---' }}</span>{% endif %}
+            </td>
+            <td style="color:var(--text2);font-size:.78rem;white-space:nowrap">{{ (a.created_at or '')[:16] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="text-align:center;color:var(--text2);padding:40px;font-size:.9rem">
+      <div style="font-size:2.5rem;margin-bottom:10px">📊</div>
+      لا يوجد نشاط بعد
+    </div>
+    {% endif %}
   </div>
-  {% if activity %}
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>المستخدم</th>
-          <th>المنصة</th>
-          <th>النوع</th>
-          <th>التوقيت</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for a in activity %}
-        <tr>
-          <td>
-            <span class="fw-700">{{ a.first_name or '---' }}</span>
-            {% if a.username %}<span style="color:var(--text2);font-size:.8rem"> @{{ a.username }}</span>{% endif %}
-          </td>
-          <td>
-            {% set icons = {'youtube':'▶️','tiktok':'🎵','instagram':'📸','facebook':'📘','twitter':'🐦','pinterest':'📌','spotify':'🎧','soundcloud':'🔊','reddit':'🤖','vimeo':'🎬'} %}
-            {% set plat = (a.platform or '').lower() %}
-            {{ icons.get(plat, '🌐') }} {{ a.platform or '---' }}
-          </td>
-          <td>
-            {% if a.media_type == 'video' %}<span class="badge badge-blue">فيديو</span>
-            {% elif a.media_type == 'audio' %}<span class="badge badge-purple">صوت</span>
-            {% elif a.media_type == 'image' %}<span class="badge badge-yellow">صورة</span>
-            {% else %}<span class="badge badge-gray">{{ a.media_type or '---' }}</span>{% endif %}
-          </td>
-          <td style="color:var(--text2);font-size:.8rem">{{ (a.created_at or '')[:16] }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+  <!-- System health mini chart -->
+  <div class="card">
+    <div class="card-title" style="margin-bottom:18px">📊 صحة النظام — مباشر</div>
+    <div class="health-item">
+      <div class="health-label">
+        <span class="health-label-name">⚡ المعالج CPU</span>
+        <span class="health-label-val text-accent" id="sys-cpu-val">--%</span>
+      </div>
+      <div class="progress"><div class="progress-bar" id="sys-cpu-bar" style="width:0%"></div></div>
+    </div>
+    <div class="health-item">
+      <div class="health-label">
+        <span class="health-label-name">💾 الذاكرة RAM</span>
+        <span class="health-label-val text-success" id="sys-ram-val">--%</span>
+      </div>
+      <div class="progress"><div class="progress-bar green" id="sys-ram-bar" style="width:0%"></div></div>
+    </div>
+    <div class="health-item">
+      <div class="health-label">
+        <span class="health-label-name">💿 القرص Disk</span>
+        <span class="health-label-val" id="sys-disk-val" style="color:var(--cyan)">--%</span>
+      </div>
+      <div class="progress"><div class="progress-bar cyan" id="sys-disk-bar" style="width:0%"></div></div>
+    </div>
+    <div class="health-item mb-0">
+      <div class="health-label">
+        <span class="health-label-name">🌐 الشبكة (مرسل)</span>
+        <span class="health-label-val" id="sys-net-val" style="color:var(--purple)">-- MB</span>
+      </div>
+      <div class="progress"><div class="progress-bar purple" id="sys-net-bar" style="width:0%"></div></div>
+    </div>
+    <div style="margin-top:18px">
+      <div class="chart-container-sm">
+        <canvas id="system-chart"></canvas>
+      </div>
+    </div>
   </div>
-  {% else %}
-  <div style="text-align:center;color:var(--text2);padding:36px;font-size:.9rem">لا يوجد نشاط بعد</div>
-  {% endif %}
+
 </div>
 
-<!-- Quick Links -->
+<!-- QUICK LINKS -->
 <div class="grid-3">
-  <a href="/users" class="card pointer" style="text-decoration:none">
-    <div style="font-size:2.2rem;margin-bottom:10px">👥</div>
-    <div class="fw-700" style="font-size:.95rem">إدارة المستخدمين</div>
-    <div style="color:var(--text2);font-size:.82rem;margin-top:5px">{{ stats.total_users }} مستخدم</div>
+  <a href="/users" class="quick-link-card">
+    <div class="ql-icon">👥</div>
+    <div class="ql-title">إدارة المستخدمين</div>
+    <div class="ql-sub">{{ stats.total_users }} مستخدم مسجل</div>
   </a>
-  <a href="/bots" class="card pointer" style="text-decoration:none">
-    <div style="font-size:2.2rem;margin-bottom:10px">🤖</div>
-    <div class="fw-700" style="font-size:.95rem">مركز البوتات</div>
-    <div style="color:var(--text2);font-size:.82rem;margin-top:5px">تحكم كامل بجميع البوتات</div>
+  <a href="/bots" class="quick-link-card">
+    <div class="ql-icon">🤖</div>
+    <div class="ql-title">مركز البوتات</div>
+    <div class="ql-sub">تحكم كامل بجميع البوتات</div>
   </a>
-  <a href="/backups" class="card pointer" style="text-decoration:none">
-    <div style="font-size:2.2rem;margin-bottom:10px">💾</div>
-    <div class="fw-700" style="font-size:.95rem">النسخ الاحتياطية</div>
-    <div style="color:var(--text2);font-size:.82rem;margin-top:5px">حماية البيانات</div>
+  <a href="/backups" class="quick-link-card">
+    <div class="ql-icon">💾</div>
+    <div class="ql-title">النسخ الاحتياطية</div>
+    <div class="ql-sub">حماية وأمان البيانات</div>
   </a>
-  <a href="/broadcast" class="card pointer" style="text-decoration:none">
-    <div style="font-size:2.2rem;margin-bottom:10px">📢</div>
-    <div class="fw-700" style="font-size:.95rem">البث الجماعي</div>
-    <div style="color:var(--text2);font-size:.82rem;margin-top:5px">إرسال رسالة للجميع</div>
+  <a href="/broadcast" class="quick-link-card">
+    <div class="ql-icon">📢</div>
+    <div class="ql-title">البث الجماعي</div>
+    <div class="ql-sub">إرسال رسالة لجميع المستخدمين</div>
   </a>
-  <a href="/updates" class="card pointer" style="text-decoration:none">
-    <div style="font-size:2.2rem;margin-bottom:10px">🚀</div>
-    <div class="fw-700" style="font-size:.95rem">مركز التحديثات</div>
-    <div style="color:var(--text2);font-size:.82rem;margin-top:5px">رفع وتطبيق التحديثات</div>
+  <a href="/updates" class="quick-link-card">
+    <div class="ql-icon">🚀</div>
+    <div class="ql-title">مركز التحديثات</div>
+    <div class="ql-sub">رفع وتطبيق التحديثات</div>
   </a>
-  <a href="/github" class="card pointer" style="text-decoration:none">
-    <div style="font-size:2.2rem;margin-bottom:10px">🐙</div>
-    <div class="fw-700" style="font-size:.95rem">GitHub</div>
-    <div style="color:var(--text2);font-size:.82rem;margin-top:5px">إدارة المستودع</div>
+  <a href="/github" class="quick-link-card">
+    <div class="ql-icon">🐙</div>
+    <div class="ql-title">GitHub</div>
+    <div class="ql-sub">إدارة المستودع والنسخ</div>
   </a>
 </div>
 
@@ -214,6 +269,194 @@
 
 {% block scripts %}
 <script>
+// ── Chart.js color helpers ─────────────────────────────────
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || name;
+}
+
+// ── Downloads Chart ───────────────────────────────────────
+var _dlChart = null;
+(function initDownloadsChart() {
+  var ctx = document.getElementById('downloads-chart');
+  if (!ctx) return;
+  var labels = [{% for p in chart %}'{{ p.day[-5:] }}'{% if not loop.last %},{% endif %}{% endfor %}];
+  var data   = [{% for p in chart %}{{ p.cnt }}{% if not loop.last %},{% endif %}{% endfor %}];
+  if (!labels.length) {
+    labels = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+    data   = [0,0,0,0,0,0,0];
+  }
+  _dlChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'تحميلات',
+        data: data,
+        fill: true,
+        backgroundColor: function(ctx2) {
+          var g = ctx2.chart.ctx.createLinearGradient(0, 0, 0, 200);
+          g.addColorStop(0, 'rgba(59,130,246,0.32)');
+          g.addColorStop(1, 'rgba(59,130,246,0.02)');
+          return g;
+        },
+        borderColor: 'rgba(96,165,250,0.9)',
+        borderWidth: 2.5,
+        tension: 0.45,
+        pointRadius: 5,
+        pointHoverRadius: 8,
+        pointBackgroundColor: '#3b82f6',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 1100, easing: 'easeInOutQuart' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          rtl: true,
+          titleFont: { family: 'Cairo', weight: 'bold' },
+          bodyFont: { family: 'Cairo' },
+          backgroundColor: 'rgba(14,24,41,0.95)',
+          borderColor: 'rgba(59,130,246,0.4)',
+          borderWidth: 1,
+          padding: 12,
+          callbacks: { label: function(c) { return '  ' + c.parsed.y + ' تحميل'; } }
+        }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7a8fa8', font: { family: 'Cairo', size: 11 } }, border: { display: false } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7a8fa8', font: { family: 'Cairo', size: 11 }, precision: 0 }, border: { display: false }, beginAtZero: true }
+      }
+    }
+  });
+})();
+
+// ── Bots Activity Chart (decorative sparkline) ───────────
+(function initBotsChart() {
+  var ctx = document.getElementById('bots-activity-chart');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['00','03','06','09','12','15','18','21'],
+      datasets: [{
+        label: 'طلبات',
+        data: [12,8,5,22,45,38,52,41],
+        backgroundColor: 'rgba(34,197,94,0.35)',
+        borderColor: 'rgba(34,197,94,0.8)',
+        borderWidth: 1.5,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 900, delay: 400 },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c) { return c.parsed.y + ' طلب'; } } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#415568', font: { size: 9 } }, border: { display: false } },
+        y: { display: false, beginAtZero: true }
+      }
+    }
+  });
+})();
+
+// ── System health history chart ──────────────────────────
+var _sysHistory = { cpu: [], ram: [], labels: [] };
+var _sysChart = null;
+(function initSystemChart() {
+  var ctx = document.getElementById('system-chart');
+  if (!ctx) return;
+  for (var i = 10; i >= 0; i--) { _sysHistory.labels.push('-' + i + 's'); _sysHistory.cpu.push(0); _sysHistory.ram.push(0); }
+  _sysChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: _sysHistory.labels,
+      datasets: [
+        { label: 'CPU%', data: _sysHistory.cpu, borderColor: 'rgba(59,130,246,0.9)', borderWidth: 1.8, tension: 0.4, pointRadius: 0, fill: false },
+        { label: 'RAM%', data: _sysHistory.ram, borderColor: 'rgba(34,197,94,0.9)',  borderWidth: 1.8, tension: 0.4, pointRadius: 0, fill: false },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: false,
+      plugins: { legend: { display: true, labels: { color: '#7a8fa8', font: { family: 'Cairo', size: 10 }, boxWidth: 12 } } },
+      scales: {
+        x: { display: false },
+        y: { display: false, min: 0, max: 100 }
+      }
+    }
+  });
+})();
+
+// Override _fetchStats to also update our dashboard charts & health bars
+var _origFetchStats = window._fetchStats || function(){};
+async function _fetchStats() {
+  try {
+    var d = await apiGet('/system/api/stats');
+    // metric pills
+    _uel('cpu-val',  d.cpu_percent + '%'); _ubar('cpu-bar', d.cpu_percent);
+    _uel('mem-val',  Math.round(d.mem_used/1048576) + ' MB'); _ubar('mem-bar', d.mem_percent);
+    _uel('mem-total','من ' + Math.round(d.mem_total/1048576) + ' MB');
+    _uel('disk-val', Math.round(d.disk_used/1073741824) + ' GB'); _ubar('disk-bar', d.disk_percent);
+    _uel('uptime-val', d.uptime);
+    _uel('net-sent', Math.round(d.net_sent/1048576) + ' MB');
+    _uel('net-recv', Math.round(d.net_recv/1048576) + ' MB');
+    // dashboard pills
+    _uel('mp-cpu', d.cpu_percent + '%');  _ubarColor('mp-cpu-bar',  d.cpu_percent,  d.cpu_percent  > 80 ? 'var(--red)' : 'var(--accent)');
+    _uel('mp-ram', Math.round(d.mem_percent) + '%'); _ubarColor('mp-ram-bar', d.mem_percent, d.mem_percent  > 80 ? 'var(--yellow)' : 'var(--green)');
+    _uel('mp-disk', Math.round(d.disk_percent) + '%'); _ubarColor('mp-disk-bar', d.disk_percent, d.disk_percent > 85 ? 'var(--red)' : 'var(--cyan)');
+    _uel('mp-up', d.uptime);
+    // dashboard health bars
+    _uel('sys-cpu-val', d.cpu_percent + '%'); _ubarColor('sys-cpu-bar', d.cpu_percent, d.cpu_percent > 80 ? 'var(--red)' : null);
+    _uel('sys-ram-val', Math.round(d.mem_percent) + '%'); _ubar('sys-ram-bar', d.mem_percent);
+    _uel('sys-disk-val', Math.round(d.disk_percent) + '%'); _ubar('sys-disk-bar', d.disk_percent);
+    var netMB = Math.round(d.net_sent/1048576);
+    _uel('sys-net-val', netMB + ' MB'); _ubarColor('sys-net-bar', Math.min(netMB, 100), 'var(--purple)');
+    // update system history chart
+    if (_sysChart) {
+      _sysHistory.cpu.push(d.cpu_percent); _sysHistory.cpu.shift();
+      _sysHistory.ram.push(d.mem_percent); _sysHistory.ram.shift();
+      _sysChart.data.datasets[0].data = _sysHistory.cpu.slice();
+      _sysChart.data.datasets[1].data = _sysHistory.ram.slice();
+      _sysChart.update('none');
+    }
+  } catch(e) {}
+}
+
+// Override bot status to update enhanced dashboard rows
+var _origFetchBotStatus = window._fetchBotStatus;
+async function _fetchBotStatus() {
+  try {
+    var bots = await apiGet('/bots/api/status');
+    bots.forEach(function(bot) {
+      var dashEl = document.getElementById('dash-bot-' + bot.key);
+      var rowEl  = document.getElementById('dash-row-' + bot.key);
+      var pidEl  = document.getElementById('bot-pid-' + bot.key);
+      if (pidEl) pidEl.textContent = bot.pid ? 'PID: ' + bot.pid : '—';
+      if (dashEl) {
+        if (bot.running) {
+          dashEl.innerHTML = '<span class="status-pill status-pill-online"><span class="dot dot-green"></span>🟢 يعمل</span>';
+          if (rowEl) rowEl.className = 'bot-status-row running';
+        } else {
+          dashEl.innerHTML = '<span class="status-pill status-pill-offline"><span class="dot dot-red"></span>🔴 متوقف</span>';
+          if (rowEl) rowEl.className = 'bot-status-row stopped';
+        }
+      }
+      // generic dot/status for other pages
+      var dotEl    = document.getElementById('bot-dot-' + bot.key);
+      var statusEl = document.getElementById('bot-status-' + bot.key);
+      var startBtn = document.getElementById('bot-start-' + bot.key);
+      var stopBtn  = document.getElementById('bot-stop-' + bot.key);
+      if (dotEl)    dotEl.className = 'dot ' + (bot.running ? 'dot-green' : 'dot-red');
+      if (statusEl) statusEl.textContent = bot.running ? '🟢 يعمل' : '🔴 متوقف';
+      if (startBtn) startBtn.disabled = bot.running;
+      if (stopBtn)  stopBtn.disabled  = !bot.running;
+    });
+  } catch(e) {}
+}
+
 document.addEventListener('DOMContentLoaded', function() {
   startStatsPolling(5000);
   startBotPolling(8000);

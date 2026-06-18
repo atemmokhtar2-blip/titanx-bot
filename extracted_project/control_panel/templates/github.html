@@ -3,28 +3,58 @@
 {% block page_title %}🐙 تكامل GitHub{% endblock %}
 
 {% block content %}
+<div class="page-title fade-up">
+  <span class="icon">🐙</span>
+  مركز GitHub
+  {% if git_info.branch %}
+  <span class="git-status-badge git-badge-sync" style="font-size:.7rem;margin-right:auto">🌿 {{ git_info.branch }}</span>
+  {% endif %}
+</div>
+
+<!-- Status Strip -->
+<div class="metrics-strip mb-3 fade-up">
+  <div class="metric-pill">
+    <div class="metric-pill-label">🌿 الفرع</div>
+    <div class="metric-pill-value" id="git-branch-pill" style="font-size:1rem">{{ git_info.branch or 'unknown' }}</div>
+    <div class="metric-pill-bar"><div class="metric-pill-fill" style="width:100%;background:var(--green)"></div></div>
+  </div>
+  <div class="metric-pill">
+    <div class="metric-pill-label">📊 الحالة</div>
+    <div class="metric-pill-value" id="git-status-pill" style="font-size:.9rem">
+      {% if git_info.status %}⚠️ تغييرات{% else %}✅ نظيف{% endif %}
+    </div>
+    <div class="metric-pill-bar"><div class="metric-pill-fill" style="width:{% if git_info.status %}65{% else %}100{% endif %}%;background:{% if git_info.status %}var(--yellow){% else %}var(--green){% endif %}"></div></div>
+  </div>
+  <div class="metric-pill">
+    <div class="metric-pill-label">📝 Commits</div>
+    <div class="metric-pill-value" style="font-size:1.1rem">{{ git_info.commits|length }}</div>
+    <div class="metric-pill-bar"><div class="metric-pill-fill" style="width:100%;background:var(--purple)"></div></div>
+  </div>
+</div>
+
 <div class="grid-2" style="align-items:start;gap:18px">
 
-  <!-- Left: Operations -->
+  <!-- LEFT: Operations -->
   <div style="display:flex;flex-direction:column;gap:16px">
 
-    <!-- Branch & Quick Actions -->
-    <div class="card">
-      <div class="card-title">🌿 المستودع الحالي</div>
-      <div style="font-size:1.3rem;font-weight:900;color:var(--green);margin-bottom:4px" id="git-branch">
-        🌿 {{ git_info.branch or 'unknown' }}
+    <!-- Quick Actions -->
+    <div class="card fade-up card-glow-blue">
+      <div class="card-title" style="justify-content:space-between">
+        <span>⚡ إجراءات سريعة</span>
+        <button class="btn btn-ghost btn-sm" onclick="refreshGitInfo()">🔄 تحديث</button>
       </div>
-      <div style="font-size:.8rem;color:var(--text2);margin-bottom:18px">{{ git_info.remotes | truncate(60) if git_info.remotes else 'لا يوجد remote مضبوط' }}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px">
         <button class="btn btn-primary" id="pull-btn" onclick="gitPull()">⬇️ Pull</button>
         <button class="btn btn-success" id="push-btn" onclick="gitPush()">⬆️ Push</button>
-        <button class="btn btn-ghost" onclick="refreshGitInfo()">🔄 تحديث</button>
+        <button class="btn btn-purple" onclick="gitFetch()">📡 Fetch</button>
+        <button class="btn btn-ghost" onclick="checkRepoHealth()">🏥 فحص صحة المستودع</button>
       </div>
+      <div id="quick-action-result"></div>
     </div>
 
     <!-- Commit & Push -->
-    <div class="card">
-      <div class="card-title">💬 Commit & Push</div>
+    <div class="card fade-up anim-delay-1">
+      <div class="card-title">💬 Commit &amp; Push</div>
       <div class="form-group">
         <label class="form-label">رسالة Commit</label>
         <input class="form-control" id="commit-msg"
@@ -33,14 +63,14 @@
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-ghost" onclick="gitCommit()">📝 Commit فقط</button>
-        <button class="btn btn-primary" onclick="gitPush()">📝+⬆️ Commit & Push</button>
+        <button class="btn btn-primary" onclick="gitPush()">📝 Commit &amp; Push ⬆️</button>
       </div>
     </div>
 
-    <!-- GitHub Backup -->
-    <div class="card success-zone">
+    <!-- Backup to GitHub -->
+    <div class="card fade-up anim-delay-2 success-zone">
       <div class="card-title">💾 نسخ احتياطي إلى GitHub</div>
-      <div style="color:var(--text2);font-size:.875rem;margin-bottom:16px">
+      <div style="color:var(--text2);font-size:.875rem;margin-bottom:14px;line-height:1.6">
         أنشئ نسخة احتياطية محلية ثم ادفعها إلى GitHub في خطوة واحدة.
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -50,9 +80,9 @@
       <div id="backup-push-result" style="margin-top:12px"></div>
     </div>
 
-    <!-- Git Settings (Persistent) -->
-    <div class="card">
-      <div class="card-title">⚙️ إعداد Git — محفوظ تلقائياً</div>
+    <!-- Git Settings -->
+    <div class="card fade-up anim-delay-3">
+      <div class="card-title">⚙️ إعداد Git — محفوظ دائماً</div>
       <div class="form-group">
         <label class="form-label">اسم المستودع (user/repo)</label>
         <input class="form-control" id="cfg-repo" placeholder="username/repo-name" value="{{ cfg.repo }}">
@@ -60,68 +90,85 @@
       <div class="form-group">
         <label class="form-label">GitHub Token</label>
         <input class="form-control" type="password" id="cfg-token"
-               placeholder="ghp_xxxxxxxxxxxx (موجود إذا ظهرت نجوم)">
+               placeholder="ghp_xxxxxxxxxxxx">
         <div class="form-hint">الـ Token محفوظ في متغير البيئة GITHUB_TOKEN</div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Git User Name</label>
-        <input class="form-control" id="cfg-name" placeholder="TitanX Bot" value="{{ cfg.name }}">
+      <div class="grid-2" style="gap:12px">
+        <div class="form-group mb-0">
+          <label class="form-label">Git User Name</label>
+          <input class="form-control" id="cfg-name" placeholder="TitanX Bot" value="{{ cfg.name }}">
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">Git Email</label>
+          <input class="form-control" id="cfg-email" placeholder="bot@titanx.local" value="{{ cfg.email }}">
+        </div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Git Email</label>
-        <input class="form-control" id="cfg-email" placeholder="bot@titanx.local" value="{{ cfg.email }}">
-      </div>
-      <button class="btn btn-primary" onclick="configureGit()">💾 حفظ الإعدادات</button>
+      <button class="btn btn-primary mt-2" onclick="configureGit()">💾 حفظ الإعدادات</button>
     </div>
+
   </div>
 
-  <!-- Right: History & Status -->
+  <!-- RIGHT: Info & History -->
   <div style="display:flex;flex-direction:column;gap:16px">
 
-    <!-- Status -->
-    <div class="card">
+    <!-- Repo Status Card -->
+    <div class="card fade-up">
       <div class="card-title" style="justify-content:space-between">
         <span>📊 حالة المستودع</span>
-        <button class="btn btn-ghost btn-sm" onclick="refreshGitInfo()">🔄</button>
+        <span id="git-health-badge">
+          {% if git_info.status %}
+          <span class="git-status-badge git-badge-dirty">⚠️ تغييرات معلقة</span>
+          {% else %}
+          <span class="git-status-badge git-badge-clean">✅ نظيف</span>
+          {% endif %}
+        </span>
       </div>
+      {% if git_info.remotes %}
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;background:var(--bg2);border-radius:var(--radius-sm);padding:10px 13px;border:1px solid var(--border)">
+        <span>🔗</span>
+        <code style="font-size:.76rem;color:var(--accent2);flex:1;word-break:break-all">{{ git_info.remotes[:80] }}</code>
+        <button class="btn-icon btn-sm" onclick="copyText('{{ git_info.remotes }}', 'رابط المستودع')" title="نسخ">📋</button>
+      </div>
+      {% endif %}
       {% if git_info.status %}
-      <div class="alert alert-warning" style="margin-bottom:12px">
-        ⚠️ توجد تغييرات غير مُحفظة
-      </div>
-      <div class="code-block text-left" style="max-height:180px">{{ git_info.status }}</div>
+      <div class="alert alert-warning" style="margin-bottom:12px">⚠️ توجد تغييرات غير مُحفظة</div>
+      <div class="code-block text-left" style="max-height:150px;font-size:.72rem">{{ git_info.status }}</div>
       {% else %}
       <div class="alert alert-success">✅ لا توجد تغييرات معلقة — المستودع نظيف</div>
       {% endif %}
     </div>
 
     <!-- Diff -->
-    <div class="card">
-      <div class="card-title">🔍 ملخص التغييرات</div>
-      <button class="btn btn-ghost btn-sm mb-2" onclick="loadDiff()">📋 عرض الـ Diff</button>
-      <div id="diff-result"></div>
+    <div class="card fade-up anim-delay-1">
+      <div class="card-title" style="justify-content:space-between">
+        <span>🔍 التغييرات (Diff)</span>
+        <button class="btn btn-ghost btn-sm" onclick="loadDiff()">📋 عرض</button>
+      </div>
+      <div id="diff-result">
+        <div style="color:var(--text3);font-size:.85rem;text-align:center;padding:16px">اضغط "عرض" لتحميل الـ Diff</div>
+      </div>
     </div>
 
     <!-- Commit History -->
-    <div class="card">
-      <div class="card-title">📜 سجل Commits الأخيرة</div>
-      <div class="scroll-list" id="git-commits" style="max-height:320px;overflow-y:auto">
+    <div class="card fade-up anim-delay-2">
+      <div class="card-title" style="justify-content:space-between">
+        <span>📜 سجل Commits الأخيرة</span>
+        <span class="badge badge-blue">{{ git_info.commits|length }}</span>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:var(--radius-sm);max-height:320px;overflow-y:auto" id="git-commits">
         {% for commit in git_info.commits %}
-        <div class="scroll-list-item text-left">
-          <code style="font-size:.75rem;color:var(--text2)">{{ commit }}</code>
+        <div class="commit-item">
+          <span class="commit-hash">{{ commit[:7] if commit|length > 7 else '' }}</span>
+          <span class="commit-msg text-left">{{ commit[7:] if commit|length > 7 else commit }}</span>
         </div>
         {% else %}
-        <div style="color:var(--text2);padding:20px;text-align:center">لا توجد commits بعد</div>
+        <div style="color:var(--text2);padding:24px;text-align:center">لا توجد commits بعد</div>
         {% endfor %}
       </div>
     </div>
 
-    <!-- Remote Info -->
-    {% if git_info.remotes %}
-    <div class="card">
-      <div class="card-title">🔗 Remotes</div>
-      <div class="code-block text-left">{{ git_info.remotes }}</div>
-    </div>
-    {% endif %}
+    <!-- Repo Health Result -->
+    <div id="repo-health-result"></div>
 
   </div>
 </div>
@@ -129,20 +176,51 @@
 
 {% block scripts %}
 <script>
+async function gitFetch() {
+  showLoading('جاري Fetch...');
+  try {
+    const d = await apiPost('/github/api/fetch', {});
+    hideLoading();
+    showToast(d.output || (d.ok ? 'تم Fetch ✅' : 'فشل Fetch'), d.ok ? 'success' : 'error');
+    refreshGitInfo();
+  } catch(e) { hideLoading(); showToast('فشل الاتصال', 'error'); }
+}
+
+async function checkRepoHealth() {
+  showLoading('جاري فحص صحة المستودع...');
+  const resultEl = document.getElementById('repo-health-result');
+  try {
+    const d = await apiGet('/github/api/info');
+    hideLoading();
+    const lines = [
+      d.branch ? `✅ الفرع: <strong>${d.branch}</strong>` : '❌ لا يوجد فرع',
+      d.remotes ? `✅ Remote: <code style="font-size:.74rem">${d.remotes.substring(0,60)}</code>` : '⚠️ لا يوجد remote',
+      d.commits && d.commits.length ? `✅ ${d.commits.length} commit محلية` : '⚠️ لا توجد commits',
+    ];
+    resultEl.innerHTML = `<div class="card" style="margin-top:0">
+      <div class="card-title">🏥 تقرير صحة المستودع</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:.85rem">
+        ${lines.map(l => `<div>${l}</div>`).join('')}
+      </div>
+    </div>`;
+    showToast('تم فحص المستودع ✅', 'success');
+  } catch(e) { hideLoading(); showToast('فشل الفحص', 'error'); }
+}
+
 async function loadDiff() {
   const el = document.getElementById('diff-result');
   if (!el) return;
-  el.innerHTML = '<span style="color:var(--text2)">جاري التحميل...</span>';
+  el.innerHTML = '<div style="color:var(--text2);font-size:.85rem;padding:8px">جاري التحميل...</div>';
   showLoading('جاري تحميل الـ Diff...');
   try {
     const d = await apiGet('/github/api/diff');
     hideLoading();
     if (d.diff) {
-      el.innerHTML = '<div class="code-block text-left" style="max-height:200px">' + d.diff + '</div>';
+      el.innerHTML = '<div class="code-block text-left" style="max-height:220px;font-size:.72rem">' + d.diff + '</div>';
     } else {
       el.innerHTML = '<div class="alert alert-success">✅ لا توجد تغييرات</div>';
     }
-  } catch (e) {
+  } catch(e) {
     hideLoading();
     el.innerHTML = '<div class="alert alert-error">❌ فشل التحميل</div>';
   }
@@ -163,16 +241,33 @@ async function backupAndPush() {
     hideLoading();
     if (push.ok) {
       showToast('✅ تم النسخ والرفع إلى GitHub', 'success');
-      if (resultEl) resultEl.innerHTML = '<div class="alert alert-success">✅ تم النسخ والرفع بنجاح<br>' + push.output + '</div>';
+      if (resultEl) resultEl.innerHTML = '<div class="alert alert-success">✅ تم النسخ والرفع بنجاح<br>' + (push.output || '') + '</div>';
       refreshGitInfo();
     } else {
       showToast('النسخة أُنشئت لكن فشل Push: ' + push.output, 'warning');
       if (resultEl) resultEl.innerHTML = '<div class="alert alert-warning">⚠️ النسخة أُنشئت لكن فشل Push<br>' + (push.output || '') + '</div>';
     }
-  } catch (e) {
-    hideLoading();
-    showToast('خطأ في الاتصال', 'error');
-  }
+  } catch(e) { hideLoading(); showToast('خطأ في الاتصال', 'error'); }
+}
+
+// Update git info with enhanced display
+var _origRefreshGitInfo = refreshGitInfo;
+async function refreshGitInfo() {
+  try {
+    const d = await apiGet('/github/api/info');
+    var branchEl = document.getElementById('git-branch-pill');
+    if (branchEl) branchEl.textContent = d.branch || 'unknown';
+    var commitsEl = document.getElementById('git-commits');
+    if (commitsEl && d.commits) {
+      commitsEl.innerHTML = d.commits.length
+        ? d.commits.map(function(c) {
+            var hash = c.length > 7 ? c.substring(0,7) : '';
+            var msg  = c.length > 7 ? c.substring(7) : c;
+            return '<div class="commit-item"><span class="commit-hash">' + hash + '</span><span class="commit-msg text-left">' + msg + '</span></div>';
+          }).join('')
+        : '<div style="color:var(--text2);padding:20px;text-align:center">لا توجد commits</div>';
+    }
+  } catch(e) {}
 }
 </script>
 {% endblock %}

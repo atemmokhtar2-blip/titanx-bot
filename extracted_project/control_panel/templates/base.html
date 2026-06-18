@@ -20,6 +20,14 @@
 </head>
 <body>
 
+<!-- ═══ ANIMATED BACKGROUND ORBS (z-index 0, pointer-events none) ═══ -->
+<div class="bg-orbs" aria-hidden="true">
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+  <div class="bg-orb orb-4"></div>
+</div>
+
 <!-- PAGE LOADER -->
 <div class="page-loader" id="page-loader">
   <div class="loader-logo">🎛️</div>
@@ -27,11 +35,16 @@
   <div class="loader-text">TitanX Control Panel</div>
 </div>
 
-<!-- LOADING OVERLAY -->
+<!-- LOADING OVERLAY (modal-style — sharp main content) -->
 <div class="loading-overlay" id="loading-overlay">
   <div class="loading-spinner"></div>
   <div class="loading-text" id="loading-text">جاري التحميل...</div>
 </div>
+
+<!-- FIXED BACK BUTTON (permanent, all pages) -->
+<button class="fixed-back-btn" id="fixed-back-btn" aria-label="رجوع">
+  ← رجوع
+</button>
 
 <div class="layout">
 
@@ -41,7 +54,6 @@
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
 
-    <!-- Logo -->
     <a href="/" class="sidebar-logo">
       <div class="sidebar-logo-icon">🎛️</div>
       <div class="sidebar-logo-text-wrap">
@@ -50,7 +62,6 @@
       </div>
     </a>
 
-    <!-- Nav -->
     <nav class="nav">
 
       <div class="nav-section">
@@ -127,7 +138,6 @@
 
     </nav>
 
-    <!-- Sidebar footer -->
     <div class="sidebar-footer">
       <a href="/logout" class="nav-item nav-item-danger">
         <span class="nav-icon">🚪</span>
@@ -140,16 +150,12 @@
   <!-- MAIN CONTENT -->
   <div class="main" id="main">
 
-    <!-- HEADER -->
     <header class="header">
       <div class="header-start">
         <button class="header-menu-btn" onclick="toggleSidebar()" aria-label="القائمة">
           <span class="hamburger-line"></span>
           <span class="hamburger-line"></span>
           <span class="hamburger-line"></span>
-        </button>
-        <button class="back-btn" id="back-btn" title="رجوع">
-          ◀ رجوع
         </button>
         <div class="header-breadcrumb">
           <span class="header-brand">TitanX</span>
@@ -164,7 +170,6 @@
       </div>
     </header>
 
-    <!-- PAGE CONTENT -->
     <main class="content">
       {% block content %}{% endblock %}
     </main>
@@ -216,6 +221,9 @@
 </div>
 
 <div id="toast-container"></div>
+
+<!-- Chart.js v4 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="/static/js/app.js?v={{ VER }}"></script>
 {% block scripts %}{% endblock %}
 </body>
