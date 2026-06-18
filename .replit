@@ -87,6 +87,10 @@ externalPort = 8081
 localPort = 8082
 externalPort = 3001
 
+[[ports]]
+localPort = 8083
+externalPort = 3002
+
 [userenv]
 
 [userenv.shared]
@@ -98,5 +102,5 @@ REQUIRED_CHANNEL = "@Sounnnd"
 PORT = "8080"
 
 [nix]
-packages = ["cargo", "freetype", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "rustc", "tcl", "tk", "zip", "zlib"]
+packages = ["cargo", "ffmpeg-full", "freetype", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "rustc", "tcl", "tk", "zip", "zlib"]
 channel = "stable-25_05"
