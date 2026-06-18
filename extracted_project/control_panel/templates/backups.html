@@ -105,6 +105,7 @@
         </div>
         <div style="display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" onclick="verifyBackup('{{ backup.name }}')" title="تحقق من السلامة">✅ تحقق</button>
+          <button class="btn btn-restore btn-sm" onclick="restoreBackup('{{ backup.name }}')" title="استعادة النسخة">♻️ استعادة</button>
           <a href="/backups/api/download/{{ backup.name }}" class="btn btn-primary btn-sm" download title="تنزيل">⬇️</a>
           <button class="btn btn-warning btn-sm" onclick="pushBackup('{{ backup.name }}')" title="رفع لـ GitHub">⬆️</button>
           <button class="btn btn-danger btn-sm" onclick="deleteBackup('{{ backup.name }}')" title="حذف">🗑️</button>
@@ -236,6 +237,21 @@ async function deleteAll() {
   } catch(e) { hideLoading(); showToast('خطأ في الاتصال', 'error'); }
 }
 
+async function restoreBackup(name) {
+  if (!confirm('⚠️ هل أنت متأكد من استعادة هذه النسخة الاحتياطية؟\n' + name + '\n\nسيتم إنشاء نسخة تلقائية قبل الاستعادة للحماية.')) return;
+  showLoading('جاري استعادة النسخة الاحتياطية...');
+  try {
+    const data = await apiPost('/backups/api/restore/' + encodeURIComponent(name), {});
+    hideLoading();
+    if (data.ok) {
+      showToast('✅ تم الاستعادة بنجاح — ' + (data.files || 0) + ' ملف', 'success', 6000);
+      loadBackups();
+    } else {
+      showToast('❌ فشل الاستعادة: ' + (data.error || ''), 'error');
+    }
+  } catch(e) { hideLoading(); showToast('خطأ في الاتصال', 'error'); }
+}
+
 async function loadBackups() {
   try {
     const backups = await apiGet('/backups/api/list');
@@ -268,6 +284,7 @@ async function loadBackups() {
         '</div>' +
         '<div style="display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap">' +
           '<button class="btn btn-ghost btn-sm" onclick="verifyBackup(\'' + b.name + '\')">✅ تحقق</button>' +
+          '<button class="btn btn-restore btn-sm" onclick="restoreBackup(\'' + b.name + '\')">♻️ استعادة</button>' +
           '<a href="/backups/api/download/' + encodeURIComponent(b.name) + '" class="btn btn-primary btn-sm" download>⬇️</a>' +
           '<button class="btn btn-warning btn-sm" onclick="pushBackup(\'' + b.name + '\')">⬆️</button>' +
           '<button class="btn btn-danger btn-sm" onclick="deleteBackup(\'' + b.name + '\')">🗑️</button>' +

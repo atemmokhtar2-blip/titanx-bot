@@ -20,6 +20,9 @@
 </head>
 <body>
 
+<!-- ═══ FLOATING PARTICLES CANVAS (z-index 0, pointer-events none) ═══ -->
+<canvas id="particles-canvas" aria-hidden="true"></canvas>
+
 <!-- ═══ ANIMATED BACKGROUND ORBS (z-index 0, pointer-events none) ═══ -->
 <div class="bg-orbs" aria-hidden="true">
   <div class="bg-orb orb-1"></div>
@@ -49,7 +52,7 @@
 <div class="layout">
 
   <!-- MOBILE OVERLAY -->
-  <div class="mobile-overlay" id="mobile-overlay" onclick="closeSidebar()"></div>
+  <div class="mobile-overlay" id="mobile-overlay" style="display:none;pointer-events:none" onclick="closeSidebar()"></div>
 
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">

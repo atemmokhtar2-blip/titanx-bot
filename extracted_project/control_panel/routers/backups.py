@@ -30,7 +30,7 @@ def _make_backup(label: str = "") -> dict:
                 for f in files:
                     if any(f.endswith(ext) for ext in EXCLUDE_FILES):
                         continue
-                    fp = os.path.join(root, f)
+                    fp  = os.path.join(root, f)
                     arc = os.path.relpath(fp, EXTRACTED_DIR)
                     try:
                         zf.write(fp, arc)
@@ -53,10 +53,10 @@ def _list_backups() -> list:
         try:
             stat = os.stat(fpath)
             result.append({
-                "name": f,
-                "size": stat.st_size,
-                "size_h": _fmt(stat.st_size),
-                "mtime": datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M"),
+                "name":     f,
+                "size":     stat.st_size,
+                "size_h":   _fmt(stat.st_size),
+                "mtime":    datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M"),
                 "mtime_ts": int(stat.st_mtime),
             })
         except Exception:
@@ -70,11 +70,37 @@ def _verify_backup(name: str) -> dict:
         return {"ok": False, "error": "الملف غير موجود"}
     try:
         with zipfile.ZipFile(fpath, "r") as zf:
-            bad = zf.testzip()
+            bad   = zf.testzip()
             count = len(zf.namelist())
         if bad:
             return {"ok": False, "error": f"ملف تالف: {bad}", "files": count}
         return {"ok": True, "files": count, "msg": f"سليم — {count} ملف"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def _restore_backup(name: str) -> dict:
+    """Extract the backup zip over EXTRACTED_DIR (restoring all files)."""
+    fpath = os.path.join(BACKUPS_DIR, name)
+    if not os.path.exists(fpath):
+        return {"ok": False, "error": "الملف غير موجود"}
+    # Verify first
+    v = _verify_backup(name)
+    if not v["ok"]:
+        return {"ok": False, "error": "النسخة تالفة: " + v.get("error", "")}
+    # Take a quick auto-backup before restoring
+    _make_backup("pre_restore")
+    try:
+        with zipfile.ZipFile(fpath, "r") as zf:
+            # Extract safely — skip absolute paths
+            for member in zf.infolist():
+                member_path = os.path.realpath(
+                    os.path.join(EXTRACTED_DIR, member.filename)
+                )
+                if not member_path.startswith(os.path.realpath(EXTRACTED_DIR)):
+                    continue  # path traversal guard
+                zf.extract(member, EXTRACTED_DIR)
+        return {"ok": True, "msg": f"تم الاستعادة بنجاح — {v['files']} ملف", "files": v["files"]}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -102,9 +128,11 @@ async def api_list(session: dict = Depends(require_owner)):
 @router.post("/api/create")
 async def api_create(request: Request, session: dict = Depends(require_owner)):
     body = {}
-    try: body = await request.json()
-    except Exception: pass
-    label = body.get("label", "").strip()[:30]
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    label  = body.get("label", "").strip()[:30]
     result = _make_backup(label)
     return result
 
@@ -114,6 +142,13 @@ async def api_verify(name: str, session: dict = Depends(require_owner)):
     if ".." in name or "/" in name:
         return JSONResponse({"ok": False, "error": "اسم غير صالح"}, status_code=400)
     return _verify_backup(name)
+
+
+@router.post("/api/restore/{name}")
+async def api_restore(name: str, session: dict = Depends(require_owner)):
+    if ".." in name or "/" in name:
+        return JSONResponse({"ok": False, "error": "اسم غير صالح"}, status_code=400)
+    return _restore_backup(name)
 
 
 @router.get("/api/download/{name}")

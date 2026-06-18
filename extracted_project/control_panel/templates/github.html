@@ -11,6 +11,16 @@
   {% endif %}
 </div>
 
+<!-- Connection Status Banner -->
+<div id="gh-connection-banner" class="card mb-3 fade-up" style="padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+  <span id="gh-connect-badge" class="gh-connect-badge disconnected">
+    <span>⏳</span> جاري فحص الاتصال...
+  </span>
+  <span id="gh-connect-user" style="font-size:.82rem;color:var(--text2)"></span>
+  <span id="gh-last-push" class="git-last-push"></span>
+  <button class="btn btn-ghost btn-sm" style="margin-right:auto" onclick="checkGitHubConnection()">🔄 فحص الاتصال</button>
+</div>
+
 <!-- Status Strip -->
 <div class="metrics-strip mb-3 fade-up">
   <div class="metric-pill">
@@ -29,6 +39,11 @@
     <div class="metric-pill-label">📝 Commits</div>
     <div class="metric-pill-value" style="font-size:1.1rem">{{ git_info.commits|length }}</div>
     <div class="metric-pill-bar"><div class="metric-pill-fill" style="width:100%;background:var(--purple)"></div></div>
+  </div>
+  <div class="metric-pill">
+    <div class="metric-pill-label">🔗 الاتصال</div>
+    <div class="metric-pill-value" id="git-conn-pill" style="font-size:.85rem">...</div>
+    <div class="metric-pill-bar"><div class="metric-pill-fill" id="git-conn-bar" style="width:50%;background:var(--yellow)"></div></div>
   </div>
 </div>
 
@@ -251,7 +266,6 @@ async function backupAndPush() {
 }
 
 // Update git info with enhanced display
-var _origRefreshGitInfo = refreshGitInfo;
 async function refreshGitInfo() {
   try {
     const d = await apiGet('/github/api/info');
@@ -269,5 +283,39 @@ async function refreshGitInfo() {
     }
   } catch(e) {}
 }
+
+async function checkGitHubConnection() {
+  var badge   = document.getElementById('gh-connect-badge');
+  var userEl  = document.getElementById('gh-connect-user');
+  var connPil = document.getElementById('git-conn-pill');
+  var connBar = document.getElementById('git-conn-bar');
+  if (badge) badge.innerHTML = '<span>⏳</span> جاري الفحص...';
+  try {
+    const d = await apiGet('/github/api/connection');
+    if (d.connected) {
+      if (badge) badge.className = 'gh-connect-badge connected';
+      if (badge) badge.innerHTML = '<span>✅</span> متصل بـ GitHub';
+      if (userEl) userEl.textContent = d.user ? '👤 ' + d.user + (d.repo ? ' · ' + d.repo : '') : '';
+      if (connPil) connPil.textContent = '✅ متصل';
+      if (connBar) { connBar.style.width = '100%'; connBar.style.background = 'var(--green)'; }
+      document.getElementById('git-last-push').innerHTML =
+        '<strong>تم التحقق:</strong> ' + new Date().toLocaleTimeString('ar-SA');
+    } else {
+      if (badge) badge.className = 'gh-connect-badge disconnected';
+      if (badge) badge.innerHTML = '<span>❌</span> غير متصل';
+      if (userEl) userEl.textContent = d.error || 'تحقق من الـ Token';
+      if (connPil) connPil.textContent = '❌ منقطع';
+      if (connBar) { connBar.style.width = '30%'; connBar.style.background = 'var(--red)'; }
+    }
+  } catch(e) {
+    if (badge) { badge.className = 'gh-connect-badge disconnected'; badge.innerHTML = '<span>❌</span> خطأ في الفحص'; }
+    if (connPil) connPil.textContent = '❌ خطأ';
+  }
+}
+
+// Auto-check on page load
+document.addEventListener('DOMContentLoaded', function() {
+  checkGitHubConnection();
+});
 </script>
 {% endblock %}

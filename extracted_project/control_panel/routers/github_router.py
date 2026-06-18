@@ -147,6 +147,40 @@ async def api_configure(request: Request, session: dict = Depends(require_owner)
     return {"ok": True, "results": results}
 
 
+@router.post("/api/fetch")
+async def api_fetch(session: dict = Depends(require_owner)):
+    r = _git_run("fetch", "--all", "--prune")
+    return {"ok": r["ok"], "output": r["stdout"] or r["stderr"]}
+
+
+@router.get("/api/connection")
+async def api_connection(session: dict = Depends(require_owner)):
+    """Check GitHub API connectivity and return user info."""
+    cfg   = _get_config()
+    token = cfg["token"]
+    if not token:
+        return {"connected": False, "error": "لا يوجد GitHub Token"}
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.get(
+                "https://api.github.com/user",
+                headers={"Authorization": f"token {token}",
+                         "Accept": "application/vnd.github.v3+json"}
+            )
+            if r.status_code == 200:
+                u = r.json()
+                return {
+                    "connected": True,
+                    "user":      u.get("login"),
+                    "name":      u.get("name"),
+                    "avatar":    u.get("avatar_url"),
+                    "repo":      cfg.get("repo", ""),
+                }
+            return {"connected": False, "error": f"GitHub رد بـ {r.status_code}"}
+    except Exception as e:
+        return {"connected": False, "error": str(e)}
+
+
 @router.get("/api/gh/repos")
 async def api_gh_repos(session: dict = Depends(require_owner)):
     cfg   = _get_config()

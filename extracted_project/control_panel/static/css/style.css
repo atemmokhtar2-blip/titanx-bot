@@ -1642,3 +1642,134 @@ a:not([target="_blank"]) {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   PARTICLES BACKGROUND CANVAS
+   ═══════════════════════════════════════════════════════════════ */
+#particles-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE OVERLAY — pointer-events fixed (never blocks when closed)
+   ═══════════════════════════════════════════════════════════════ */
+.mobile-overlay {
+  backdrop-filter: blur(3px);
+  transition: opacity 0.25s ease;
+}
+.mobile-overlay.visible {
+  display: block !important;
+  pointer-events: all !important;
+  opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BOT STATUS — 4 STATES: running / stopped / restarting / error
+   ═══════════════════════════════════════════════════════════════ */
+.dot-yellow  { background: var(--yellow) !important; box-shadow: 0 0 5px var(--yellow); }
+.dot-blink   { animation: dotBlink 1.2s ease-in-out infinite; }
+.dot-blink-fast { animation: dotBlink 0.55s ease-in-out infinite; }
+
+@keyframes dotBlink {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%     { opacity: 0.25; transform: scale(0.7); }
+}
+
+.status-pill-restart {
+  background: rgba(245,158,11,0.12) !important;
+  border-color: rgba(245,158,11,0.3) !important;
+  color: var(--yellow) !important;
+}
+.status-pill-error {
+  background: rgba(239,68,68,0.12) !important;
+  border-color: rgba(239,68,68,0.3) !important;
+  color: var(--red) !important;
+  animation: errorFlash 0.8s ease-in-out infinite;
+}
+@keyframes errorFlash {
+  0%,100% { opacity: 1; }
+  50%     { opacity: 0.6; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATED COUNTER UPDATE FLASH
+   ═══════════════════════════════════════════════════════════════ */
+@keyframes countFlash {
+  0%   { color: var(--accent2); text-shadow: 0 0 12px rgba(96,165,250,0.6); }
+  100% { color: inherit; text-shadow: none; }
+}
+.count-updated {
+  animation: countFlash 0.7s ease forwards;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BACKUP RESTORE BUTTON HIGHLIGHT
+   ═══════════════════════════════════════════════════════════════ */
+.btn-restore {
+  background: linear-gradient(135deg, rgba(245,158,11,0.18), rgba(249,115,22,0.12));
+  border-color: rgba(245,158,11,0.35);
+  color: var(--yellow);
+}
+.btn-restore:hover {
+  background: linear-gradient(135deg, rgba(245,158,11,0.28), rgba(249,115,22,0.22));
+  border-color: rgba(245,158,11,0.55);
+  color: #fbbf24;
+  box-shadow: 0 0 18px rgba(245,158,11,0.25);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GITHUB CONNECTION STATUS BADGE
+   ═══════════════════════════════════════════════════════════════ */
+.gh-connect-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 6px 14px; border-radius: 99px;
+  font-size: .78rem; font-weight: 700;
+  border: 1px solid;
+}
+.gh-connect-badge.connected {
+  background: rgba(34,197,94,0.1);
+  border-color: rgba(34,197,94,0.3);
+  color: var(--green);
+}
+.gh-connect-badge.disconnected {
+  background: rgba(239,68,68,0.1);
+  border-color: rgba(239,68,68,0.3);
+  color: var(--red);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ENHANCED NAV ACTIVE INDICATOR (glow pulse)
+   ═══════════════════════════════════════════════════════════════ */
+.nav-item.active {
+  animation: navActiveGlow 3s ease-in-out infinite;
+}
+@keyframes navActiveGlow {
+  0%,100% { box-shadow: inset 0 0 20px rgba(59,130,246,0.05); }
+  50%     { box-shadow: inset 0 0 28px rgba(59,130,246,0.10); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PAGE LOADER — faster hide transition
+   ═══════════════════════════════════════════════════════════════ */
+.page-loader.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LAST PUSH TIMESTAMP DISPLAY
+   ═══════════════════════════════════════════════════════════════ */
+.git-last-push {
+  font-size: .72rem;
+  color: var(--text3);
+  margin-top: 4px;
+}
+.git-last-push strong { color: var(--text2); }
+
+
