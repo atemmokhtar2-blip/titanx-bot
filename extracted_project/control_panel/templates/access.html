@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#070c18">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>TitanX — لوحة التحكم</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
+<title>X — لوحة التحكم</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap">
 <link rel="stylesheet" href="/static/css/style.css?v={{ VER }}">
@@ -62,21 +62,30 @@ body { overflow: hidden; }
   border: 1.5px solid rgba(59,130,246,0.3);
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 0 32px rgba(59,130,246,0.22), 0 8px 24px rgba(0,0,0,0.32);
-  animation: logoSpin 4s ease-in-out infinite alternate;
+  animation: logoGlow 4s ease-in-out infinite alternate;
 }
-@keyframes logoSpin { 0%{box-shadow:0 0 24px rgba(59,130,246,0.22)} 100%{box-shadow:0 0 44px rgba(168,85,247,0.38)} }
+@keyframes logoGlow { 0%{box-shadow:0 0 24px rgba(59,130,246,0.22)} 100%{box-shadow:0 0 44px rgba(168,85,247,0.38),0 0 80px rgba(59,130,246,0.18)} }
 .access-logo-inner { font-size: 2.5rem; animation: logoBob 3s ease-in-out infinite alternate; }
 @keyframes logoBob { 0%{transform:translateY(0) rotate(-4deg)} 100%{transform:translateY(-5px) rotate(4deg)} }
 
-.access-title {
-  text-align: center; font-size: 2rem; font-weight: 900; letter-spacing: -0.03em;
-  background: linear-gradient(135deg, var(--accent2), var(--purple));
+.access-x-title {
+  text-align: center; font-size: 3.5rem; font-weight: 900; letter-spacing: -0.05em;
+  background: linear-gradient(135deg, #60a5fa, #a855f7, #06b6d4);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  margin-bottom: 4px;
+  line-height: 1; margin-bottom: 2px;
+  animation: titleShimmer 3s ease-in-out infinite alternate;
+}
+@keyframes titleShimmer {
+  0% { filter: brightness(1); }
+  100% { filter: brightness(1.3) drop-shadow(0 0 12px rgba(96,165,250,0.5)); }
+}
+.access-title-sub {
+  text-align: center; font-size: 1rem; font-weight: 700; letter-spacing: 0.12em;
+  color: var(--text2); text-transform: uppercase; margin-bottom: 4px;
 }
 .access-sub {
-  text-align: center; color: var(--text2); font-size: .83rem; font-weight: 500;
-  margin-bottom: 20px;
+  text-align: center; color: var(--text3); font-size: .78rem; font-weight: 500;
+  margin-bottom: 22px;
 }
 
 .access-alert {
@@ -86,7 +95,6 @@ body { overflow: hidden; }
 }
 .access-alert-error { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.28); color: #fca5a5; }
 
-/* Password form */
 .pw-form { margin-bottom: 14px; }
 .pw-input-wrap { position: relative; }
 .pw-input {
@@ -99,7 +107,7 @@ body { overflow: hidden; }
 }
 .pw-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15), 0 0 20px rgba(59,130,246,0.1);
   background: var(--card);
 }
 .pw-toggle {
@@ -109,19 +117,25 @@ body { overflow: hidden; }
 }
 .pw-toggle:hover { color: var(--text); }
 .pw-submit {
-  width: 100%; padding: 13px;
+  width: 100%; padding: 14px;
   background: linear-gradient(135deg, var(--accent), #6366f1);
   color: #fff; border: none; border-radius: 14px;
   font-family: inherit; font-size: .95rem; font-weight: 700;
   cursor: pointer; margin-top: 12px;
   box-shadow: 0 4px 20px rgba(59,130,246,0.4);
   transition: all 0.22s ease; position: relative; overflow: hidden;
+  letter-spacing: 0.03em;
 }
-.pw-submit:hover { box-shadow: 0 6px 28px rgba(59,130,246,0.55); transform: translateY(-1px); }
+.pw-submit::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  transform: translateX(-100%); transition: transform 0.5s ease;
+}
+.pw-submit:hover::before { transform: translateX(100%); }
+.pw-submit:hover { box-shadow: 0 6px 28px rgba(59,130,246,0.55), 0 0 40px rgba(99,102,241,0.2); transform: translateY(-1px); }
 .pw-submit:active { transform: scale(0.98); }
 .pw-submit.loading { opacity: 0.8; pointer-events: none; }
 
-/* Divider */
 .access-divider {
   display: flex; align-items: center; gap: 12px;
   margin: 16px 0; color: var(--text3); font-size: .75rem; font-weight: 600;
@@ -130,7 +144,6 @@ body { overflow: hidden; }
   content: ''; flex: 1; height: 1px; background: var(--border);
 }
 
-/* Status box */
 .access-status-box {
   background: var(--bg2);
   border: 1px solid var(--border);
@@ -179,12 +192,13 @@ body { overflow: hidden; }
 
     <div class="access-logo-wrap">
       <div class="access-logo-ring">
-        <div class="access-logo-inner">🎛️</div>
+        <div class="access-logo-inner">⚡</div>
       </div>
     </div>
 
-    <h1 class="access-title">TitanX</h1>
-    <p class="access-sub">لوحة التحكم الاحترافية</p>
+    <div class="access-x-title">X</div>
+    <div class="access-title-sub">Control Center</div>
+    <p class="access-sub">لوحة التحكم الاحترافية · للمالك فقط</p>
 
     {% if error %}
     <div class="access-alert access-alert-error">
@@ -193,7 +207,6 @@ body { overflow: hidden; }
     </div>
     {% endif %}
 
-    <!-- Password Login Form -->
     <form method="POST" action="/panel/login" class="pw-form" onsubmit="submitPw(this)">
       <div class="form-label" style="margin-bottom:8px;font-size:.8rem;color:var(--text2)">🔐 كلمة المرور</div>
       <div class="pw-input-wrap">
@@ -211,13 +224,12 @@ body { overflow: hidden; }
         </button>
       </div>
       <button type="submit" class="pw-submit" id="pw-submit-btn">
-        <span id="pw-btn-text">🔓 دخول</span>
+        <span id="pw-btn-text">⚡ دخول</span>
       </button>
     </form>
 
     <div class="access-divider">أو</div>
 
-    <!-- Status block -->
     <div class="access-status-box">
       <div class="access-status-row">
         <span class="access-status-icon">🔑</span>
@@ -239,7 +251,7 @@ body { overflow: hidden; }
     </div>
 
     <div class="access-footer">
-      <span class="access-version">UI {{ UI_VERSION }} · Build {{ VER }}</span>
+      <span class="access-version">{{ UI_VERSION }} · Build {{ VER }}</span>
       <button class="access-theme-btn" onclick="toggleTheme()" title="تبديل الوضع">
         <span id="theme-icon">☀️</span>
       </button>
@@ -267,7 +279,6 @@ function submitPw(form) {
   if (txt) { txt.textContent = '⟳ جاري التحقق...'; }
 }
 
-// Auto-focus password field
 document.addEventListener('DOMContentLoaded', function() {
   const f = document.getElementById('pw-field');
   if (f) setTimeout(function() { f.focus(); }, 400);

@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#070c18">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>{% block title %}TitanX Control Panel{% endblock %}</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
+<title>{% block title %}X Control Center{% endblock %}</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="/static/css/style.css?v={{ VER }}">
@@ -23,7 +23,7 @@
 <!-- ═══ FLOATING PARTICLES CANVAS (z-index 0, pointer-events none) ═══ -->
 <canvas id="particles-canvas" aria-hidden="true"></canvas>
 
-<!-- ═══ ANIMATED BACKGROUND ORBS (z-index 0, pointer-events none) ═══ -->
+<!-- ═══ ANIMATED BACKGROUND ORBS ═══ -->
 <div class="bg-orbs" aria-hidden="true">
   <div class="bg-orb orb-1"></div>
   <div class="bg-orb orb-2"></div>
@@ -33,18 +33,18 @@
 
 <!-- PAGE LOADER -->
 <div class="page-loader" id="page-loader">
-  <div class="loader-logo">🎛️</div>
+  <div class="loader-logo">⚡</div>
   <div class="loader-bar"><div class="loader-bar-fill"></div></div>
-  <div class="loader-text">TitanX Control Panel</div>
+  <div class="loader-text">X Control Center</div>
 </div>
 
-<!-- LOADING OVERLAY (modal-style — sharp main content) -->
+<!-- LOADING OVERLAY -->
 <div class="loading-overlay" id="loading-overlay">
   <div class="loading-spinner"></div>
   <div class="loading-text" id="loading-text">جاري التحميل...</div>
 </div>
 
-<!-- FIXED BACK BUTTON (permanent, all pages) -->
+<!-- FIXED BACK BUTTON -->
 <button class="fixed-back-btn" id="fixed-back-btn" aria-label="رجوع">
   ← رجوع
 </button>
@@ -59,7 +59,7 @@
 
     <a href="/" class="sidebar-logo">
       <div class="logo-orbit-wrap">
-        <div class="logo-orbit-core">🎛️</div>
+        <div class="logo-orbit-core">⚡</div>
         <div class="orbit-ring orbit-ring-1"></div>
         <div class="orbit-ring orbit-ring-2"></div>
         <div class="orbit-dot orbit-dot-1"></div>
@@ -69,8 +69,8 @@
         <div class="orbit-particle"></div>
       </div>
       <div class="sidebar-logo-text-wrap">
-        <div class="sidebar-logo-name">TitanX</div>
-        <div class="sidebar-logo-sub">Control Panel {{ UI_VERSION }}</div>
+        <div class="sidebar-logo-name">X Control</div>
+        <div class="sidebar-logo-sub">Center {{ UI_VERSION }}</div>
       </div>
     </a>
 
@@ -89,6 +89,15 @@
         <a href="/bots" class="nav-item {% if active_page=='bots' %}active{% endif %}">
           <span class="nav-icon">🤖</span>
           <span class="nav-label">إدارة البوتات</span>
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-label">الذكاء الاصطناعي</div>
+        <a href="/ai" class="nav-item {% if active_page=='ai' %}active{% endif %} nav-item-ai">
+          <span class="nav-icon">🧠</span>
+          <span class="nav-label">مساحة الذكاء</span>
+          <span class="nav-badge-new">جديد</span>
         </a>
       </div>
 
@@ -170,20 +179,18 @@
           <span class="hamburger-line"></span>
         </button>
         <div class="header-breadcrumb">
-          <span class="header-brand">TitanX</span>
+          <span class="header-brand">X</span>
           <span class="header-sep">/</span>
           <span class="header-page">{% block page_title %}لوحة التحكم{% endblock %}</span>
         </div>
       </div>
       <div class="header-end">
-        <!-- Live System Pulse -->
         <div class="header-sys-pill" id="header-sys-pill" title="حالة النظام">
           <span class="dot dot-green dot-blink" id="hdr-dot"></span>
           <span class="header-sys-cpu" id="hdr-cpu">--</span>
           <span class="header-sys-sep">|</span>
           <span class="header-sys-ram" id="hdr-ram">--</span>
         </div>
-        <!-- Live Clock -->
         <div class="header-clock" id="header-clock" style="display:none">--:--</div>
         <span class="live-badge">مباشر</span>
         <button class="header-icon-btn" id="theme-btn" onclick="toggleTheme()" title="تبديل الوضع">☀️</button>
@@ -243,7 +250,6 @@
 
 <div id="toast-container"></div>
 
-<!-- Chart.js v4 -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="/static/js/app.js?v={{ VER }}"></script>
 {% block scripts %}{% endblock %}

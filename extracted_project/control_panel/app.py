@@ -16,7 +16,7 @@ from .auth import (create_session, get_session, require_owner,
                    SESSION_COOKIE, SESSION_MAX_AGE, NotAuthenticated, ACCESS_TOKEN)
 from .routers import (dashboard, users, broadcast, db_manager,
                       files, logs_router, system, updates, github_router, search)
-from .routers import bots, backups, replit_manager
+from .routers import bots, backups, replit_manager, ai_workspace
 
 # ── Panel settings (persistent password store) ──────────────────────────────
 SETTINGS_FILE = os.path.join(EXTRACTED_DIR, ".panel_settings.json")
@@ -68,7 +68,7 @@ _init_password()
 # Build-time version stamp — changes every restart, forces browser cache-bust
 _BUILD_TS = str(int(time.time()))
 
-app = FastAPI(title="TitanX Control Panel", docs_url=None, redoc_url=None)
+app = FastAPI(title="X Control Center", docs_url=None, redoc_url=None)
 
 # ── No-cache middleware for static assets ────────────────────────────────────
 class NoCacheMiddleware(BaseHTTPMiddleware):
@@ -93,7 +93,8 @@ app.mount("/static", StaticFiles(directory=_static), name="static")
 templates = Jinja2Templates(directory=_templates_dir)
 # Inject build timestamp into every template so ?v= busts the browser cache
 templates.env.globals["VER"] = _BUILD_TS
-templates.env.globals["UI_VERSION"] = "v4.0"
+templates.env.globals["UI_VERSION"] = "v5.0"
+templates.env.globals["BRAND_NAME"] = "X"
 
 app.include_router(dashboard.router)
 app.include_router(users.router)
@@ -108,6 +109,7 @@ app.include_router(search.router)
 app.include_router(bots.router)
 app.include_router(backups.router)
 app.include_router(replit_manager.router)
+app.include_router(ai_workspace.router)
 
 
 def _public_base() -> str:
@@ -221,4 +223,4 @@ async def logout():
 
 @app.get("/healthz")
 async def healthz():
-    return {"status": "ok", "panel": "TitanX Control Panel"}
+    return {"status": "ok", "panel": "X Control Center", "version": "5.0"}

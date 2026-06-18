@@ -1915,3 +1915,126 @@ a:not([target="_blank"]) {
 .bg-orbs { display: none !important; }
 .bg-orb  { display: none !important; filter: none !important; opacity: 0 !important; }
 
+
+/* ═══════════════════════════════════════════════════════════════
+   X CONTROL CENTER — v5.0 ADDITIONS
+   AI Workspace · Enhanced Nav · New Brand
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── AI NAV ITEM ─────────────────────────────────────────────── */
+.nav-item-ai {
+  background: linear-gradient(90deg, rgba(168,85,247,0.10) 0%, rgba(59,130,246,0.06) 100%) !important;
+  border-right: 2px solid rgba(168,85,247,0.4) !important;
+}
+.nav-item-ai:hover {
+  background: linear-gradient(90deg, rgba(168,85,247,0.18) 0%, rgba(59,130,246,0.12) 100%) !important;
+}
+.nav-item-ai.active {
+  background: linear-gradient(90deg, rgba(168,85,247,0.22) 0%, rgba(59,130,246,0.10) 100%) !important;
+  border-right: 3px solid var(--purple) !important;
+}
+.nav-item-ai .nav-icon { filter: drop-shadow(0 0 5px rgba(168,85,247,0.7)); }
+
+/* ── NAV BADGE "NEW" ─────────────────────────────────────────── */
+.nav-badge-new {
+  font-size: .58rem; font-weight: 800; letter-spacing: .06em;
+  padding: 1px 6px; border-radius: 99px;
+  background: linear-gradient(135deg, var(--purple), var(--accent));
+  color: #fff; margin-right: auto; flex-shrink: 0;
+  animation: badgePulse 2.5s ease-in-out infinite;
+}
+@keyframes badgePulse {
+  0%,100% { box-shadow: 0 0 6px rgba(168,85,247,0.4); }
+  50%      { box-shadow: 0 0 14px rgba(168,85,247,0.8); }
+}
+
+/* ── AI BANNER ───────────────────────────────────────────────── */
+.ai-banner {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 22px;
+  background: linear-gradient(135deg, rgba(168,85,247,0.08), rgba(59,130,246,0.06));
+  border: 1px solid rgba(168,85,247,0.22);
+  border-radius: var(--radius);
+  transition: var(--trans);
+  position: relative; overflow: hidden;
+}
+.ai-banner::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(168,85,247,0.05), transparent);
+  animation: shineSweep 4s ease-in-out infinite;
+}
+.ai-banner-icon { font-size: 2rem; flex-shrink: 0; animation: iconFloat 3s ease-in-out infinite alternate; }
+@keyframes iconFloat { 0%{transform:translateY(0) rotate(-5deg)} 100%{transform:translateY(-6px) rotate(5deg)} }
+.ai-banner-content { flex: 1; }
+.ai-banner-title { font-size: .92rem; font-weight: 800; color: var(--text); margin-bottom: 3px; }
+.ai-banner-sub { font-size: .78rem; color: var(--text2); }
+.ai-banner-badge {
+  padding: 5px 14px; border-radius: 99px;
+  background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(59,130,246,0.15));
+  border: 1px solid rgba(168,85,247,0.35);
+  font-size: .72rem; font-weight: 800; color: #c084fc;
+  flex-shrink: 0;
+}
+.ai-banner-success {
+  border-color: rgba(34,197,94,0.3);
+  background: linear-gradient(135deg, rgba(34,197,94,0.07), rgba(59,130,246,0.04));
+}
+.ai-banner-running {
+  border-color: rgba(59,130,246,0.3);
+  background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(168,85,247,0.05));
+}
+
+/* ── HEADER SYS PILL ─────────────────────────────────────────── */
+.header-sys-pill {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 12px; border-radius: 99px;
+  background: var(--bg2); border: 1px solid var(--border);
+  font-size: .74rem; font-weight: 700; color: var(--text2);
+  transition: var(--trans);
+}
+.header-sys-pill:hover { border-color: var(--border2); background: var(--bg3); }
+.header-sys-sep { color: var(--border3); }
+.header-sys-cpu, .header-sys-ram { font-variant-numeric: tabular-nums; }
+
+/* ── X BRAND TEXT (header) ───────────────────────────────────── */
+.header-brand {
+  font-size: 1.15rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #60a5fa, #a855f7);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+
+/* ── SIDEBAR LOGO — X BRANDING ────────────────────────────────── */
+.sidebar-logo-name {
+  font-size: 1.02rem; font-weight: 900; letter-spacing: 0.03em;
+  background: linear-gradient(135deg, #60a5fa, #a855f7, #06b6d4);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+/* ── PAGE LOADER ─────────────────────────────────────────────── */
+.page-loader.hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  display: none !important;
+}
+
+/* ── CARD GLOW VARIANTS (explicit) ──────────────────────────── */
+.card-glow-red:hover   { box-shadow: 0 8px 32px rgba(239,68,68,0.15), var(--shadow); }
+
+/* ── MB UTILITY ──────────────────────────────────────────────── */
+.mb-3 { margin-bottom: 22px !important; }
+
+/* ── FW UTILITY ──────────────────────────────────────────────── */
+.fw-700 { font-weight: 700; }
+.mono   { font-family: 'JetBrains Mono', monospace; font-size: .88rem; }
+.text-warning { color: var(--yellow) !important; }
+
+/* ── AI SUGGESTION ITEMS ─────────────────────────────────────── */
+.ai-suggestion-item { transition: var(--trans); }
+.ai-suggestion-item:hover { background: var(--bg3) !important; transform: translateX(-2px); }
+
+/* ── LIGHT THEME AI ──────────────────────────────────────────── */
+[data-theme=light] .ai-banner {
+  background: linear-gradient(135deg, rgba(168,85,247,0.05), rgba(59,130,246,0.04));
+}

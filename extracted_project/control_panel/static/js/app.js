@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════
-   TitanX Control Panel — Premium JS v5
+   X Control Center — Premium JS v5
    ═══════════════════════════════════════════════════════════ */
 
 // ── Theme ────────────────────────────────────────────────────
@@ -307,7 +307,7 @@ async function gitPull() {
 async function gitPush() {
   var btn   = document.getElementById('push-btn');
   var msgEl = document.getElementById('commit-msg');
-  var msg   = msgEl ? msgEl.value : 'Update via TitanX Control Panel';
+  var msg   = msgEl ? msgEl.value : 'Update via X Control Center';
   if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري الرفع...'; }
   showLoading('جاري Push إلى GitHub...');
   try {
@@ -350,7 +350,7 @@ async function configureGit() {
 }
 
 async function gitCommit() {
-  var msg = (document.getElementById('commit-msg') || {}).value || 'Update via TitanX';
+  var msg = (document.getElementById('commit-msg') || {}).value || 'Update via X';
   showLoading('جاري Commit...');
   try {
     var data = await apiPost('/github/api/commit', { message: msg });
