@@ -41,45 +41,45 @@ args = "TitanX Control Panel"
 name = "PrimeDownloader Bot"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd /home/runner/workspace/extracted_project && python3 bot.py"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd /home/runner/workspace/extracted_project && PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages python3 bot.py"
 
 [[workflows.workflow]]
 name = "Support Bot"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd /home/runner/workspace/extracted_project && python3 support_bot/bot.py"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd /home/runner/workspace/extracted_project && PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages python3 support_bot/bot.py"
 
 [[workflows.workflow]]
 name = "Admin Bot"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd /home/runner/workspace/extracted_project && python3 admin_bot/bot.py"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd /home/runner/workspace/extracted_project && PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages python3 admin_bot/bot.py"
 
 [[workflows.workflow]]
 name = "Developer Bot"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd /home/runner/workspace/extracted_project && python3 developer_bot/bot.py"
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd /home/runner/workspace/extracted_project && PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages python3 developer_bot/bot.py"
 
 [[workflows.workflow]]
 name = "TitanX Control Panel"
@@ -90,7 +90,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages:$PYTHONPATH python3 /home/runner/workspace/extracted_project/control_panel/server.py"
+args = "PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages python3 /home/runner/workspace/extracted_project/control_panel/server.py"
 waitForPort = 5000
 
 [agent]
@@ -104,10 +104,6 @@ timeoutMs = 20000
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 8080
-externalPort = 8080
 
 [[ports]]
 localPort = 8081
