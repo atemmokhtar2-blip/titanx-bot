@@ -10,6 +10,7 @@ from .auth import (create_session, get_session, require_owner,
                    SESSION_COOKIE, SESSION_MAX_AGE, NotAuthenticated, ACCESS_TOKEN)
 from .routers import (dashboard, users, broadcast, db_manager,
                       files, logs_router, system, updates, github_router, search)
+from .routers import bots, backups
 
 app = FastAPI(title="TitanX Control Panel", docs_url=None, redoc_url=None)
 
@@ -31,6 +32,8 @@ app.include_router(system.router)
 app.include_router(updates.router)
 app.include_router(github_router.router)
 app.include_router(search.router)
+app.include_router(bots.router)
+app.include_router(backups.router)
 
 
 def _public_base() -> str:
@@ -64,12 +67,9 @@ async def forbidden_handler(request: Request, exc):
 @app.get("/admin", response_class=HTMLResponse)
 @app.get("/dashboard", response_class=HTMLResponse)
 async def panel_access(request: Request, k: str = ""):
-    # Already authenticated → go to dashboard
     session = get_session(request)
     if session and session.get("uid") == OWNER_ID:
         return RedirectResponse("/", status_code=302)
-
-    # Token provided → validate
     if k:
         if k == ACCESS_TOKEN:
             token = create_session(OWNER_ID)
@@ -78,14 +78,11 @@ async def panel_access(request: Request, k: str = ""):
                                 max_age=SESSION_MAX_AGE, httponly=True,
                                 secure=True, samesite="lax")
             return response
-        # Wrong token
         return templates.TemplateResponse(request, "access.html", {
             "owner_id": OWNER_ID,
             "access_url": _access_url(),
             "error": "رمز الدخول غير صحيح",
         })
-
-    # No token → show access page
     return templates.TemplateResponse(request, "access.html", {
         "owner_id": OWNER_ID,
         "access_url": _access_url(),

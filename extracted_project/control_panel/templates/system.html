@@ -3,71 +3,91 @@
 {% block page_title %}🖥️ حالة النظام{% endblock %}
 
 {% block content %}
-<!-- Bot Status -->
-<div class="card" style="margin-bottom:24px">
-  <div class="card-title">🤖 حالة البوتات</div>
-  <div class="bot-cards">
+
+<!-- Bot Status Live -->
+<div class="card mb-3">
+  <div class="card-title" style="justify-content:space-between">
+    <span>🤖 حالة البوتات</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="live-badge">مباشر</span>
+      <a href="/bots" class="btn btn-primary btn-sm">⚙️ التحكم الكامل</a>
+    </div>
+  </div>
+  <div class="bot-cards" id="bot-cards">
     {% for bot in bots %}
-    <div class="bot-card">
+    <div class="bot-card fade-up" style="animation-delay:{{ loop.index0 * 0.08 }}s">
       <div class="bot-card-header">
-        <div class="bot-avatar">{% if 'main' in bot.key %}🤖{% elif 'admin' in bot.key %}🛡️{% elif 'support' in bot.key %}🎧{% else %}⚙️{% endif %}</div>
+        <div class="bot-avatar">
+          {% if 'main' in bot.key %}🤖{% elif 'admin' in bot.key %}🛡️{% elif 'support' in bot.key %}🎧{% else %}⚙️{% endif %}
+        </div>
         <div>
           <div class="bot-name">{{ bot.label }}</div>
           <div class="bot-status">
-            {% if bot.running %}
-            <span class="dot dot-green"></span> يعمل
-            {% if bot.pid %}<span style="color:var(--text2);font-size:.7rem"> (PID: {{ bot.pid }})</span>{% endif %}
-            {% else %}
-            <span class="dot dot-red"></span> متوقف
-            {% endif %}
+            <span class="dot {% if bot.running %}dot-green{% else %}dot-red{% endif %}" id="bot-dot-{{ bot.key }}"></span>
+            <span id="bot-status-{{ bot.key }}">{% if bot.running %}🟢 يعمل{% else %}🔴 متوقف{% endif %}</span>
+            <span id="bot-pid-{{ bot.key }}" style="color:var(--text3);font-size:.7rem">
+              {% if bot.pid %}(PID: {{ bot.pid }}){% endif %}
+            </span>
           </div>
         </div>
       </div>
-      {% if bot.last_seen %}
-      <div style="font-size:.75rem;color:var(--text2)">آخر نبضة: {{ bot.last_seen }}</div>
-      {% endif %}
     </div>
     {% endfor %}
   </div>
 </div>
 
 <!-- System Gauges -->
-<div class="gauge-grid" style="margin-bottom:24px">
-  <div class="gauge-card">
+<div class="gauge-grid mb-3">
+  <div class="gauge-card fade-up anim-delay-1">
     <div class="gauge-label">⚡ المعالج (CPU)</div>
-    <div class="gauge-value" id="cpu-val">{{ stats.cpu_percent }}%</div>
+    <div class="gauge-value text-accent" id="cpu-val">{{ stats.cpu_percent }}%</div>
     <div class="progress"><div class="progress-bar" id="cpu-bar" style="width:{{ stats.cpu_percent }}%"></div></div>
+    <div class="gauge-sub">{{ stats.cpu_percent }}% مستخدم</div>
   </div>
-  <div class="gauge-card">
+  <div class="gauge-card fade-up anim-delay-2">
     <div class="gauge-label">💾 الذاكرة (RAM)</div>
-    <div class="gauge-value" id="mem-val">{{ (stats.mem_used // 1048576)|string }} MB</div>
-    <div class="progress"><div class="progress-bar" id="mem-bar" style="width:{{ stats.mem_percent }}%"></div></div>
+    <div class="gauge-value text-success" id="mem-val">{{ (stats.mem_used // 1048576)|string }} MB</div>
+    <div class="progress"><div class="progress-bar green" id="mem-bar" style="width:{{ stats.mem_percent }}%"></div></div>
     <div class="gauge-sub" id="mem-total">من {{ (stats.mem_total // 1048576)|string }} MB</div>
   </div>
-  <div class="gauge-card">
+  <div class="gauge-card fade-up anim-delay-3">
     <div class="gauge-label">💿 التخزين</div>
-    <div class="gauge-value" id="disk-val">{{ (stats.disk_used // 1073741824)|string }} GB</div>
-    <div class="progress"><div class="progress-bar" id="disk-bar" style="width:{{ stats.disk_percent }}%"></div></div>
+    <div class="gauge-value text-warning" id="disk-val">{{ (stats.disk_used // 1073741824)|string }} GB</div>
+    <div class="progress"><div class="progress-bar yellow" id="disk-bar" style="width:{{ stats.disk_percent }}%"></div></div>
     <div class="gauge-sub">من {{ (stats.disk_total // 1073741824)|string }} GB</div>
   </div>
-  <div class="gauge-card">
+  <div class="gauge-card fade-up anim-delay-4">
     <div class="gauge-label">🕐 وقت التشغيل</div>
     <div class="gauge-value" id="uptime-val" style="font-size:1.1rem">{{ stats.uptime }}</div>
     <div class="gauge-sub">منذ آخر إعادة تشغيل</div>
   </div>
-  <div class="gauge-card">
+  <div class="gauge-card fade-up">
     <div class="gauge-label">📤 شبكة مُرسَل</div>
     <div class="gauge-value" id="net-sent" style="font-size:1.1rem">{{ (stats.net_sent // 1048576)|string }} MB</div>
+    <div class="progress"><div class="progress-bar cyan" style="width:40%"></div></div>
   </div>
-  <div class="gauge-card">
+  <div class="gauge-card fade-up">
     <div class="gauge-label">📥 شبكة مُستقبَل</div>
     <div class="gauge-value" id="net-recv" style="font-size:1.1rem">{{ (stats.net_recv // 1048576)|string }} MB</div>
+    <div class="progress"><div class="progress-bar cyan" style="width:60%"></div></div>
   </div>
+</div>
+
+<!-- Replit Manager -->
+<div class="replit-card mb-3">
+  <div class="card-title">⚡ إدارة Replit — استرداد سريع</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn btn-primary" onclick="restartAllBots()" id="restart-all-btn">🔄 إعادة تشغيل جميع البوتات</button>
+    <button class="btn btn-ghost" onclick="refreshStats()">📊 تحديث الإحصاءات</button>
+    <button class="btn btn-ghost" onclick="checkProcesses()">🔍 فحص العمليات</button>
+    <a href="/backups" class="btn btn-success">💾 نسخة احتياطية</a>
+  </div>
+  <div id="replit-result" style="margin-top:14px"></div>
 </div>
 
 <!-- Processes -->
 <div class="card">
-  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+  <div class="card-title" style="justify-content:space-between">
     <span>⚙️ العمليات الجارية (Python)</span>
     <button class="btn btn-ghost btn-sm" onclick="refreshStats()">🔄 تحديث</button>
   </div>
@@ -83,7 +103,7 @@
           <th>الحالة</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="procs-table">
         {% for p in procs %}
         <tr>
           <td><code>{{ p.pid }}</code></td>
@@ -98,10 +118,33 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="6" style="text-align:center;color:var(--text2)">لا توجد عمليات</td></tr>
+        <tr><td colspan="6" style="text-align:center;color:var(--text2);padding:24px">لا توجد عمليات</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  startStatsPolling(5000);
+  startBotPolling(8000);
+});
+
+async function checkProcesses() {
+  showLoading('جاري فحص العمليات...');
+  try {
+    const d = await apiGet('/system/api/stats');
+    hideLoading();
+    const r = document.getElementById('replit-result');
+    if (r) r.innerHTML = '<div class="alert alert-success">✅ النظام يعمل — CPU: ' + d.cpu_percent + '% | RAM: ' + Math.round(d.mem_percent) + '% | وقت التشغيل: ' + d.uptime + '</div>';
+  } catch (e) {
+    hideLoading();
+    showToast('فشل الفحص', 'error');
+  }
+}
+</script>
 {% endblock %}

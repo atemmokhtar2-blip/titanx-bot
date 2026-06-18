@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}إدارة البوتات — TitanX{% endblock %}
+{% block page_title %}🤖 مركز التحكم بالبوتات{% endblock %}
+
+{% block content %}
+
+<!-- Header Actions -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+  <div>
+    <div class="page-title" style="margin-bottom:4px">🤖 مركز البوتات</div>
+    <div style="color:var(--text2);font-size:.875rem">تحكم كامل — تشغيل وإيقاف وإعادة تشغيل</div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="btn btn-success btn-lg" id="restart-all-btn" onclick="restartAllBots()">
+      🔄 إعادة تشغيل الكل
+    </button>
+    <button class="btn btn-ghost" onclick="startBotPolling(3000)" id="refresh-btn">
+      📡 تحديث الحالة
+    </button>
+  </div>
+</div>
+
+<!-- Bot Cards Grid -->
+<div class="bot-cards mb-3" id="bot-grid">
+  {% for bot in bots %}
+  <div class="bot-card fade-up" id="bot-card-{{ bot.key }}" style="animation-delay:{{ loop.index0 * 0.1 }}s">
+
+    <!-- Card Glow based on status -->
+    <div style="position:absolute;top:0;right:0;width:100%;height:3px;background:linear-gradient(90deg,{% if bot.running %}var(--green){% else %}var(--red){% endif %},transparent);opacity:0.8;transition:all 0.5s ease"></div>
+
+    <div class="bot-card-header">
+      <div class="bot-avatar" style="background:linear-gradient(135deg,
+        {% if bot.color == 'accent' %}rgba(59,130,246,0.22),rgba(99,102,241,0.18)
+        {% elif bot.color == 'purple' %}rgba(168,85,247,0.22),rgba(124,58,237,0.18)
+        {% elif bot.color == 'cyan' %}rgba(6,182,212,0.22),rgba(8,145,178,0.18)
+        {% elif bot.color == 'yellow' %}rgba(245,158,11,0.22),rgba(217,119,6,0.18)
+        {% else %}rgba(59,130,246,0.22),rgba(99,102,241,0.18)
+        {% endif %}
+      );border:1px solid rgba(
+        {% if bot.color == 'accent' %}59,130,246
+        {% elif bot.color == 'purple' %}168,85,247
+        {% elif bot.color == 'cyan' %}6,182,212
+        {% elif bot.color == 'yellow' %}245,158,11
+        {% else %}59,130,246
+        {% endif %}
+      ,0.3)">
+        {{ bot.icon }}
+      </div>
+      <div style="flex:1">
+        <div class="bot-name">{{ bot.label }}</div>
+        <div class="bot-status">
+          <span class="dot {% if bot.running %}dot-green{% else %}dot-red{% endif %}" id="bot-dot-{{ bot.key }}"></span>
+          <span id="bot-status-{{ bot.key }}">{% if bot.running %}🟢 يعمل{% else %}🔴 متوقف{% endif %}</span>
+        </div>
+        <div style="font-size:.72rem;color:var(--text3);margin-top:3px" id="bot-pid-{{ bot.key }}">
+          {% if bot.pid %}PID: {{ bot.pid }}{% else %}—{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:.78rem;color:var(--text3);margin-bottom:12px;font-family:var(--mono-font,'JetBrains Mono',monospace)">
+      📄 {{ bot.script }}
+    </div>
+
+    <div class="bot-controls">
+      <button class="btn btn-success btn-sm" id="bot-start-{{ bot.key }}"
+              onclick="botAction('{{ bot.key }}','start')"
+              {% if bot.running %}disabled{% endif %}>
+        ▶ تشغيل
+      </button>
+      <button class="btn btn-danger btn-sm" id="bot-stop-{{ bot.key }}"
+              onclick="botAction('{{ bot.key }}','stop')"
+              {% if not bot.running %}disabled{% endif %}>
+        ■ إيقاف
+      </button>
+      <button class="btn btn-warning btn-sm" id="bot-restart-{{ bot.key }}"
+              onclick="botAction('{{ bot.key }}','restart')">
+        🔄 إعادة
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="viewLogs('{{ bot.key }}')">
+        📋 سجل
+      </button>
+    </div>
+
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Status Summary Bar -->
+<div class="card mb-3" style="padding:16px 22px">
+  <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+    <div style="font-weight:700;font-size:.9rem">📊 الملخص:</div>
+    <div id="status-summary" style="display:flex;gap:14px;flex-wrap:wrap">
+      <span style="font-size:.85rem;color:var(--text2)">جاري التحديث...</span>
+    </div>
+    <div style="margin-right:auto">
+      <span class="live-badge">تحديث تلقائي كل 8 ثواني</span>
+    </div>
+  </div>
+</div>
+
+<!-- Log Viewer Card -->
+<div class="card" id="log-card" style="display:none">
+  <div class="card-title" style="justify-content:space-between">
+    <span>📋 سجل البوت: <span id="log-bot-name">—</span></span>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost btn-sm" onclick="refreshLog()">🔄 تحديث</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('log-card').style.display='none'">✕ إغلاق</button>
+    </div>
+  </div>
+  <div class="code-block" id="log-viewer" style="min-height:200px;max-height:400px">
+    جاري تحميل السجل...
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+var _currentLogKey = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+  startBotPolling(8000);
+  updateSummary();
+});
+
+// Override bot status fetch to also update summary and button states
+var _origFetchBotStatus = _fetchBotStatus;
+async function _fetchBotStatus() {
+  try {
+    const bots = await apiGet('/bots/api/status');
+    bots.forEach(function(bot) {
+      var dotEl    = document.getElementById('bot-dot-' + bot.key);
+      var statusEl = document.getElementById('bot-status-' + bot.key);
+      var pidEl    = document.getElementById('bot-pid-' + bot.key);
+      var startBtn = document.getElementById('bot-start-' + bot.key);
+      var stopBtn  = document.getElementById('bot-stop-' + bot.key);
+      var dashEl   = document.getElementById('dash-bot-' + bot.key);
+
+      if (dotEl)    dotEl.className = 'dot ' + (bot.running ? 'dot-green' : 'dot-red');
+      if (statusEl) statusEl.textContent = bot.running ? '🟢 يعمل' : '🔴 متوقف';
+      if (pidEl)    pidEl.textContent = bot.pid ? 'PID: ' + bot.pid : '—';
+      if (startBtn) startBtn.disabled = bot.running;
+      if (stopBtn)  stopBtn.disabled  = !bot.running;
+      if (dashEl)   dashEl.innerHTML = bot.running
+        ? '<span class="dot dot-green"></span> يعمل'
+        : '<span class="dot dot-red"></span> متوقف';
+
+      // Update card top bar color
+      var card = document.getElementById('bot-card-' + bot.key);
+      if (card) {
+        var bar = card.querySelector('div[style*="height:3px"]');
+        if (bar) bar.style.background = 'linear-gradient(90deg,' + (bot.running ? 'var(--green)' : 'var(--red)') + ',transparent)';
+      }
+    });
+    updateSummary(bots);
+  } catch(e) {}
+}
+
+function updateSummary(bots) {
+  var summaryEl = document.getElementById('status-summary');
+  if (!summaryEl) return;
+  if (!bots) { apiGet('/bots/api/status').then(function(b) { updateSummary(b); }); return; }
+  var online = bots.filter(function(b) { return b.running; }).length;
+  var total  = bots.length;
+  summaryEl.innerHTML =
+    '<span class="badge badge-green">🟢 يعمل: ' + online + '</span>' +
+    '<span class="badge badge-red">🔴 متوقف: ' + (total - online) + '</span>' +
+    '<span class="badge badge-blue">📊 الإجمالي: ' + total + '</span>';
+}
+
+async function viewLogs(key) {
+  _currentLogKey = key;
+  const card = document.getElementById('log-card');
+  const viewer = document.getElementById('log-viewer');
+  const nameEl = document.getElementById('log-bot-name');
+  const labels = { main:'البوت الرئيسي', admin:'بوت الإدمن', support:'بوت الدعم', dev:'بوت المطور' };
+  if (nameEl) nameEl.textContent = labels[key] || key;
+  if (card) card.style.display = 'block';
+  if (viewer) viewer.textContent = 'جاري التحميل...';
+  card.scrollIntoView({ behavior: 'smooth' });
+  await refreshLog();
+}
+
+async function refreshLog() {
+  if (!_currentLogKey) return;
+  const viewer = document.getElementById('log-viewer');
+  try {
+    const data = await apiGet('/bots/api/logs/' + _currentLogKey + '?lines=100');
+    if (viewer) {
+      if (data.lines && data.lines.length) {
+        viewer.textContent = data.lines.join('\n');
+        viewer.scrollTop = viewer.scrollHeight;
+      } else {
+        viewer.textContent = data.msg || 'لا يوجد سجل بعد.';
+      }
+    }
+  } catch(e) {
+    if (viewer) viewer.textContent = 'فشل تحميل السجل.';
+  }
+}
+</script>
+{% endblock %}

@@ -1,510 +1,472 @@
-/* TitanX Control Panel — Main JS */
+/* ═══════════════════════════════════════════════════════════
+   TitanX Control Panel — Premium JS v4
+   ═══════════════════════════════════════════════════════════ */
 
-// ── Theme ────────────────────────────────────────────────────────────────────
+// ── Theme ────────────────────────────────────────────────────
 const THEME_KEY = 'titanx_theme';
-function applyTheme(t){ document.documentElement.setAttribute('data-theme', t); }
-function toggleTheme(){
+function applyTheme(t) { document.documentElement.setAttribute('data-theme', t); }
+function toggleTheme() {
   const cur = document.documentElement.getAttribute('data-theme') || 'dark';
   const next = cur === 'dark' ? 'light' : 'dark';
   applyTheme(next);
   localStorage.setItem(THEME_KEY, next);
   const btn = document.getElementById('theme-btn');
-  if(btn) btn.innerHTML = next === 'dark' ? '☀️' : '🌙';
+  if (btn) btn.textContent = next === 'dark' ? '☀️' : '🌙';
 }
-(function(){ applyTheme(localStorage.getItem(THEME_KEY) || 'dark'); })();
+(function () { applyTheme(localStorage.getItem(THEME_KEY) || 'dark'); })();
 
-// ── Sidebar toggle ────────────────────────────────────────────────────────────
-function toggleSidebar(){
+// ── Back Button ──────────────────────────────────────────────
+(function () {
+  document.addEventListener('DOMContentLoaded', function () {
+    const btn = document.getElementById('back-btn');
+    if (!btn) return;
+    const p = window.location.pathname;
+    if (p !== '/' && p !== '/panel' && p !== '/login') {
+      btn.classList.add('visible');
+    }
+    btn.addEventListener('click', function () {
+      if (document.referrer && document.referrer !== window.location.href) {
+        window.history.back();
+      } else {
+        window.location.href = '/';
+      }
+    });
+  });
+})();
+
+// ── Page Loader ──────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  const loader = document.getElementById('page-loader');
+  if (!loader) return;
+  setTimeout(function () {
+    loader.classList.add('hidden');
+    setTimeout(function () { if (loader) loader.style.display = 'none'; }, 450);
+  }, 400);
+});
+
+// ── Loading Overlay ──────────────────────────────────────────
+function showLoading(msg) {
+  const overlay = document.getElementById('loading-overlay');
+  const text = document.getElementById('loading-text');
+  if (!overlay) return;
+  if (text) text.textContent = msg || 'جاري التحميل...';
+  overlay.classList.add('active');
+}
+function hideLoading() {
+  const overlay = document.getElementById('loading-overlay');
+  if (overlay) overlay.classList.remove('active');
+}
+
+// ── Sidebar ──────────────────────────────────────────────────
+function toggleSidebar() {
   const sb = document.querySelector('.sidebar');
   const main = document.querySelector('.main');
   const overlay = document.getElementById('mobile-overlay');
-  if(!sb) return;
-  if(window.innerWidth <= 768){
+  if (!sb) return;
+  if (window.innerWidth <= 768) {
     const isOpen = sb.classList.toggle('mobile-open');
-    if(overlay) overlay.classList.toggle('visible', isOpen);
+    if (overlay) overlay.classList.toggle('visible', isOpen);
   } else {
     const collapsed = sb.classList.toggle('collapsed');
-    if(main) main.classList.toggle('expanded', collapsed);
+    if (main) main.classList.toggle('expanded', collapsed);
   }
 }
-function closeSidebar(){
+function closeSidebar() {
   const sb = document.querySelector('.sidebar');
   const overlay = document.getElementById('mobile-overlay');
-  if(sb) sb.classList.remove('mobile-open');
-  if(overlay) overlay.classList.remove('visible');
+  if (sb) sb.classList.remove('mobile-open');
+  if (overlay) overlay.classList.remove('visible');
 }
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
-function showToast(msg, type='info'){
+// ── Toast Notifications ──────────────────────────────────────
+function showToast(msg, type, duration) {
+  type = type || 'info';
+  duration = duration || 4000;
   let container = document.getElementById('toast-container');
-  if(!container){
+  if (!container) {
     container = document.createElement('div');
     container.id = 'toast-container';
     document.body.appendChild(container);
   }
+  const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
   const toast = document.createElement('div');
-  const icons = { success:'✅', error:'❌', info:'ℹ️', warning:'⚠️' };
-  toast.className = `toast ${type}`;
-  toast.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  toast.className = 'toast ' + type;
+  toast.innerHTML =
+    '<span class="toast-icon">' + (icons[type] || 'ℹ️') + '</span>' +
+    '<span class="toast-msg">' + msg + '</span>' +
+    '<button class="toast-close" onclick="this.parentElement.remove()">✕</button>';
   container.appendChild(toast);
-  setTimeout(()=>toast.remove(), 3500);
+  setTimeout(function () {
+    toast.classList.add('removing');
+    setTimeout(function () { if (toast.parentNode) toast.remove(); }, 320);
+  }, duration);
 }
 
-// ── API helpers ───────────────────────────────────────────────────────────────
-async function apiGet(url){
-  const r = await fetch(url);
+// ── API Helpers ──────────────────────────────────────────────
+async function apiGet(url) {
+  const r = await fetch(url, { credentials: 'include' });
+  if (!r.ok) throw new Error(r.status);
   return r.json();
 }
-async function apiPost(url, body){
+
+async function apiPost(url, body) {
   const isForm = body instanceof FormData;
-  const opts = {
-    method:'POST',
-    body: isForm ? body : JSON.stringify(body),
-  };
-  if(!isForm) opts.headers = {'Content-Type':'application/json'};
+  const opts = { method: 'POST', credentials: 'include', body: isForm ? body : JSON.stringify(body) };
+  if (!isForm) opts.headers = { 'Content-Type': 'application/json' };
   const r = await fetch(url, opts);
   return r.json();
 }
 
-// ── Modal ─────────────────────────────────────────────────────────────────────
-function openModal(id){ document.getElementById(id)?.classList.remove('hidden'); }
-function closeModal(id){ document.getElementById(id)?.classList.add('hidden'); }
-function closeAllModals(){
-  document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.add('hidden'));
+async function apiDelete(url) {
+  const r = await fetch(url, { method: 'DELETE', credentials: 'include' });
+  return r.json();
 }
-document.addEventListener('click', e=>{
-  if(e.target.classList.contains('modal-overlay')) closeAllModals();
-});
 
-// ── Animated counter ─────────────────────────────────────────────────────────
-function animateCount(el, target, duration=1200){
-  const start = 0;
-  const step = timestamp => {
-    if(!el._startTime) el._startTime = timestamp;
-    const prog = Math.min((timestamp - el._startTime) / duration, 1);
-    const ease = 1 - Math.pow(1 - prog, 3);
-    el.textContent = Math.round(start + (target - start) * ease).toLocaleString('ar-EG');
-    if(prog < 1) requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
-}
-function initCounters(){
-  document.querySelectorAll('[data-count]').forEach(el=>{
-    const val = parseInt(el.getAttribute('data-count')) || 0;
-    animateCount(el, val);
+// ── Animated Counter ─────────────────────────────────────────
+function animateCounters() {
+  document.querySelectorAll('[data-count]').forEach(function (el) {
+    const target = parseInt(el.getAttribute('data-count')) || 0;
+    if (target === 0) { el.textContent = '0'; return; }
+    const duration = 900;
+    const steps = 45;
+    const step = Math.ceil(target / steps);
+    let current = 0;
+    const timer = setInterval(function () {
+      current = Math.min(current + step, target);
+      el.textContent = current.toLocaleString('ar-SA');
+      if (current >= target) clearInterval(timer);
+    }, duration / steps);
   });
 }
+document.addEventListener('DOMContentLoaded', function () {
+  setTimeout(animateCounters, 300);
+});
 
-// ── Tabs ──────────────────────────────────────────────────────────────────────
-function initTabs(){
-  document.querySelectorAll('.tabs').forEach(tabs=>{
-    tabs.querySelectorAll('.tab-btn').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        const target = btn.getAttribute('data-tab');
-        tabs.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        const parent = tabs.closest('.tab-container') || document;
-        parent.querySelectorAll('.tab-pane').forEach(p=>{
-          p.classList.toggle('active', p.id===target);
-        });
-      });
+// ── Tabs ─────────────────────────────────────────────────────
+function switchTab(btn, groupId) {
+  const group = groupId ? document.getElementById(groupId) : btn.closest('[data-tab-group]');
+  const target = btn.getAttribute('data-tab');
+  const scope = group || document;
+  scope.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+  scope.querySelectorAll('.tab-pane').forEach(function (p) { p.classList.remove('active'); });
+  btn.classList.add('active');
+  const pane = document.getElementById(target);
+  if (pane) pane.classList.add('active');
+}
+
+// ── Modal helpers ────────────────────────────────────────────
+function openModal(id) {
+  const m = document.getElementById(id);
+  if (m) { m.classList.remove('hidden'); m.style.display = 'flex'; }
+}
+function closeModal(id) {
+  const m = document.getElementById(id);
+  if (m) { m.classList.add('hidden'); m.style.display = ''; }
+}
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(function (m) {
+      m.classList.add('hidden'); m.style.display = '';
     });
-  });
-}
-
-// ── File browser ──────────────────────────────────────────────────────────────
-let _currentPath = '';
-async function loadDir(path=''){
-  _currentPath = path;
-  const data = await apiGet(`/files/api/list?path=${encodeURIComponent(path)}`);
-  if(data.error){ showToast(data.error,'error'); return; }
-  renderDir(data);
-}
-function renderDir(data){
-  const bc = document.getElementById('breadcrumb');
-  if(bc){
-    bc.innerHTML = data.breadcrumbs.map((b,i)=>{
-      const sep = i > 0 ? '<span>/</span>' : '';
-      return `${sep}<a href="#" onclick="loadDir('${b.rel}');return false">${b.name}</a>`;
-    }).join('');
   }
-  const tree = document.getElementById('file-tree');
-  if(!tree) return;
-  tree.innerHTML = '';
-  data.items.forEach(item=>{
-    const div = document.createElement('div');
-    div.className = `file-item ${item.is_dir?'dir':''} ${item.protected?'protected':''}`;
-    const icon = item.is_dir ? '📁' : _fileIcon(item.name);
-    const actionsHtml = item.protected ? '' : `
-      <div style="display:flex;gap:3px;flex-shrink:0" onclick="event.stopPropagation()">
-        ${!item.is_dir && item.is_text ? `<button class="btn btn-sm btn-ghost" onclick="openEditor('${item.rel}')" title="تحرير">✏️</button>` : ''}
-        <button class="btn btn-sm btn-ghost" onclick="downloadFile('${item.rel}')" title="تحميل">⬇️</button>
-        <button class="btn btn-sm btn-ghost" onclick="renameFile('${item.rel}','${item.name}')" title="إعادة التسمية">✍️</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteFile('${item.rel}')" title="حذف">🗑️</button>
-      </div>`;
-    div.innerHTML = `
-      <span class="file-icon">${icon}</span>
-      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${item.name}</span>
-      ${item.size ? `<span style="color:var(--text2);font-size:.73rem;flex-shrink:0">${item.size}</span>` : ''}
-      ${actionsHtml}
-    `;
-    if(item.is_dir){
-      div.querySelector('.file-icon').addEventListener('click', ()=>loadDir(item.rel));
-      div.querySelector('span:nth-child(2)').addEventListener('click', ()=>loadDir(item.rel));
-      div.style.cursor = 'pointer';
-    }
-    tree.appendChild(div);
-  });
-}
-async function renameFile(oldRel, oldName){
-  const newName = prompt(`إعادة تسمية "${oldName}" إلى:`, oldName);
-  if(!newName || newName === oldName) return;
-  const data = await apiPost('/files/api/rename', {old: oldRel, new: newName});
-  if(data.error) showToast(data.error, 'error');
-  else { showToast('تمت إعادة التسمية ✅', 'success'); loadDir(_currentPath); }
-}
-function _fileIcon(name){
-  const ext = name.split('.').pop()?.toLowerCase();
-  const map = {py:'🐍',js:'📜',ts:'📘',json:'📋',md:'📄',html:'🌐',css:'🎨',
-               txt:'📃',log:'📓',zip:'📦',sh:'⚙️',yml:'⚙️',yaml:'⚙️',sql:'🗄️'};
-  return map[ext] || '📄';
-}
-async function openEditor(path){
-  const data = await apiGet(`/files/api/read?path=${encodeURIComponent(path)}`);
-  if(data.error){ showToast(data.error,'error'); return; }
-  const editor = document.getElementById('file-editor');
-  const editorPath = document.getElementById('editor-path');
-  const editorModal = document.getElementById('editor-modal');
-  if(!editor) return;
-  editor.value = data.content;
-  if(editorPath) editorPath.textContent = path;
-  editor._path = path;
-  editorModal?.classList.remove('hidden');
-}
-async function saveFile(){
-  const editor = document.getElementById('file-editor');
-  if(!editor || !editor._path) return;
-  const saveBtn = document.getElementById('save-btn');
-  if(saveBtn){ saveBtn.disabled=true; saveBtn.innerHTML='<span class="spinner"></span> جارٍ الحفظ…'; }
-  try {
-    const data = await apiPost('/files/api/save', {path:editor._path, content:editor.value});
-    if(data.error){
-      showToast(data.error, 'error');
-      if(data.syntax_error){
-        const diffEl = document.getElementById('diff-view');
-        if(diffEl){ diffEl.textContent = `خطأ: ${data.error}`; diffEl.className='code-block'; }
-      }
-    } else {
-      showToast('تم الحفظ بنجاح ✅','success');
-      const diffEl = document.getElementById('diff-view');
-      if(diffEl && data.diff){
-        diffEl.innerHTML = data.diff.split('\n').map(l=>{
-          const cls = l.startsWith('+') ? 'add' : l.startsWith('-') ? 'remove' : 'ctx';
-          return `<div class="diff-line ${cls}">${_esc(l)}</div>`;
-        }).join('');
-      }
-    }
-  } catch(e){ showToast('فشل الاتصال','error'); }
-  if(saveBtn){ saveBtn.disabled=false; saveBtn.innerHTML='💾 حفظ'; }
-}
-function _esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-async function deleteFile(path){
-  if(!confirm(`هل تريد حذف ${path}؟`)) return;
-  const data = await apiPost('/files/api/delete',{path});
-  if(data.error) showToast(data.error,'error');
-  else { showToast('تم الحذف','success'); loadDir(_currentPath); }
-}
-function downloadFile(path){
-  window.location.href = `/files/api/download?path=${encodeURIComponent(path)}`;
-}
-
-// ── Upload zone ───────────────────────────────────────────────────────────────
-function initUploadZone(){
-  const zone = document.getElementById('upload-zone');
-  if(!zone) return;
-  const input = zone.querySelector('input[type=file]');
-  zone.addEventListener('click',()=>input?.click());
-  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
-  zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
-  zone.addEventListener('drop',e=>{
-    e.preventDefault(); zone.classList.remove('drag-over');
-    handleUpload(e.dataTransfer.files);
-  });
-  input?.addEventListener('change',()=>handleUpload(input.files));
-}
-async function handleUpload(files){
-  for(const file of files){
-    const fd = new FormData();
-    fd.append('path', _currentPath);
-    fd.append('file', file);
-    const data = await apiPost('/files/api/upload', fd);
-    if(data.error) showToast(`فشل رفع ${file.name}: ${data.error}`,'error');
-    else showToast(`تم رفع ${data.name} (${data.size})`,'success');
-  }
-  loadDir(_currentPath);
-}
-
-// ── User management ───────────────────────────────────────────────────────────
-async function banUser(uid){ await userAction('/users/api/ban','user_id='+uid,'POST-FORM'); }
-async function unbanUser(uid){ await userAction('/users/api/unban','user_id='+uid,'POST-FORM'); }
-async function grantPremium(uid, days=30){ await userAction('/users/api/premium',`user_id=${uid}&days=${days}`,'POST-FORM'); }
-async function removePremium(uid){ await userAction('/users/api/remove_premium','user_id='+uid,'POST-FORM'); }
-async function userAction(url, params, method){
-  const fd = new FormData();
-  params.split('&').forEach(p=>{ const [k,v]=p.split('='); fd.append(k,v); });
-  const data = await apiPost(url, fd);
-  if(data.error) showToast(data.error,'error');
-  else { showToast('تم بنجاح ✅','success'); setTimeout(()=>location.reload(),800); }
-}
-async function addRemovePoints(uid){
-  const amt = prompt('أدخل النقاط (رقم سالب لخصم):');
-  if(!amt) return;
-  const fd = new FormData();
-  fd.append('user_id', uid); fd.append('amount', amt);
-  const data = await apiPost('/users/api/points', fd);
-  if(data.error) showToast(data.error,'error');
-  else showToast(`تم! النقاط الجديدة: ${data.new_points}`,'success');
-}
-async function showUserDetail(uid){
-  const data = await apiGet(`/users/api/${uid}`);
-  if(data.error){ showToast(data.error,'error'); return; }
-  const modal = document.getElementById('user-detail-modal');
-  if(!modal) return;
-  modal.querySelector('#ud-name').textContent = data.first_name || '---';
-  modal.querySelector('#ud-id').textContent = data.user_id;
-  modal.querySelector('#ud-username').textContent = data.username ? '@'+data.username : '---';
-  modal.querySelector('#ud-points').textContent = data.points;
-  modal.querySelector('#ud-downloads').textContent = data.download_count;
-  modal.querySelector('#ud-referrals').textContent = data.referrals;
-  modal.querySelector('#ud-lang').textContent = data.language === 'ar' ? 'عربي' : 'English';
-  modal.querySelector('#ud-banned').textContent = data.is_banned ? '✅ محظور' : '✅ نشط';
-  modal.querySelector('#ud-vip').textContent = data.vip_until || 'لا';
-  modal.querySelector('#ud-ban-btn').onclick = ()=>banUser(uid);
-  modal.querySelector('#ud-unban-btn').onclick = ()=>unbanUser(uid);
-  modal.querySelector('#ud-premium-btn').onclick = ()=>grantPremium(uid,30);
-  modal.querySelector('#ud-points-btn').onclick = ()=>addRemovePoints(uid);
-  modal.classList.remove('hidden');
-}
-
-// ── Broadcast ─────────────────────────────────────────────────────────────────
-async function sendBroadcast(){
-  const text = document.getElementById('bc-text')?.value;
-  const mode = document.getElementById('bc-mode')?.value || 'HTML';
-  if(!text){ showToast('أدخل نص الرسالة','warning'); return; }
-  const btn = document.getElementById('bc-btn');
-  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> جارٍ الإرسال…'; }
-  const fd = new FormData();
-  fd.append('text', text); fd.append('parse_mode', mode);
-  const data = await apiPost('/broadcast/api/send', fd);
-  if(data.error){ showToast(data.error,'error'); }
-  else {
-    showToast(`جارٍ البث لـ ${data.total} مستخدم…`,'info');
-    pollBroadcast();
-  }
-  if(btn){ btn.disabled=false; btn.innerHTML='📢 إرسال البث'; }
-}
-function pollBroadcast(){
-  const interval = setInterval(async()=>{
-    const s = await apiGet('/broadcast/api/status');
-    const el = document.getElementById('bc-status');
-    if(el){
-      el.innerHTML = `✅ ${s.success} | ❌ ${s.failed} | 📤 ${s.total}`;
-    }
-    if(s.done){ clearInterval(interval); showToast(`اكتمل البث: ${s.success} ناجح، ${s.failed} فشل`,'success'); }
-  }, 1000);
-}
-
-// ── System stats live update ──────────────────────────────────────────────────
-async function refreshStats(){
-  try{
-    const data = await apiGet('/system/api/stats');
-    _setBar('cpu-bar', data.cpu_percent);
-    _setBar('mem-bar', data.mem_percent);
-    _setBar('disk-bar', data.disk_percent);
-    _setText('cpu-val', data.cpu_percent.toFixed(1)+'%');
-    _setText('mem-val', data.mem_used_h+' / '+data.mem_total_h);
-    _setText('disk-val', data.disk_used_h+' / '+data.disk_total_h);
-    _setText('net-sent', data.net_sent_h);
-    _setText('net-recv', data.net_recv_h);
-    _setText('uptime-val', data.uptime);
-  }catch{}
-}
-function _setBar(id, pct){
-  const el = document.getElementById(id);
-  if(!el) return;
-  el.style.width = pct+'%';
-  el.className = 'progress-bar ' + (pct>85?'red':pct>60?'yellow':'');
-}
-function _setText(id, val){
-  const el = document.getElementById(id);
-  if(el) el.textContent = val;
-}
-
-// ── Update center ─────────────────────────────────────────────────────────────
-let _analyzedZipPath = '';
-async function analyzeUpdate(file){
-  if(!file){ showToast('اختر ملف ZIP أولاً','warning'); return; }
-  const fd = new FormData(); fd.append('file', file);
-  const btn = document.getElementById('analyze-btn');
-  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> جارٍ التحليل…'; }
-  const data = await apiPost('/updates/api/analyze', fd);
-  if(btn){ btn.disabled=false; btn.innerHTML='🔍 تحليل'; }
-  if(data.error){ showToast(data.error,'error'); return; }
-  _analyzedZipPath = data.zip_path;
-  const res = document.getElementById('analysis-result');
-  if(res){
-    res.classList.remove('hidden');
-    res.innerHTML = `
-      <div class="alert alert-info">
-        📦 إجمالي: <b>${data.total}</b> |
-        🆕 جديد: <b>${data.new.length}</b> |
-        ✏️ معدَّل: <b>${data.modified.length}</b> |
-        🔐 محمي: <b>${data.protected.length}</b>
-        ${data.deps_changed?'<br>⚠️ سيتم تحديث التبعيات':''}
-      </div>
-      ${data.new.length?`<details><summary>ملفات جديدة</summary><ul>${data.new.map(f=>`<li><code>${f}</code></li>`).join('')}</ul></details>`:''}
-      ${data.modified.length?`<details><summary>ملفات معدَّلة</summary><ul>${data.modified.map(f=>`<li><code>${f}</code></li>`).join('')}</ul></details>`:''}
-    `;
-  }
-  const applyBtn = document.getElementById('apply-btn');
-  if(applyBtn) applyBtn.disabled = false;
-}
-async function applyUpdate(){
-  if(!_analyzedZipPath){ showToast('حلّل التحديث أولاً','warning'); return; }
-  const ver = document.getElementById('version-input')?.value || new Date().toISOString().slice(0,10);
-  const btn = document.getElementById('apply-btn');
-  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> جارٍ التطبيق…'; }
-  const data = await apiPost('/updates/api/apply',{zip_path:_analyzedZipPath,version:ver});
-  if(data.error){ showToast(data.error,'error'); if(btn){btn.disabled=false;btn.innerHTML='🚀 تطبيق التحديث';} return; }
-  showToast('بدأ التطبيق…','info');
-  pollUpdateStatus();
-}
-function pollUpdateStatus(){
-  const log = document.getElementById('update-log');
-  const interval = setInterval(async()=>{
-    const s = await apiGet('/updates/api/status');
-    if(log) log.innerHTML = s.log.map(l=>`<div>${l}</div>`).join('');
-    if(s.done){
-      clearInterval(interval);
-      if(s.success) showToast('🎉 اكتمل التحديث بنجاح!','success');
-      else showToast('❌ فشل التحديث، راجع السجل','error');
-      setTimeout(()=>location.reload(),2000);
-    }
-  }, 1000);
-}
-
-// ── Logs ──────────────────────────────────────────────────────────────────────
-let _logInterval = null;
-function switchLog(key){
-  document.querySelectorAll('.log-tab').forEach(b=>b.classList.remove('active'));
-  document.querySelector(`[data-log="${key}"]`)?.classList.add('active');
-  loadLog(key);
-}
-async function loadLog(key, search=''){
-  const lines = await apiGet(`/logs/api/read?log=${key}&lines=300&search=${encodeURIComponent(search)}`);
-  const el = document.getElementById('log-view');
-  if(!el) return;
-  el.innerHTML = lines.lines.map(l=>{
-    const cls = /ERROR|خطأ/.test(l)?'error':/WARN|تحذير/.test(l)?'warning':/INFO/.test(l)?'info':'';
-    return `<div class="log-line ${cls}">${_esc(l)}</div>`;
-  }).join('');
-  el.scrollTop = el.scrollHeight;
-}
-function initLogAutoRefresh(key){
-  if(_logInterval) clearInterval(_logInterval);
-  _logInterval = setInterval(()=>loadLog(key), 5000);
-}
-
-// ── GitHub ────────────────────────────────────────────────────────────────────
-async function gitPull(){
-  const btn = document.getElementById('pull-btn');
-  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span>'; }
-  const data = await apiPost('/github/api/pull',{});
-  if(btn){ btn.disabled=false; btn.innerHTML='⬇️ Pull'; }
-  showToast(data.output || (data.ok?'تم Pull بنجاح':'فشل Pull'), data.ok?'success':'error');
-  refreshGitInfo();
-}
-async function gitPush(){
-  const msg = document.getElementById('commit-msg')?.value || 'Update via TitanX';
-  const btn = document.getElementById('push-btn');
-  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span>'; }
-  const data = await apiPost('/github/api/push',{message:msg});
-  if(btn){ btn.disabled=false; btn.innerHTML='⬆️ Push'; }
-  showToast(data.output || (data.ok?'تم Push بنجاح':'فشل Push'), data.ok?'success':'error');
-  refreshGitInfo();
-}
-async function refreshGitInfo(){
-  const data = await apiGet('/github/api/info');
-  _setText('git-branch', '🌿 '+data.branch);
-  const commits = document.getElementById('git-commits');
-  if(commits && data.commits){
-    commits.innerHTML = data.commits.map(c=>`<div class="scroll-list-item"><code style="font-size:.75rem">${_esc(c)}</code></div>`).join('');
-  }
-}
-
-// ── DB manager ────────────────────────────────────────────────────────────────
-async function dbRepair(action){
-  const data = await apiPost('/database/api/repair',{action});
-  if(data.results){
-    showToast(data.results.join(' | '),'success');
-  }
-}
-async function dbVacuum(){ await dbRepair('vacuum'); }
-async function dbFixOrphans(){ await dbRepair('orphans'); }
-async function dbIntegrity(){
-  const data = await apiPost('/database/api/repair',{action:'integrity'});
-  showToast(data.results?.join(', ')||'تم','info');
-}
-
-// ── Create backup ─────────────────────────────────────────────────────────────
-async function createBackup(){
-  const btn = document.getElementById('backup-btn');
-  if(btn){ btn.disabled=true; btn.innerHTML='<span class="spinner"></span> جارٍ…'; }
-  const data = await apiPost('/updates/api/backup',{});
-  if(btn){ btn.disabled=false; btn.innerHTML='💾 نسخة احتياطية'; }
-  if(data.ok) showToast(`تم إنشاء النسخة: ${data.name}`,'success');
-  else showToast(data.error||'فشل','error');
-}
-
-// ── Init on DOM ready ─────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', ()=>{
-  // Apply saved theme
-  const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
-  applyTheme(savedTheme);
-  const themeBtn = document.getElementById('theme-btn');
-  if(themeBtn) themeBtn.innerHTML = savedTheme === 'dark' ? '☀️' : '🌙';
-
-  // Init tabs
-  initTabs();
-
-  // Animate counters
-  initCounters();
-
-  // Init upload zone if present
-  initUploadZone();
-
-  // Load file tree if on files page
-  if(document.getElementById('file-tree')){
-    loadDir('');
-  }
-
-  // System stats refresh
-  if(document.getElementById('cpu-bar')){
-    refreshStats();
-    setInterval(refreshStats, 3000);
-  }
-
-  // Sidebar tab highlighting
-  const path = location.pathname;
-  document.querySelectorAll('.nav-item').forEach(a=>{
-    const href = a.getAttribute('href');
-    if(href && path.startsWith(href) && href !== '/'){
-      a.classList.add('active');
-    } else if(href === '/' && path === '/'){
-      a.classList.add('active');
-    }
-  });
-
-  // Git info refresh if on GitHub page
-  if(document.getElementById('git-commits')) refreshGitInfo();
 });
+
+// ── File Editor ──────────────────────────────────────────────
+var _editorPath = '';
+var _editorOriginal = '';
+
+async function openFile(path) {
+  try {
+    showLoading('جاري تحميل الملف...');
+    const data = await apiGet('/files/api/read?path=' + encodeURIComponent(path));
+    hideLoading();
+    if (!data.content && data.error) { showToast(data.error, 'error'); return; }
+    _editorPath = path;
+    _editorOriginal = data.content || '';
+    const epEl = document.getElementById('editor-path');
+    const feEl = document.getElementById('file-editor');
+    const dv   = document.getElementById('diff-view');
+    if (epEl) epEl.textContent = path;
+    if (feEl) feEl.value = _editorOriginal;
+    if (dv) { dv.style.display = 'none'; dv.textContent = ''; }
+    openModal('editor-modal');
+  } catch (e) {
+    hideLoading();
+    showToast('فشل تحميل الملف', 'error');
+  }
+}
+
+async function saveFile() {
+  const feEl = document.getElementById('file-editor');
+  const content = feEl ? feEl.value : '';
+  const btn = document.getElementById('save-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ حفظ...'; }
+  showLoading('جاري الحفظ...');
+  try {
+    const data = await apiPost('/files/api/write', { path: _editorPath, content: content });
+    hideLoading();
+    if (btn) { btn.disabled = false; btn.textContent = '💾 حفظ'; }
+    if (data.ok) {
+      showToast('تم الحفظ بنجاح ✅', 'success');
+      _editorOriginal = content;
+      closeModal('editor-modal');
+    } else {
+      showToast(data.error || 'فشل الحفظ', 'error');
+    }
+  } catch (e) {
+    hideLoading();
+    if (btn) { btn.disabled = false; btn.textContent = '💾 حفظ'; }
+    showToast('خطأ في الاتصال', 'error');
+  }
+}
+
+// ── User Detail Modal ────────────────────────────────────────
+async function showUserDetail(userId) {
+  try {
+    showLoading('جاري تحميل بيانات المستخدم...');
+    const u = await apiGet('/users/api/detail/' + userId);
+    hideLoading();
+    if (!u || u.error) { showToast(u && u.error ? u.error : 'لم يُعثر على المستخدم', 'error'); return; }
+    var setT = function(id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+    var setH = function(id, val) { var el = document.getElementById(id); if (el) el.innerHTML = val; };
+    setT('ud-name', u.first_name || '---');
+    setT('ud-id', u.user_id || u.id || '');
+    setT('ud-username', u.username ? '@' + u.username : '---');
+    setT('ud-lang', u.language_code || '---');
+    setT('ud-points', (u.points || 0).toLocaleString());
+    setT('ud-downloads', (u.total_downloads || 0).toLocaleString());
+    setT('ud-referrals', (u.total_referrals || 0).toLocaleString());
+    setH('ud-banned', u.is_banned
+      ? '<span class="badge badge-red">🚫 محظور</span>'
+      : '<span class="badge badge-green">✅ نشط</span>');
+    setT('ud-vip', u.vip_until || '---');
+    const uid = u.user_id || u.id;
+    var eb = document.getElementById('ud-ban-btn');
+    var eu = document.getElementById('ud-unban-btn');
+    var ep = document.getElementById('ud-premium-btn');
+    var ept = document.getElementById('ud-points-btn');
+    if (eb) eb.onclick = function() { userAction(uid, 'ban'); };
+    if (eu) eu.onclick = function() { userAction(uid, 'unban'); };
+    if (ep) ep.onclick = function() { userAction(uid, 'vip'); };
+    if (ept) ept.onclick = function() { userAction(uid, 'points'); };
+    openModal('user-detail-modal');
+  } catch (e) {
+    hideLoading();
+    showToast('خطأ في تحميل البيانات', 'error');
+  }
+}
+
+async function userAction(userId, action) {
+  try {
+    showLoading('جاري التنفيذ...');
+    const pts = action === 'points' ? (prompt('عدد النقاط:') || '0') : undefined;
+    const body = { user_id: userId, action: action };
+    if (pts !== undefined) body.points = parseInt(pts) || 0;
+    const data = await apiPost('/users/api/action', body);
+    hideLoading();
+    showToast(data.msg || (data.ok ? 'تم بنجاح' : 'فشل'), data.ok ? 'success' : 'error');
+    if (data.ok) closeModal('user-detail-modal');
+  } catch (e) {
+    hideLoading();
+    showToast('خطأ في الاتصال', 'error');
+  }
+}
+
+// ── GitHub helpers ────────────────────────────────────────────
+async function gitPull() {
+  var btn = document.getElementById('pull-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري السحب...'; }
+  showLoading('جاري Pull من GitHub...');
+  try {
+    const data = await apiPost('/github/api/pull', {});
+    hideLoading();
+    if (btn) { btn.disabled = false; btn.textContent = '⬇️ Pull'; }
+    showToast(data.output || (data.ok ? 'تم Pull بنجاح ✅' : 'فشل Pull'), data.ok ? 'success' : 'error');
+    if (typeof refreshGitInfo === 'function') refreshGitInfo();
+  } catch (e) {
+    hideLoading();
+    if (btn) { btn.disabled = false; btn.textContent = '⬇️ Pull'; }
+    showToast('فشل الاتصال بـ GitHub', 'error');
+  }
+}
+
+async function gitPush() {
+  var btn = document.getElementById('push-btn');
+  var msgEl = document.getElementById('commit-msg');
+  var msg = msgEl ? msgEl.value : 'Update via TitanX Control Panel';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري الرفع...'; }
+  showLoading('جاري Push إلى GitHub...');
+  try {
+    const data = await apiPost('/github/api/push', { message: msg });
+    hideLoading();
+    if (btn) { btn.disabled = false; btn.textContent = '⬆️ Push'; }
+    showToast(data.output || (data.ok ? 'تم Push بنجاح ✅' : 'فشل Push'), data.ok ? 'success' : 'error');
+    if (typeof refreshGitInfo === 'function') refreshGitInfo();
+  } catch (e) {
+    hideLoading();
+    if (btn) { btn.disabled = false; btn.textContent = '⬆️ Push'; }
+    showToast('فشل الاتصال بـ GitHub', 'error');
+  }
+}
+
+async function refreshGitInfo() {
+  try {
+    const data = await apiGet('/github/api/info');
+    var branchEl = document.getElementById('git-branch');
+    if (branchEl) branchEl.textContent = '🌿 ' + (data.branch || 'unknown');
+    var commitsEl = document.getElementById('git-commits');
+    if (commitsEl && data.commits) {
+      commitsEl.innerHTML = data.commits.length
+        ? data.commits.map(function(c) {
+            return '<div class="scroll-list-item"><code style="font-size:.75rem;color:var(--text2)">' + c + '</code></div>';
+          }).join('')
+        : '<div style="color:var(--text2);padding:16px;text-align:center">لا توجد commits</div>';
+    }
+  } catch (e) {}
+}
+
+async function configureGit() {
+  const repo  = (document.getElementById('cfg-repo') || {}).value || '';
+  const token = (document.getElementById('cfg-token') || {}).value || '';
+  const name  = (document.getElementById('cfg-name') || {}).value || '';
+  const email = (document.getElementById('cfg-email') || {}).value || '';
+  showLoading('جاري حفظ إعدادات Git...');
+  try {
+    const data = await apiPost('/github/api/configure', { repo, token, name, email });
+    hideLoading();
+    if (data.ok) showToast('تم حفظ الإعدادات: ' + data.results.join(', '), 'success');
+    else showToast(data.error || 'فشل', 'error');
+  } catch (e) {
+    hideLoading();
+    showToast('خطأ في الاتصال', 'error');
+  }
+}
+
+async function gitCommit() {
+  var msg = (document.getElementById('commit-msg') || {}).value || 'Update via TitanX';
+  showLoading('جاري Commit...');
+  try {
+    const data = await apiPost('/github/api/commit', { message: msg });
+    hideLoading();
+    showToast(data.output || (data.ok ? 'تم Commit' : 'فشل'), data.ok ? 'success' : 'error');
+    if (typeof refreshGitInfo === 'function') refreshGitInfo();
+  } catch (e) {
+    hideLoading();
+    showToast('خطأ في الاتصال', 'error');
+  }
+}
+
+// ── System stats live ────────────────────────────────────────
+var _statsInterval = null;
+function startStatsPolling(interval) {
+  interval = interval || 5000;
+  if (_statsInterval) clearInterval(_statsInterval);
+  _statsInterval = setInterval(_fetchStats, interval);
+  _fetchStats();
+}
+
+async function _fetchStats() {
+  try {
+    const d = await apiGet('/system/api/stats');
+    _uel('cpu-val',   d.cpu_percent + '%');
+    _ubar('cpu-bar',  d.cpu_percent);
+    _uel('mem-val',   Math.round(d.mem_used / 1048576) + ' MB');
+    _ubar('mem-bar',  d.mem_percent);
+    _uel('mem-total', 'من ' + Math.round(d.mem_total / 1048576) + ' MB');
+    _uel('disk-val',  Math.round(d.disk_used / 1073741824) + ' GB');
+    _ubar('disk-bar', d.disk_percent);
+    _uel('uptime-val', d.uptime);
+    _uel('net-sent',  Math.round(d.net_sent / 1048576) + ' MB');
+    _uel('net-recv',  Math.round(d.net_recv / 1048576) + ' MB');
+    // Dashboard metric pills
+    _uel('mp-cpu',  d.cpu_percent + '%');
+    _uel('mp-ram',  Math.round(d.mem_percent) + '%');
+    _uel('mp-disk', Math.round(d.disk_percent) + '%');
+    _uel('mp-up',   d.uptime);
+    _ubarColor('mp-cpu-bar',  d.cpu_percent,  d.cpu_percent > 80  ? 'var(--red)'    : 'var(--accent)');
+    _ubarColor('mp-ram-bar',  d.mem_percent,  d.mem_percent > 80  ? 'var(--yellow)' : 'var(--green)');
+    _ubarColor('mp-disk-bar', d.disk_percent, d.disk_percent > 85 ? 'var(--red)'    : 'var(--cyan)');
+  } catch (e) {}
+}
+function _uel(id, val) {
+  var el = document.getElementById(id);
+  if (el && el.textContent !== val) el.textContent = val;
+}
+function _ubar(id, pct) {
+  var el = document.getElementById(id);
+  if (el) el.style.width = Math.min(100, Math.max(0, pct)) + '%';
+}
+function _ubarColor(id, pct, color) {
+  var el = document.getElementById(id);
+  if (el) { el.style.width = Math.min(100, Math.max(0, pct)) + '%'; if (color) el.style.background = color; }
+}
+
+// ── Bot status live ──────────────────────────────────────────
+var _botInterval = null;
+function startBotPolling(interval) {
+  interval = interval || 8000;
+  if (_botInterval) clearInterval(_botInterval);
+  _botInterval = setInterval(_fetchBotStatus, interval);
+  _fetchBotStatus();
+}
+
+async function _fetchBotStatus() {
+  try {
+    const bots = await apiGet('/bots/api/status');
+    bots.forEach(function (bot) {
+      var statusEl = document.getElementById('bot-status-' + bot.key);
+      var dotEl    = document.getElementById('bot-dot-' + bot.key);
+      var pidEl    = document.getElementById('bot-pid-' + bot.key);
+      var dashEl   = document.getElementById('dash-bot-' + bot.key);
+      if (statusEl) statusEl.textContent = bot.running ? '🟢 يعمل' : '🔴 متوقف';
+      if (dotEl)    dotEl.className = 'dot ' + (bot.running ? 'dot-green' : 'dot-red');
+      if (pidEl)    pidEl.textContent = bot.pid ? '(PID: ' + bot.pid + ')' : '';
+      if (dashEl)   dashEl.innerHTML = bot.running
+        ? '<span class="dot dot-green"></span> يعمل'
+        : '<span class="dot dot-red"></span> متوقف';
+    });
+  } catch (e) {}
+}
+
+// ── Bot actions ──────────────────────────────────────────────
+async function botAction(key, action) {
+  var btn = document.getElementById('bot-' + action + '-' + key);
+  var origText = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '⟳ جاري...'; }
+  var labels = { start: 'تشغيل', stop: 'إيقاف', restart: 'إعادة التشغيل' };
+  showToast((labels[action] || action) + ' البوت...', 'info', 1500);
+  try {
+    const data = await apiPost('/bots/api/' + action + '/' + key, {});
+    if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+    showToast(data.msg || (data.ok ? 'تم بنجاح ✅' : 'فشل العملية'), data.ok ? 'success' : 'error');
+    setTimeout(_fetchBotStatus, 1800);
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+    showToast('فشل الاتصال', 'error');
+  }
+}
+
+async function restartAllBots() {
+  var btn = document.getElementById('restart-all-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⟳ جاري الإعادة...'; }
+  showLoading('إعادة تشغيل جميع البوتات...');
+  try {
+    const data = await apiPost('/bots/api/restart_all', {});
+    hideLoading();
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 إعادة تشغيل الكل'; }
+    showToast('تم إعادة تشغيل جميع البوتات ✅', 'success');
+    setTimeout(_fetchBotStatus, 2200);
+  } catch (e) {
+    hideLoading();
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 إعادة تشغيل الكل'; }
+    showToast('فشل الاتصال', 'error');
+  }
+}
+
+// ── Refresh System Stats ─────────────────────────────────────
+async function refreshStats() {
+  showLoading('تحديث البيانات...');
+  await _fetchStats();
+  hideLoading();
+  showToast('تم التحديث ✅', 'success', 2000);
+}

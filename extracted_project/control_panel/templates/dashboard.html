@@ -3,112 +3,156 @@
 {% block page_title %}📊 لوحة التحكم{% endblock %}
 
 {% block content %}
-<!-- Stats Grid -->
+
+<!-- LIVE METRICS STRIP -->
+<div class="metrics-strip mb-3">
+  <div class="metric-pill">
+    <div class="metric-pill-label">⚡ المعالج</div>
+    <div class="metric-pill-value" id="mp-cpu">--</div>
+    <div class="metric-pill-bar"><div class="metric-pill-fill" id="mp-cpu-bar" style="width:0%;background:var(--accent)"></div></div>
+  </div>
+  <div class="metric-pill">
+    <div class="metric-pill-label">💾 الذاكرة</div>
+    <div class="metric-pill-value" id="mp-ram">--</div>
+    <div class="metric-pill-bar"><div class="metric-pill-fill" id="mp-ram-bar" style="width:0%;background:var(--green)"></div></div>
+  </div>
+  <div class="metric-pill">
+    <div class="metric-pill-label">💿 التخزين</div>
+    <div class="metric-pill-value" id="mp-disk">--</div>
+    <div class="metric-pill-bar"><div class="metric-pill-fill" id="mp-disk-bar" style="width:0%;background:var(--cyan)"></div></div>
+  </div>
+  <div class="metric-pill">
+    <div class="metric-pill-label">🕐 وقت التشغيل</div>
+    <div class="metric-pill-value" id="mp-up" style="font-size:1rem">--</div>
+    <div class="metric-pill-bar"><div class="metric-pill-fill" style="width:100%;background:var(--purple)"></div></div>
+  </div>
+</div>
+
+<!-- STATS GRID -->
 <div class="stats-grid">
-  <div class="stat-card" style="--accent-color:var(--accent);--accent-rgb:59,130,246">
+  <div class="stat-card fade-up anim-delay-1" style="--accent-color:var(--accent);--accent-rgb:var(--accent-rgb)">
     <div class="stat-icon">👥</div>
     <div class="stat-value" data-count="{{ stats.total_users }}">0</div>
     <div class="stat-label">إجمالي المستخدمين</div>
   </div>
-  <div class="stat-card" style="--accent-color:var(--yellow);--accent-rgb:245,158,11">
+  <div class="stat-card fade-up anim-delay-2" style="--accent-color:var(--yellow);--accent-rgb:var(--yellow-rgb)">
     <div class="stat-icon">⭐</div>
     <div class="stat-value" data-count="{{ stats.vip_users }}">0</div>
     <div class="stat-label">مستخدمو VIP</div>
   </div>
-  <div class="stat-card" style="--accent-color:var(--green);--accent-rgb:34,197,94">
+  <div class="stat-card fade-up anim-delay-3" style="--accent-color:var(--green);--accent-rgb:var(--green-rgb)">
     <div class="stat-icon">📥</div>
     <div class="stat-value" data-count="{{ stats.total_downloads }}">0</div>
     <div class="stat-label">إجمالي التحميلات</div>
   </div>
-  <div class="stat-card" style="--accent-color:var(--cyan);--accent-rgb:6,182,212">
+  <div class="stat-card fade-up anim-delay-4" style="--accent-color:var(--cyan);--accent-rgb:var(--cyan-rgb)">
     <div class="stat-icon">📅</div>
     <div class="stat-value" data-count="{{ stats.today_downloads }}">0</div>
     <div class="stat-label">تحميلات اليوم</div>
   </div>
-  <div class="stat-card" style="--accent-color:var(--purple);--accent-rgb:168,85,247">
+  <div class="stat-card fade-up" style="--accent-color:var(--purple);--accent-rgb:var(--purple-rgb)">
     <div class="stat-icon">🔗</div>
     <div class="stat-value" data-count="{{ stats.total_referrals }}">0</div>
     <div class="stat-label">الإحالات</div>
   </div>
-  <div class="stat-card" style="--accent-color:var(--green);--accent-rgb:34,197,94">
+  <div class="stat-card fade-up" style="--accent-color:var(--green);--accent-rgb:var(--green-rgb)">
     <div class="stat-icon">🟢</div>
     <div class="stat-value" data-count="{{ stats.active_today }}">0</div>
     <div class="stat-label">نشطون اليوم</div>
   </div>
-  <div class="stat-card" style="--accent-color:var(--red);--accent-rgb:239,68,68">
+  <div class="stat-card fade-up" style="--accent-color:var(--red);--accent-rgb:var(--red-rgb)">
     <div class="stat-icon">🎫</div>
     <div class="stat-value" data-count="{{ stats.open_tickets }}">0</div>
     <div class="stat-label">تذاكر مفتوحة</div>
   </div>
-  <div class="stat-card" style="--accent-color:var(--orange);--accent-rgb:249,115,22">
+  <div class="stat-card fade-up" style="--accent-color:var(--orange);--accent-rgb:var(--orange-rgb)">
     <div class="stat-icon">🎯</div>
     <div class="stat-value" data-count="{{ stats.total_points_issued }}">0</div>
     <div class="stat-label">إجمالي النقاط</div>
   </div>
 </div>
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-2">
   <!-- Downloads Chart -->
-  <div class="card">
-    <div class="card-title">📈 التحميلات — آخر 7 أيام</div>
+  <div class="card fade-up">
+    <div class="card-title" style="justify-content:space-between">
+      <span>📈 التحميلات — آخر 7 أيام</span>
+      <span class="live-badge">مباشر</span>
+    </div>
     {% if chart %}
     {% set max_val = chart | map(attribute='cnt') | max %}
     <div class="chart-bar-wrap" id="dl-chart">
       {% for point in chart %}
       <div class="chart-bar"
-           style="height:{{ ((point.cnt / max_val) * 100) | int if max_val > 0 else 5 }}%"
-           data-val="{{ point.cnt }} — {{ point.day }}"
-           title="{{ point.day }}: {{ point.cnt }}">
+           style="height:{{ ((point.cnt / max_val) * 100)|int if max_val > 0 else 5 }}%"
+           title="{{ point.day }}: {{ point.cnt }} تحميل">
       </div>
       {% endfor %}
     </div>
-    <div style="display:flex;justify-content:space-between;margin-top:6px">
+    <div style="display:flex;justify-content:space-between;margin-top:7px">
       {% for point in chart %}
-      <span style="font-size:.65rem;color:var(--text2)">{{ point.day[-5:] }}</span>
+      <span style="font-size:.63rem;color:var(--text2)">{{ point.day[-5:] }}</span>
       {% endfor %}
     </div>
     {% else %}
-    <div style="color:var(--text2);text-align:center;padding:24px">لا توجد بيانات بعد</div>
+    <div style="color:var(--text2);text-align:center;padding:32px;font-size:.9rem">
+      📊 لا توجد بيانات بعد
+    </div>
     {% endif %}
   </div>
 
-  <!-- Bot Status -->
-  <div class="card">
-    <div class="card-title">🤖 حالة البوتات</div>
-    <div style="display:flex;flex-direction:column;gap:12px" id="bot-status">
-      <div class="bot-card-header">
-        <div class="bot-avatar">🤖</div>
-        <div>
-          <div class="bot-name">البوت الرئيسي</div>
-          <div class="bot-status"><span class="dot dot-green"></span> يعمل</div>
-        </div>
-      </div>
-      <div class="bot-card-header">
-        <div class="bot-avatar">🛡️</div>
-        <div>
-          <div class="bot-name">بوت الإدمن</div>
-          <div class="bot-status"><span class="dot dot-green"></span> يعمل</div>
-        </div>
-      </div>
-      <div class="bot-card-header">
-        <div class="bot-avatar">🎧</div>
-        <div>
-          <div class="bot-name">بوت الدعم</div>
-          <div class="bot-status"><span class="dot dot-green"></span> يعمل</div>
-        </div>
-      </div>
+  <!-- Bot Status Live -->
+  <div class="card fade-up">
+    <div class="card-title" style="justify-content:space-between">
+      <span>🤖 حالة البوتات</span>
+      <a href="/bots" class="btn btn-ghost btn-sm">إدارة ←</a>
     </div>
-    <div style="margin-top:16px">
-      <a href="/system" class="btn btn-ghost btn-sm">🖥️ تفاصيل النظام</a>
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:1.3rem">🤖</span>
+          <span style="font-weight:700;font-size:.875rem">البوت الرئيسي</span>
+        </div>
+        <div class="bot-status" id="dash-bot-main">
+          <span class="dot dot-green"></span> يعمل
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:1.3rem">🛡️</span>
+          <span style="font-weight:700;font-size:.875rem">بوت الإدمن</span>
+        </div>
+        <div class="bot-status" id="dash-bot-admin">
+          <span class="dot dot-green"></span> يعمل
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:1.3rem">🎧</span>
+          <span style="font-weight:700;font-size:.875rem">بوت الدعم</span>
+        </div>
+        <div class="bot-status" id="dash-bot-support">
+          <span class="dot dot-green"></span> يعمل
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:1.3rem">⚙️</span>
+          <span style="font-weight:700;font-size:.875rem">بوت المطور</span>
+        </div>
+        <div class="bot-status" id="dash-bot-dev">
+          <span class="dot dot-green"></span> يعمل
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- Recent Activity -->
-<div class="card">
-  <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+<div class="card mb-3">
+  <div class="card-title" style="justify-content:space-between">
     <span>⚡ النشاط الأخير</span>
-    <a href="/users" class="btn btn-ghost btn-sm">عرض الكل</a>
+    <a href="/users" class="btn btn-ghost btn-sm">عرض الكل ←</a>
   </div>
   {% if activity %}
   <div class="table-wrap">
@@ -125,7 +169,7 @@
         {% for a in activity %}
         <tr>
           <td>
-            <span style="font-weight:600">{{ a.first_name or '---' }}</span>
+            <span class="fw-700">{{ a.first_name or '---' }}</span>
             {% if a.username %}<span style="color:var(--text2);font-size:.8rem"> @{{ a.username }}</span>{% endif %}
           </td>
           <td>
@@ -146,26 +190,51 @@
     </table>
   </div>
   {% else %}
-  <div style="text-align:center;color:var(--text2);padding:32px">لا يوجد نشاط بعد</div>
+  <div style="text-align:center;color:var(--text2);padding:36px;font-size:.9rem">لا يوجد نشاط بعد</div>
   {% endif %}
 </div>
 
 <!-- Quick Links -->
-<div class="grid-3" style="margin-top:24px">
-  <a href="/users" class="card" style="text-decoration:none;cursor:pointer">
-    <div style="font-size:2rem;margin-bottom:8px">👥</div>
-    <div style="font-weight:700">إدارة المستخدمين</div>
-    <div style="color:var(--text2);font-size:.85rem;margin-top:4px">{{ stats.total_users }} مستخدم</div>
+<div class="grid-3">
+  <a href="/users" class="card pointer" style="text-decoration:none">
+    <div style="font-size:2.2rem;margin-bottom:10px">👥</div>
+    <div class="fw-700" style="font-size:.95rem">إدارة المستخدمين</div>
+    <div style="color:var(--text2);font-size:.82rem;margin-top:5px">{{ stats.total_users }} مستخدم</div>
   </a>
-  <a href="/broadcast" class="card" style="text-decoration:none;cursor:pointer">
-    <div style="font-size:2rem;margin-bottom:8px">📢</div>
-    <div style="font-weight:700">البث الجماعي</div>
-    <div style="color:var(--text2);font-size:.85rem;margin-top:4px">إرسال رسالة للجميع</div>
+  <a href="/bots" class="card pointer" style="text-decoration:none">
+    <div style="font-size:2.2rem;margin-bottom:10px">🤖</div>
+    <div class="fw-700" style="font-size:.95rem">مركز البوتات</div>
+    <div style="color:var(--text2);font-size:.82rem;margin-top:5px">تحكم كامل بجميع البوتات</div>
   </a>
-  <a href="/updates" class="card" style="text-decoration:none;cursor:pointer">
-    <div style="font-size:2rem;margin-bottom:8px">🚀</div>
-    <div style="font-weight:700">مركز التحديثات</div>
-    <div style="color:var(--text2);font-size:.85rem;margin-top:4px">رفع وتطبيق التحديثات</div>
+  <a href="/backups" class="card pointer" style="text-decoration:none">
+    <div style="font-size:2.2rem;margin-bottom:10px">💾</div>
+    <div class="fw-700" style="font-size:.95rem">النسخ الاحتياطية</div>
+    <div style="color:var(--text2);font-size:.82rem;margin-top:5px">حماية البيانات</div>
+  </a>
+  <a href="/broadcast" class="card pointer" style="text-decoration:none">
+    <div style="font-size:2.2rem;margin-bottom:10px">📢</div>
+    <div class="fw-700" style="font-size:.95rem">البث الجماعي</div>
+    <div style="color:var(--text2);font-size:.82rem;margin-top:5px">إرسال رسالة للجميع</div>
+  </a>
+  <a href="/updates" class="card pointer" style="text-decoration:none">
+    <div style="font-size:2.2rem;margin-bottom:10px">🚀</div>
+    <div class="fw-700" style="font-size:.95rem">مركز التحديثات</div>
+    <div style="color:var(--text2);font-size:.82rem;margin-top:5px">رفع وتطبيق التحديثات</div>
+  </a>
+  <a href="/github" class="card pointer" style="text-decoration:none">
+    <div style="font-size:2.2rem;margin-bottom:10px">🐙</div>
+    <div class="fw-700" style="font-size:.95rem">GitHub</div>
+    <div style="color:var(--text2);font-size:.82rem;margin-top:5px">إدارة المستودع</div>
   </a>
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  startStatsPolling(5000);
+  startBotPolling(8000);
+});
+</script>
 {% endblock %}

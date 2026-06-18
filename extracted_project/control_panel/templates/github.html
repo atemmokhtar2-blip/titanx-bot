@@ -3,14 +3,18 @@
 {% block page_title %}🐙 تكامل GitHub{% endblock %}
 
 {% block content %}
-<div class="grid-2" style="align-items:start;gap:16px">
-  <!-- Git Operations -->
+<div class="grid-2" style="align-items:start;gap:18px">
+
+  <!-- Left: Operations -->
   <div style="display:flex;flex-direction:column;gap:16px">
+
+    <!-- Branch & Quick Actions -->
     <div class="card">
-      <div class="card-title">🌿 الفرع الحالي</div>
-      <div style="font-size:1.3rem;font-weight:800;color:var(--green);margin-bottom:16px" id="git-branch">
+      <div class="card-title">🌿 المستودع الحالي</div>
+      <div style="font-size:1.3rem;font-weight:900;color:var(--green);margin-bottom:4px" id="git-branch">
         🌿 {{ git_info.branch or 'unknown' }}
       </div>
+      <div style="font-size:.8rem;color:var(--text2);margin-bottom:18px">{{ git_info.remotes | truncate(60) if git_info.remotes else 'لا يوجد remote مضبوط' }}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-primary" id="pull-btn" onclick="gitPull()">⬇️ Pull</button>
         <button class="btn btn-success" id="push-btn" onclick="gitPush()">⬆️ Push</button>
@@ -18,31 +22,46 @@
       </div>
     </div>
 
+    <!-- Commit & Push -->
     <div class="card">
-      <div class="card-title">💬 رسالة Commit</div>
+      <div class="card-title">💬 Commit & Push</div>
       <div class="form-group">
+        <label class="form-label">رسالة Commit</label>
         <input class="form-control" id="commit-msg"
                placeholder="تحديث عبر TitanX Control Panel"
                value="Update via TitanX Control Panel">
       </div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-ghost" onclick="gitCommit()">📝 Commit فقط</button>
         <button class="btn btn-primary" onclick="gitPush()">📝+⬆️ Commit & Push</button>
       </div>
     </div>
 
+    <!-- GitHub Backup -->
+    <div class="card success-zone">
+      <div class="card-title">💾 نسخ احتياطي إلى GitHub</div>
+      <div style="color:var(--text2);font-size:.875rem;margin-bottom:16px">
+        أنشئ نسخة احتياطية محلية ثم ادفعها إلى GitHub في خطوة واحدة.
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-success" onclick="backupAndPush()">🚀 نسخ + Push</button>
+        <a href="/backups" class="btn btn-ghost">💾 النسخ الاحتياطية ←</a>
+      </div>
+      <div id="backup-push-result" style="margin-top:12px"></div>
+    </div>
+
+    <!-- Git Settings (Persistent) -->
     <div class="card">
-      <div class="card-title">⚙️ إعداد Git</div>
+      <div class="card-title">⚙️ إعداد Git — محفوظ تلقائياً</div>
       <div class="form-group">
         <label class="form-label">اسم المستودع (user/repo)</label>
-        <input class="form-control" id="cfg-repo" placeholder="username/repo-name"
-               value="{{ cfg.repo }}">
+        <input class="form-control" id="cfg-repo" placeholder="username/repo-name" value="{{ cfg.repo }}">
       </div>
       <div class="form-group">
-        <label class="form-label">GitHub Token (Personal Access Token)</label>
+        <label class="form-label">GitHub Token</label>
         <input class="form-control" type="password" id="cfg-token"
-               placeholder="ghp_xxxxxxxxxxxx">
-        <div class="form-hint">يُستخدم فقط للاتصال بـ GitHub، لا يُحفظ في قاعدة البيانات</div>
+               placeholder="ghp_xxxxxxxxxxxx (موجود إذا ظهرت نجوم)">
+        <div class="form-hint">الـ Token محفوظ في متغير البيئة GITHUB_TOKEN</div>
       </div>
       <div class="form-group">
         <label class="form-label">Git User Name</label>
@@ -56,56 +75,104 @@
     </div>
   </div>
 
-  <!-- History & Status -->
+  <!-- Right: History & Status -->
   <div style="display:flex;flex-direction:column;gap:16px">
+
+    <!-- Status -->
+    <div class="card">
+      <div class="card-title" style="justify-content:space-between">
+        <span>📊 حالة المستودع</span>
+        <button class="btn btn-ghost btn-sm" onclick="refreshGitInfo()">🔄</button>
+      </div>
+      {% if git_info.status %}
+      <div class="alert alert-warning" style="margin-bottom:12px">
+        ⚠️ توجد تغييرات غير مُحفظة
+      </div>
+      <div class="code-block text-left" style="max-height:180px">{{ git_info.status }}</div>
+      {% else %}
+      <div class="alert alert-success">✅ لا توجد تغييرات معلقة — المستودع نظيف</div>
+      {% endif %}
+    </div>
+
+    <!-- Diff -->
+    <div class="card">
+      <div class="card-title">🔍 ملخص التغييرات</div>
+      <button class="btn btn-ghost btn-sm mb-2" onclick="loadDiff()">📋 عرض الـ Diff</button>
+      <div id="diff-result"></div>
+    </div>
+
+    <!-- Commit History -->
     <div class="card">
       <div class="card-title">📜 سجل Commits الأخيرة</div>
-      <div class="scroll-list" id="git-commits" style="max-height:300px;direction:ltr;text-align:left">
+      <div class="scroll-list" id="git-commits" style="max-height:320px;overflow-y:auto">
         {% for commit in git_info.commits %}
-        <div class="scroll-list-item">
+        <div class="scroll-list-item text-left">
           <code style="font-size:.75rem;color:var(--text2)">{{ commit }}</code>
         </div>
         {% else %}
-        <div style="color:var(--text2);padding:16px;text-align:center">لا توجد commits</div>
+        <div style="color:var(--text2);padding:20px;text-align:center">لا توجد commits بعد</div>
         {% endfor %}
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-title">📊 التغييرات غير المُحفظة</div>
-      {% if git_info.status %}
-      <div class="code-block" style="max-height:200px;direction:ltr;text-align:left">{{ git_info.status }}</div>
-      {% else %}
-      <div class="alert alert-success">✅ لا توجد تغييرات معلقة</div>
-      {% endif %}
-    </div>
-
+    <!-- Remote Info -->
     {% if git_info.remotes %}
     <div class="card">
       <div class="card-title">🔗 Remotes</div>
-      <div class="code-block" style="direction:ltr;text-align:left">{{ git_info.remotes }}</div>
+      <div class="code-block text-left">{{ git_info.remotes }}</div>
     </div>
     {% endif %}
+
   </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-async function gitCommit(){
-  const msg = document.getElementById('commit-msg')?.value || 'Update via TitanX';
-  const data = await apiPost('/github/api/commit',{message:msg});
-  showToast(data.output || (data.ok?'تم Commit':'فشل'), data.ok?'success':'error');
-  refreshGitInfo();
+async function loadDiff() {
+  const el = document.getElementById('diff-result');
+  if (!el) return;
+  el.innerHTML = '<span style="color:var(--text2)">جاري التحميل...</span>';
+  showLoading('جاري تحميل الـ Diff...');
+  try {
+    const d = await apiGet('/github/api/diff');
+    hideLoading();
+    if (d.diff) {
+      el.innerHTML = '<div class="code-block text-left" style="max-height:200px">' + d.diff + '</div>';
+    } else {
+      el.innerHTML = '<div class="alert alert-success">✅ لا توجد تغييرات</div>';
+    }
+  } catch (e) {
+    hideLoading();
+    el.innerHTML = '<div class="alert alert-error">❌ فشل التحميل</div>';
+  }
 }
-async function configureGit(){
-  const repo = document.getElementById('cfg-repo')?.value;
-  const token = document.getElementById('cfg-token')?.value;
-  const name = document.getElementById('cfg-name')?.value;
-  const email = document.getElementById('cfg-email')?.value;
-  const data = await apiPost('/github/api/configure',{repo,token,name,email});
-  if(data.ok) showToast('تم حفظ الإعدادات: '+data.results.join(', '),'success');
-  else showToast(data.error||'فشل','error');
+
+async function backupAndPush() {
+  const resultEl = document.getElementById('backup-push-result');
+  showLoading('جاري إنشاء نسخة احتياطية...');
+  try {
+    const backup = await apiPost('/backups/api/create', { label: 'github' });
+    if (!backup.ok) {
+      hideLoading();
+      showToast('فشل إنشاء النسخة الاحتياطية: ' + (backup.error || ''), 'error');
+      return;
+    }
+    if (resultEl) resultEl.innerHTML = '<div class="alert alert-info">💾 تم إنشاء النسخة — جاري Push...</div>';
+    const push = await apiPost('/github/api/push', { message: 'Backup: ' + backup.name });
+    hideLoading();
+    if (push.ok) {
+      showToast('✅ تم النسخ والرفع إلى GitHub', 'success');
+      if (resultEl) resultEl.innerHTML = '<div class="alert alert-success">✅ تم النسخ والرفع بنجاح<br>' + push.output + '</div>';
+      refreshGitInfo();
+    } else {
+      showToast('النسخة أُنشئت لكن فشل Push: ' + push.output, 'warning');
+      if (resultEl) resultEl.innerHTML = '<div class="alert alert-warning">⚠️ النسخة أُنشئت لكن فشل Push<br>' + (push.output || '') + '</div>';
+    }
+  } catch (e) {
+    hideLoading();
+    showToast('خطأ في الاتصال', 'error');
+  }
 }
 </script>
 {% endblock %}

@@ -2,11 +2,14 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#070c18">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>{% block title %}TitanX Control Panel{% endblock %}</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎛️</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="/static/css/style.css">
 <script>
 (function(){
@@ -16,6 +19,20 @@
 </script>
 </head>
 <body>
+
+<!-- PAGE LOADER -->
+<div class="page-loader" id="page-loader">
+  <div class="loader-logo">🎛️</div>
+  <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+  <div class="loader-text">TitanX Control Panel</div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-text">جاري التحميل...</div>
+</div>
+
 <div class="layout">
 
   <!-- MOBILE OVERLAY -->
@@ -29,12 +46,13 @@
       <div class="sidebar-logo-icon">🎛️</div>
       <div class="sidebar-logo-text-wrap">
         <div class="sidebar-logo-name">TitanX</div>
-        <div class="sidebar-logo-sub">Control Panel</div>
+        <div class="sidebar-logo-sub">Control Panel v4</div>
       </div>
     </a>
 
     <!-- Nav -->
     <nav class="nav">
+
       <div class="nav-section">
         <div class="nav-section-label">الرئيسية</div>
         <a href="/" class="nav-item {% if active_page=='dashboard' %}active{% endif %}">
@@ -44,6 +62,10 @@
         <a href="/system" class="nav-item {% if active_page=='system' %}active{% endif %}">
           <span class="nav-icon">🖥️</span>
           <span class="nav-label">حالة النظام</span>
+        </a>
+        <a href="/bots" class="nav-item {% if active_page=='bots' %}active{% endif %}">
+          <span class="nav-icon">🤖</span>
+          <span class="nav-label">إدارة البوتات</span>
         </a>
       </div>
 
@@ -64,7 +86,7 @@
       </div>
 
       <div class="nav-section">
-        <div class="nav-section-label">الملفات</div>
+        <div class="nav-section-label">الملفات والسجلات</div>
         <a href="/files" class="nav-item {% if active_page=='files' %}active{% endif %}">
           <span class="nav-icon">📁</span>
           <span class="nav-label">مدير الملفات</span>
@@ -80,7 +102,7 @@
       </div>
 
       <div class="nav-section">
-        <div class="nav-section-label">التطوير</div>
+        <div class="nav-section-label">التطوير والنسخ</div>
         <a href="/updates" class="nav-item {% if active_page=='updates' %}active{% endif %}">
           <span class="nav-icon">🚀</span>
           <span class="nav-label">مركز التحديثات</span>
@@ -89,7 +111,12 @@
           <span class="nav-icon">🐙</span>
           <span class="nav-label">GitHub</span>
         </a>
+        <a href="/backups" class="nav-item {% if active_page=='backups' %}active{% endif %}">
+          <span class="nav-icon">💾</span>
+          <span class="nav-label">النسخ الاحتياطية</span>
+        </a>
       </div>
+
     </nav>
 
     <!-- Sidebar footer -->
@@ -113,6 +140,9 @@
           <span class="hamburger-line"></span>
           <span class="hamburger-line"></span>
         </button>
+        <button class="back-btn" id="back-btn" title="رجوع">
+          ◀ رجوع
+        </button>
         <div class="header-breadcrumb">
           <span class="header-brand">TitanX</span>
           <span class="header-sep">/</span>
@@ -120,13 +150,14 @@
         </div>
       </div>
       <div class="header-end">
+        <span class="live-badge">مباشر</span>
         <button class="header-icon-btn" id="theme-btn" onclick="toggleTheme()" title="تبديل الوضع">☀️</button>
         <div class="header-avatar" title="المالك">👑</div>
       </div>
     </header>
 
     <!-- PAGE CONTENT -->
-    <main class="content fade-in">
+    <main class="content">
       {% block content %}{% endblock %}
     </main>
 
@@ -143,7 +174,6 @@
     <textarea id="file-editor" spellcheck="false"></textarea>
     <div id="diff-view" class="code-block" style="max-height:160px;margin-top:12px;display:none"></div>
     <div class="modal-footer">
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('diff-view').style.display=document.getElementById('diff-view').style.display==='none'?'block':'none'">👁️ الفرق</button>
       <button class="btn btn-ghost btn-sm" onclick="closeModal('editor-modal')">إلغاء</button>
       <button class="btn btn-primary btn-sm" id="save-btn" onclick="saveFile()">💾 حفظ</button>
     </div>
@@ -157,11 +187,11 @@
       <div class="modal-title">👤 تفاصيل المستخدم</div>
     </div>
     <div class="grid-2" style="gap:12px;margin-bottom:16px">
-      <div><div class="form-label">الاسم</div><div id="ud-name" style="font-weight:700"></div></div>
-      <div><div class="form-label">المعرف</div><div id="ud-id" style="font-family:monospace"></div></div>
+      <div><div class="form-label">الاسم</div><div id="ud-name" class="fw-700"></div></div>
+      <div><div class="form-label">المعرف</div><div id="ud-id" class="mono"></div></div>
       <div><div class="form-label">اسم المستخدم</div><div id="ud-username"></div></div>
       <div><div class="form-label">اللغة</div><div id="ud-lang"></div></div>
-      <div><div class="form-label">النقاط</div><div id="ud-points" style="font-weight:700;color:var(--yellow)"></div></div>
+      <div><div class="form-label">النقاط</div><div id="ud-points" class="fw-700 text-warning"></div></div>
       <div><div class="form-label">التحميلات</div><div id="ud-downloads"></div></div>
       <div><div class="form-label">الإحالات</div><div id="ud-referrals"></div></div>
       <div><div class="form-label">الحالة</div><div id="ud-banned"></div></div>
