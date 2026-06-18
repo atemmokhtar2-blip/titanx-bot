@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}مركز Replit — TitanX{% endblock %}
+{% block page_title %}مركز إدارة Replit{% endblock %}
+
+{% block content %}
+<div class="page-title fade-up">
+  <span class="icon">🔧</span>
+  مركز إدارة Replit
+</div>
+
+<!-- Health Overview -->
+<div class="stats-grid mb-3 fade-up">
+  <div class="stat-card" style="--accent-rgb:34,197,94">
+    <div class="stat-icon">❤️</div>
+    <div class="stat-value text-success" id="rm-status">{{ health.status }}</div>
+    <div class="stat-label">حالة اللوحة</div>
+  </div>
+  <div class="stat-card" style="--accent-rgb:59,130,246">
+    <div class="stat-icon">⏱️</div>
+    <div class="stat-value" id="rm-panel-uptime" style="font-size:1.3rem">{{ health.panel_uptime }}</div>
+    <div class="stat-label">وقت تشغيل اللوحة</div>
+  </div>
+  <div class="stat-card" style="--accent-rgb:168,85,247">
+    <div class="stat-icon">🖥️</div>
+    <div class="stat-value" id="rm-sys-uptime" style="font-size:1.3rem">{{ health.system_uptime }}</div>
+    <div class="stat-label">وقت تشغيل النظام</div>
+  </div>
+  <div class="stat-card" style="--accent-rgb:245,158,11">
+    <div class="stat-icon">💾</div>
+    <div class="stat-value" style="font-size:1.3rem" id="rm-mem">{{ health.mem_used_h }}</div>
+    <div class="stat-label">الذاكرة المستخدمة</div>
+  </div>
+</div>
+
+<!-- Action Buttons -->
+<div class="card mb-3 fade-up anim-delay-1">
+  <div class="card-title">🎯 إجراءات الفحص والاسترداد</div>
+  <div class="flex wrap gap-8 mb-2">
+    <button class="btn btn-success" onclick="rmCheckPanel()">✅ فحص اللوحة</button>
+    <button class="btn btn-primary" onclick="rmCheckRoutes()">🔗 فحص المسارات</button>
+    <button class="btn btn-cyan" onclick="rmRefreshHealth()">🔄 تحديث الصحة</button>
+    <button class="btn btn-purple" onclick="rmRefreshProcs()">⚙️ تحديث العمليات</button>
+    <a href="/healthz" target="_blank" class="btn btn-ghost">🌐 /healthz</a>
+    <a href="/system" class="btn btn-ghost">📊 حالة النظام</a>
+    <a href="/bots" class="btn btn-ghost">🤖 إدارة البوتات</a>
+  </div>
+  <div id="rm-action-result" style="margin-top:10px"></div>
+</div>
+
+<!-- Resource Usage -->
+<div class="grid-3 fade-up anim-delay-1">
+  <div class="card">
+    <div class="card-title">🔲 المعالج</div>
+    <div class="stat-value mb-1" id="rm-cpu">{{ health.cpu_percent }}%</div>
+    <div class="progress"><div class="progress-bar" id="rm-cpu-bar" style="width:{{ health.cpu_percent }}%;{% if health.cpu_percent > 80 %}background:var(--red){% endif %}"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">💿 الذاكرة</div>
+    <div class="stat-value mb-1" id="rm-mem-pct">{{ health.mem_percent }}%</div>
+    <div class="progress"><div class="progress-bar" id="rm-mem-bar" style="width:{{ health.mem_percent }}%;{% if health.mem_percent > 80 %}background:var(--yellow){% endif %}"></div></div>
+    <div class="form-hint mt-2" id="rm-mem-detail">{{ health.mem_used_h }} / {{ health.mem_total_h }}</div>
+  </div>
+  <div class="card">
+    <div class="card-title">📁 القرص</div>
+    <div class="stat-value mb-1" id="rm-disk">{{ health.disk_percent }}%</div>
+    <div class="progress"><div class="progress-bar cyan" id="rm-disk-bar" style="width:{{ health.disk_percent }}%"></div></div>
+    <div class="form-hint mt-2" id="rm-disk-detail">{{ health.disk_used_h }} / {{ health.disk_total_h }}</div>
+  </div>
+</div>
+
+<!-- Running Processes -->
+<div class="card mb-3 fade-up anim-delay-2">
+  <div class="card-title flex-between">
+    <span>⚙️ العمليات النشطة (Python/Uvicorn)</span>
+    <button class="btn btn-ghost btn-sm" onclick="rmRefreshProcs()">🔄 تحديث</button>
+  </div>
+  <div class="table-wrap" id="rm-procs-table">
+    <table>
+      <thead>
+        <tr>
+          <th>PID</th>
+          <th>الاسم</th>
+          <th>الحالة</th>
+          <th>الذاكرة</th>
+          <th>وقت التشغيل</th>
+          <th>الأمر</th>
+        </tr>
+      </thead>
+      <tbody id="rm-procs-body">
+        {% for p in procs %}
+        <tr>
+          <td><code class="mono" style="color:var(--accent2)">{{ p.pid }}</code></td>
+          <td><strong>{{ p.name }}</strong></td>
+          <td>
+            {% if p.status == 'running' %}
+              <span class="badge badge-green">يعمل</span>
+            {% else %}
+              <span class="badge badge-yellow">{{ p.status }}</span>
+            {% endif %}
+          </td>
+          <td>{{ p.mem }}%</td>
+          <td><code class="mono">{{ p.age }}</code></td>
+          <td><code style="font-size:.7rem;color:var(--text2)">{{ p.cmdline[:60] }}{% if p.cmdline|length > 60 %}...{% endif %}</code></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">لا توجد عمليات نشطة</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Routes Status -->
+<div class="card mb-3 fade-up anim-delay-2">
+  <div class="card-title flex-between">
+    <span>🔗 مسارات اللوحة</span>
+    <button class="btn btn-primary btn-sm" onclick="rmCheckRoutes()">فحص جميع المسارات</button>
+  </div>
+  <div class="grid-3" id="rm-routes-grid">
+    {% for r in routes %}
+    <div class="card" style="padding:14px;margin:0" id="route-card-{{ loop.index }}">
+      <div class="flex-between mb-1">
+        <code style="color:var(--accent2);font-size:.8rem">{{ r.method }} {{ r.path }}</code>
+        <span class="dot dot-gray" id="route-dot-{{ loop.index }}"></span>
+      </div>
+      <div style="font-size:.78rem;color:var(--text2)">{{ r.label }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Important Notice -->
+<div class="success-zone fade-up anim-delay-3">
+  <div style="font-weight:700;margin-bottom:8px">🛡️ ضمان الاستمرارية</div>
+  <p style="font-size:.875rem;color:var(--text2);line-height:1.7">
+    لوحة التحكم تعمل كعملية مستقلة عن البوتات. حتى لو توقفت البوتات، تظل اللوحة متاحة.
+    يمكنك إعادة تشغيل البوتات من صفحة <a href="/bots" style="color:var(--accent2)">إدارة البوتات</a>
+    دون أي تأثير على اللوحة نفسها.
+  </p>
+</div>
+
+<!-- Change Password -->
+<div class="card mt-3 fade-up anim-delay-3">
+  <div class="card-title">🔐 تغيير كلمة المرور</div>
+  <div style="max-width:400px">
+    <div class="form-group">
+      <label class="form-label">كلمة المرور الجديدة</label>
+      <input type="password" class="form-control" id="new-password" placeholder="أدخل كلمة المرور الجديدة">
+    </div>
+    <button class="btn btn-warning" onclick="changePassword()">🔑 تغيير كلمة المرور</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function rmCheckPanel() {
+  showLoading('جاري فحص اللوحة...');
+  try {
+    const d = await apiPost('/replit/api/check-panel', {});
+    hideLoading();
+    document.getElementById('rm-action-result').innerHTML =
+      `<div class="alert ${d.ok ? 'alert-success' : 'alert-error'}">${d.msg}</div>`;
+    showToast(d.msg, d.ok ? 'success' : 'error');
+  } catch(e) { hideLoading(); showToast('فشل الاتصال', 'error'); }
+}
+
+async function rmCheckRoutes() {
+  showLoading('جاري فحص المسارات...');
+  try {
+    const d = await apiPost('/replit/api/check-routes', {});
+    hideLoading();
+    let html = '<div class="flex wrap gap-8 mt-2">';
+    (d.results || []).forEach(function(r) {
+      html += `<span class="badge ${r.ok ? 'badge-green' : 'badge-red'}">${r.path} (${r.status})</span>`;
+    });
+    html += '</div>';
+    document.getElementById('rm-action-result').innerHTML =
+      `<div class="alert ${d.ok ? 'alert-success' : 'alert-warning'}">
+        ${d.ok ? '✅ جميع المسارات تعمل' : '⚠️ بعض المسارات تحتاج مراجعة'}
+        ${html}
+      </div>`;
+    showToast(d.ok ? 'جميع المسارات سليمة ✅' : 'بعض المسارات تحتاج مراجعة', d.ok ? 'success' : 'warning');
+  } catch(e) { hideLoading(); showToast('فشل الاتصال', 'error'); }
+}
+
+async function rmRefreshHealth() {
+  try {
+    const d = await apiGet('/replit/api/health');
+    document.getElementById('rm-cpu').textContent = d.cpu_percent + '%';
+    document.getElementById('rm-cpu-bar').style.width = d.cpu_percent + '%';
+    document.getElementById('rm-mem-pct').textContent = d.mem_percent + '%';
+    document.getElementById('rm-mem-bar').style.width = d.mem_percent + '%';
+    document.getElementById('rm-mem').textContent = d.mem_used_h;
+    document.getElementById('rm-disk').textContent = d.disk_percent + '%';
+    document.getElementById('rm-disk-bar').style.width = d.disk_percent + '%';
+    document.getElementById('rm-panel-uptime').textContent = d.panel_uptime;
+    document.getElementById('rm-sys-uptime').textContent = d.system_uptime;
+    showToast('تم تحديث البيانات ✅', 'success', 2000);
+  } catch(e) { showToast('فشل التحديث', 'error'); }
+}
+
+async function rmRefreshProcs() {
+  try {
+    const procs = await apiGet('/replit/api/processes');
+    const body = document.getElementById('rm-procs-body');
+    if (!body) return;
+    if (!procs.length) { body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">لا توجد عمليات</td></tr>'; return; }
+    body.innerHTML = procs.map(function(p) {
+      const badge = p.status === 'running'
+        ? '<span class="badge badge-green">يعمل</span>'
+        : `<span class="badge badge-yellow">${p.status}</span>`;
+      return `<tr>
+        <td><code class="mono" style="color:var(--accent2)">${p.pid}</code></td>
+        <td><strong>${p.name}</strong></td>
+        <td>${badge}</td>
+        <td>${p.mem}%</td>
+        <td><code class="mono">${p.age}</code></td>
+        <td><code style="font-size:.7rem;color:var(--text2)">${p.cmdline.substring(0,60)}${p.cmdline.length > 60 ? '...' : ''}</code></td>
+      </tr>`;
+    }).join('');
+    showToast('تم تحديث العمليات ✅', 'success', 2000);
+  } catch(e) { showToast('فشل التحديث', 'error'); }
+}
+
+async function changePassword() {
+  const pw = document.getElementById('new-password').value.trim();
+  if (!pw) { showToast('أدخل كلمة المرور', 'warning'); return; }
+  if (pw.length < 6) { showToast('كلمة المرور قصيرة جداً', 'warning'); return; }
+  showLoading('جاري تغيير كلمة المرور...');
+  try {
+    const d = await apiPost('/panel/api/change-password', { password: pw });
+    hideLoading();
+    showToast(d.msg || (d.ok ? 'تم التغيير ✅' : 'فشل'), d.ok ? 'success' : 'error');
+    if (d.ok) document.getElementById('new-password').value = '';
+  } catch(e) { hideLoading(); showToast('فشل الاتصال', 'error'); }
+}
+
+// Auto-refresh health every 30s
+setInterval(rmRefreshHealth, 30000);
+</script>
+{% endblock %}

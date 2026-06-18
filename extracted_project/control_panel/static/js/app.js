@@ -470,3 +470,117 @@ async function refreshStats() {
   hideLoading();
   showToast('تم التحديث ✅', 'success', 2000);
 }
+
+// ── Progress Bar Animated Helper ─────────────────────────────
+function setProgressBar(id, pct, color) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  setTimeout(function() {
+    el.style.width = Math.min(100, Math.max(0, pct)) + '%';
+    if (color) el.style.background = color;
+  }, 50);
+}
+
+// ── Animate number smoothly ──────────────────────────────────
+function animateNumber(el, from, to, duration) {
+  duration = duration || 800;
+  var start = null;
+  var step = function(ts) {
+    if (!start) start = ts;
+    var progress = Math.min((ts - start) / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(from + (to - from) * eased).toLocaleString('ar-SA');
+    if (progress < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+// ── Element value update with flash animation ─────────────────
+function flashUpdate(id, val) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = val;
+  el.classList.remove('count-updated');
+  void el.offsetWidth; // trigger reflow
+  el.classList.add('count-updated');
+}
+
+// ── Copy to clipboard helper ──────────────────────────────────
+function copyText(text, label) {
+  label = label || 'النص';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function() {
+      showToast('تم نسخ ' + label + ' ✅', 'success', 2500);
+    }).catch(function() { _fallbackCopy(text, label); });
+  } else { _fallbackCopy(text, label); }
+}
+function _fallbackCopy(text, label) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand('copy'); showToast('تم نسخ ' + label + ' ✅', 'success', 2500); }
+  catch(e) { showToast('فشل النسخ', 'error'); }
+  document.body.removeChild(ta);
+}
+
+// ── Confirm Action Helper ─────────────────────────────────────
+function confirmAction(msg, callback) {
+  if (window.confirm(msg)) callback();
+}
+
+// ── Page transition on internal link clicks ───────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('a[href]').forEach(function(a) {
+    var href = a.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('http') ||
+        href.startsWith('mailto') || href.startsWith('javascript') ||
+        a.target === '_blank') return;
+    a.addEventListener('click', function(e) {
+      var loader = document.getElementById('page-loader');
+      if (loader) {
+        loader.classList.remove('hidden');
+        loader.style.display = '';
+      }
+    });
+  });
+});
+
+// ── Scroll-in animation for cards ────────────────────────────
+(function() {
+  if (!window.IntersectionObserver) return;
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.style.animationPlayState = 'running';
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08 });
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.fade-up, .slide-in, .scale-in').forEach(function(el) {
+      el.style.animationPlayState = 'paused';
+      observer.observe(el);
+    });
+  });
+})();
+
+// ── Auto-update counter values with locale ───────────────────
+function updateCounter(id, val) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var prev = parseInt(el.getAttribute('data-count') || el.textContent.replace(/\D/g, '')) || 0;
+  el.setAttribute('data-count', val);
+  animateNumber(el, prev, val, 600);
+}
+
+// ── Table row highlight on click ──────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('tbody').forEach(function(tbody) {
+    tbody.addEventListener('click', function(e) {
+      var row = e.target.closest('tr');
+      if (!row) return;
+      tbody.querySelectorAll('tr').forEach(function(r) { r.style.background = ''; });
+      row.style.background = 'rgba(59,130,246,0.06)';
+    });
+  });
+});

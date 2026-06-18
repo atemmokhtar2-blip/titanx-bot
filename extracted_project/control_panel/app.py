@@ -1,18 +1,69 @@
 import os
 import time
 import asyncio
+import hashlib
+import hmac as _hmac
+import secrets
+import json
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from .config import CONTROL_PANEL_DIR, SECRET_KEY, OWNER_ID, PUBLIC_URL
+from .config import CONTROL_PANEL_DIR, SECRET_KEY, OWNER_ID, PUBLIC_URL, EXTRACTED_DIR
 from .auth import (create_session, get_session, require_owner,
                    SESSION_COOKIE, SESSION_MAX_AGE, NotAuthenticated, ACCESS_TOKEN)
 from .routers import (dashboard, users, broadcast, db_manager,
                       files, logs_router, system, updates, github_router, search)
-from .routers import bots, backups
+from .routers import bots, backups, replit_manager
+
+# ── Panel settings (persistent password store) ──────────────────────────────
+SETTINGS_FILE = os.path.join(EXTRACTED_DIR, ".panel_settings.json")
+_DEFAULT_PASSWORD = "9,c4A,tw_Q!*iL"
+
+
+def _load_settings() -> dict:
+    try:
+        if os.path.exists(SETTINGS_FILE):
+            with open(SETTINGS_FILE) as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def _save_settings(data: dict):
+    try:
+        with open(SETTINGS_FILE, "w") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def _hash_pw(password: str, salt: str) -> str:
+    return hashlib.sha256(f"{salt}:{password}".encode()).hexdigest()
+
+
+def _verify_password(password: str) -> bool:
+    s = _load_settings()
+    salt = s.get("password_salt", "")
+    stored = s.get("password_hash", "")
+    if not stored or not salt:
+        return False
+    return _hmac.compare_digest(_hash_pw(password, salt), stored)
+
+
+def _init_password():
+    s = _load_settings()
+    if not s.get("password_hash"):
+        salt = secrets.token_hex(16)
+        s["password_hash"] = _hash_pw(_DEFAULT_PASSWORD, salt)
+        s["password_salt"] = salt
+        _save_settings(s)
+
+
+_init_password()
 
 # Build-time version stamp — changes every restart, forces browser cache-bust
 _BUILD_TS = str(int(time.time()))
@@ -56,6 +107,7 @@ app.include_router(github_router.router)
 app.include_router(search.router)
 app.include_router(bots.router)
 app.include_router(backups.router)
+app.include_router(replit_manager.router)
 
 
 def _public_base() -> str:
@@ -110,6 +162,38 @@ async def panel_access(request: Request, k: str = ""):
         "access_url": _access_url(),
         "error": None,
     })
+
+
+@app.post("/panel/login", response_class=HTMLResponse)
+async def panel_password_login(request: Request):
+    form = await request.form()
+    password = str(form.get("password", ""))
+    if password and _verify_password(password):
+        token = create_session(OWNER_ID)
+        response = RedirectResponse("/", status_code=302)
+        response.set_cookie(SESSION_COOKIE, token,
+                            max_age=SESSION_MAX_AGE, httponly=True,
+                            secure=True, samesite="lax")
+        return response
+    return templates.TemplateResponse(request, "access.html", {
+        "owner_id": OWNER_ID,
+        "access_url": _access_url(),
+        "error": "كلمة المرور غير صحيحة ⚠️",
+    }, status_code=401)
+
+
+@app.post("/panel/api/change-password")
+async def api_change_password(request: Request, session: dict = Depends(require_owner)):
+    body = await request.json()
+    new_pw = body.get("password", "").strip()
+    if len(new_pw) < 6:
+        return JSONResponse({"ok": False, "error": "كلمة المرور قصيرة جداً (6 أحرف على الأقل)"}, status_code=400)
+    s = _load_settings()
+    salt = secrets.token_hex(16)
+    s["password_hash"] = _hash_pw(new_pw, salt)
+    s["password_salt"] = salt
+    _save_settings(s)
+    return {"ok": True, "msg": "تم تغيير كلمة المرور بنجاح ✅"}
 
 
 # ── Legacy login redirect ───────────────────────────────────────────────────

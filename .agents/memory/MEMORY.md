@@ -1,2 +1,4 @@
 - [TitanX Control Panel](titanx-panel.md) — FastAPI panel on port 5000; token auth via /panel?k=TOKEN; uvicorn only (no gunicorn); PYTHONPATH must be set.
 - [TitanX Bot Cleanup](titanx-bot-cleanup.md) — Admin Bot and Developer Bot removed; only Main Bot + Support Bot remain; db_utils/config must NOT reference DEV_DB or dev_db.
+- [TitanX Password System](titanx-password.md) — Password hashed with SHA256+salt stored in extracted_project/.panel_settings.json; default 9,c4A,tw_Q!*iL; POST /panel/login; change via /panel/api/change-password; init runs on startup.
+- [TitanX Replit Manager](titanx-replit-manager.md) — New router at /replit (routers/replit_manager.py); health, processes, routes APIs; uses httpx for self-check; PROJECT_ROOT from config needed for disk usage.

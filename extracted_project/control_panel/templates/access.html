@@ -18,7 +18,6 @@
 })();
 </script>
 <style>
-/* ── Access page exclusive styles ── */
 body { overflow: hidden; }
 
 .access-page {
@@ -31,7 +30,6 @@ body { overflow: hidden; }
   position: relative;
 }
 
-/* Animated orbs */
 .access-orbs { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
 .access-orb {
   position: absolute; border-radius: 50%;
@@ -43,7 +41,6 @@ body { overflow: hidden; }
 .orb-3 { width: 250px; height: 250px; background: #06b6d4; top: 50%; left: 40%; animation-duration: 10s; animation-delay: -3s; }
 @keyframes orbFloat { 0%{transform:translate(0,0) scale(1)} 100%{transform:translate(30px,-40px) scale(1.08)} }
 
-/* Card */
 .access-card {
   position: relative; z-index: 1;
   background: var(--glass);
@@ -52,14 +49,13 @@ body { overflow: hidden; }
   border: 1px solid var(--border2);
   border-radius: 28px;
   padding: 44px 38px 36px;
-  width: 100%; max-width: 420px;
+  width: 100%; max-width: 440px;
   box-shadow: 0 32px 80px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07);
   animation: cardIn 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
 }
 @keyframes cardIn { from { opacity:0; transform: translateY(32px) scale(0.94); } to { opacity:1; transform: none; } }
 
-/* Logo */
-.access-logo-wrap { display: flex; justify-content: center; margin-bottom: 24px; }
+.access-logo-wrap { display: flex; justify-content: center; margin-bottom: 22px; }
 .access-logo-ring {
   width: 80px; height: 80px; border-radius: 24px;
   background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(168,85,247,0.18));
@@ -72,74 +68,107 @@ body { overflow: hidden; }
 .access-logo-inner { font-size: 2.5rem; animation: logoBob 3s ease-in-out infinite alternate; }
 @keyframes logoBob { 0%{transform:translateY(0) rotate(-4deg)} 100%{transform:translateY(-5px) rotate(4deg)} }
 
-/* Text */
 .access-title {
   text-align: center; font-size: 2rem; font-weight: 900; letter-spacing: -0.03em;
   background: linear-gradient(135deg, var(--accent2), var(--purple));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 .access-sub {
-  text-align: center; color: var(--text2); font-size: .85rem; font-weight: 500;
-  margin-bottom: 22px;
+  text-align: center; color: var(--text2); font-size: .83rem; font-weight: 500;
+  margin-bottom: 20px;
 }
 
-/* Alert */
 .access-alert {
   display: flex; align-items: center; gap: 9px;
-  padding: 12px 16px; border-radius: 12px;
-  font-size: .85rem; margin-bottom: 18px;
+  padding: 11px 15px; border-radius: 12px;
+  font-size: .84rem; margin-bottom: 16px;
 }
 .access-alert-error { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.28); color: #fca5a5; }
+
+/* Password form */
+.pw-form { margin-bottom: 14px; }
+.pw-input-wrap { position: relative; }
+.pw-input {
+  width: 100%; padding: 13px 48px 13px 16px;
+  background: var(--bg2); border: 1.5px solid var(--border);
+  color: var(--text); border-radius: 14px;
+  font-family: inherit; font-size: .95rem;
+  transition: all 0.22s ease; outline: none;
+  letter-spacing: 0.02em;
+}
+.pw-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+  background: var(--card);
+}
+.pw-toggle {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--text3); cursor: pointer;
+  font-size: 1rem; padding: 4px; transition: color 0.2s ease;
+}
+.pw-toggle:hover { color: var(--text); }
+.pw-submit {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, var(--accent), #6366f1);
+  color: #fff; border: none; border-radius: 14px;
+  font-family: inherit; font-size: .95rem; font-weight: 700;
+  cursor: pointer; margin-top: 12px;
+  box-shadow: 0 4px 20px rgba(59,130,246,0.4);
+  transition: all 0.22s ease; position: relative; overflow: hidden;
+}
+.pw-submit:hover { box-shadow: 0 6px 28px rgba(59,130,246,0.55); transform: translateY(-1px); }
+.pw-submit:active { transform: scale(0.98); }
+.pw-submit.loading { opacity: 0.8; pointer-events: none; }
+
+/* Divider */
+.access-divider {
+  display: flex; align-items: center; gap: 12px;
+  margin: 16px 0; color: var(--text3); font-size: .75rem; font-weight: 600;
+}
+.access-divider::before, .access-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
 
 /* Status box */
 .access-status-box {
   background: var(--bg2);
   border: 1px solid var(--border);
-  border-radius: 16px; padding: 18px 20px;
-  margin-bottom: 22px;
+  border-radius: 14px; padding: 14px 18px;
+  margin-bottom: 16px;
 }
-.access-status-row { display: flex; align-items: center; gap: 14px; }
-.access-status-icon { font-size: 1.4rem; flex-shrink: 0; }
-.access-status-label { font-size: .72rem; color: var(--text3); font-weight: 600; margin-bottom: 2px; }
-.access-status-value { font-size: .88rem; font-weight: 700; }
+.access-status-row { display: flex; align-items: center; gap: 12px; }
+.access-status-icon { font-size: 1.3rem; flex-shrink: 0; }
+.access-status-label { font-size: .7rem; color: var(--text3); font-weight: 600; margin-bottom: 2px; }
+.access-status-value { font-size: .85rem; font-weight: 700; }
 
-/* Instructions */
-.access-instructions { text-align: center; margin-bottom: 18px; }
-
-/* Footer */
 .access-footer {
   display: flex; align-items: center; justify-content: center; gap: 14px;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 .access-version { font-size: .7rem; color: var(--text3); font-weight: 600; letter-spacing: 0.08em; }
-
-/* Theme toggle */
 .access-theme-btn {
-  width: 38px; height: 38px; border-radius: 12px;
+  width: 36px; height: 36px; border-radius: 11px;
   background: var(--bg2); border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.1rem; cursor: pointer; transition: all 0.2s ease;
+  font-size: 1rem; cursor: pointer; transition: all 0.2s ease;
 }
 .access-theme-btn:hover { background: var(--bg3); transform: scale(1.1); }
 
-/* Live dot */
 .access-live {
   display: inline-flex; align-items: center; gap: 5px;
-  font-size: .68rem; font-weight: 700; color: var(--green);
+  font-size: .67rem; font-weight: 700; color: var(--green);
 }
 .access-live::before {
   content: ''; width: 6px; height: 6px; border-radius: 50%;
   background: var(--green); box-shadow: 0 0 8px rgba(34,197,94,0.8);
   animation: dotPulse 1.5s infinite; flex-shrink: 0;
 }
-@keyframes dotPulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:.6} }
 </style>
 </head>
 <body>
 
 <div class="access-page">
-  <!-- Animated background orbs -->
   <div class="access-orbs">
     <div class="access-orb orb-1"></div>
     <div class="access-orb orb-2"></div>
@@ -148,14 +177,12 @@ body { overflow: hidden; }
 
   <div class="access-card">
 
-    <!-- Logo -->
     <div class="access-logo-wrap">
       <div class="access-logo-ring">
         <div class="access-logo-inner">🎛️</div>
       </div>
     </div>
 
-    <!-- Brand -->
     <h1 class="access-title">TitanX</h1>
     <p class="access-sub">لوحة التحكم الاحترافية</p>
 
@@ -166,17 +193,41 @@ body { overflow: hidden; }
     </div>
     {% endif %}
 
+    <!-- Password Login Form -->
+    <form method="POST" action="/panel/login" class="pw-form" onsubmit="submitPw(this)">
+      <div class="form-label" style="margin-bottom:8px;font-size:.8rem;color:var(--text2)">🔐 كلمة المرور</div>
+      <div class="pw-input-wrap">
+        <input
+          type="password"
+          name="password"
+          id="pw-field"
+          class="pw-input"
+          placeholder="أدخل كلمة المرور..."
+          autocomplete="current-password"
+          required
+        >
+        <button type="button" class="pw-toggle" onclick="togglePwVis()" title="إظهار/إخفاء">
+          <span id="pw-eye">👁️</span>
+        </button>
+      </div>
+      <button type="submit" class="pw-submit" id="pw-submit-btn">
+        <span id="pw-btn-text">🔓 دخول</span>
+      </button>
+    </form>
+
+    <div class="access-divider">أو</div>
+
     <!-- Status block -->
     <div class="access-status-box">
       <div class="access-status-row">
-        <span class="access-status-icon">🔐</span>
+        <span class="access-status-icon">🔑</span>
         <div style="flex:1">
-          <div class="access-status-label">نظام الحماية</div>
-          <div class="access-status-value">رمز دخول خاص</div>
+          <div class="access-status-label">رمز الدخول المباشر</div>
+          <div class="access-status-value" style="font-size:.75rem;color:var(--text2)">استخدم رابط الوصول الخاص</div>
         </div>
         <span class="dot dot-green"></span>
       </div>
-      <div style="height:1px;background:var(--border);margin:14px 0"></div>
+      <div style="height:1px;background:var(--border);margin:12px 0"></div>
       <div class="access-status-row">
         <span class="access-status-icon">👑</span>
         <div style="flex:1">
@@ -187,14 +238,6 @@ body { overflow: hidden; }
       </div>
     </div>
 
-    <!-- Instructions -->
-    <div class="access-instructions">
-      <p style="font-size:.82rem;color:var(--text2);line-height:1.6">
-        للدخول، استخدم رابط الوصول الخاص المرسل من المطور
-      </p>
-    </div>
-
-    <!-- Footer -->
     <div class="access-footer">
       <span class="access-version">UI {{ UI_VERSION }} · Build {{ VER }}</span>
       <button class="access-theme-btn" onclick="toggleTheme()" title="تبديل الوضع">
@@ -207,8 +250,28 @@ body { overflow: hidden; }
 
 <script src="/static/js/app.js?v={{ VER }}"></script>
 <script>
-  const t = localStorage.getItem('titanx_theme') || 'dark';
-  document.getElementById('theme-icon').textContent = t === 'dark' ? '☀️' : '🌙';
+const t = localStorage.getItem('titanx_theme') || 'dark';
+document.getElementById('theme-icon').textContent = t === 'dark' ? '☀️' : '🌙';
+
+function togglePwVis() {
+  const f = document.getElementById('pw-field');
+  const e = document.getElementById('pw-eye');
+  if (f.type === 'password') { f.type = 'text'; e.textContent = '🙈'; }
+  else { f.type = 'password'; e.textContent = '👁️'; }
+}
+
+function submitPw(form) {
+  const btn = document.getElementById('pw-submit-btn');
+  const txt = document.getElementById('pw-btn-text');
+  if (btn) { btn.classList.add('loading'); }
+  if (txt) { txt.textContent = '⟳ جاري التحقق...'; }
+}
+
+// Auto-focus password field
+document.addEventListener('DOMContentLoaded', function() {
+  const f = document.getElementById('pw-field');
+  if (f) setTimeout(function() { f.focus(); }, 400);
+});
 </script>
 </body>
 </html>
