@@ -22,6 +22,8 @@ from ..ai_engine import (
     HF_SPACE_URL,
     # Phase 3 — Engineering Intelligence
     ProjectBrain, save_engineering_decision, list_engineering_decisions,
+    # Phase 3.5 — Project Intelligence Mode + Self-Audit
+    ProjectIntelligenceAgent, ProjectSelfAudit,
 )
 
 router = APIRouter(prefix="/ai")
@@ -649,3 +651,44 @@ async def api_list_decisions(session: dict = Depends(require_owner)):
         "total":     len(decisions),
         "decisions": decisions,
     }
+
+
+@router.get("/api/audit")
+async def api_project_audit(session: dict = Depends(require_owner)):
+    """
+    GET /ai/api/audit — Full project integrity audit (10-min TTL cache).
+    Returns: SPOF health, syntax errors, security patterns, log errors, tech debt, risks.
+    """
+    audit   = await asyncio.to_thread(ProjectSelfAudit.audit)
+    summary = ProjectSelfAudit.summary()
+    spof_ok  = sum(1 for s in audit["spof"] if s["status"] == "OK")
+    spof_err = sum(1 for s in audit["spof"] if s["status"] != "OK")
+    return {
+        "ok":           True,
+        "summary":      summary,
+        "spof_ok":      spof_ok,
+        "spof_errors":  spof_err,
+        "spof":         audit["spof"],
+        "syntax_errors":audit["syntax_errors"],
+        "security":     audit["security"],
+        "log_errors":   audit["log_errors"],
+        "tech_debt":    audit["tech_debt"],
+        "risks":        audit["risks"],
+        "generated_at": audit["generated_at"],
+        "cache_ttl_sec":600,
+    }
+
+
+@router.post("/api/intelligence")
+async def api_intelligence(request: Request, session: dict = Depends(require_owner)):
+    """
+    POST /ai/api/intelligence — Direct access to the 5-step Project Intelligence pipeline.
+    Body: { "msg": str }
+    Returns: full 5-step analysis (scan/understand/impact/plan/execute).
+    """
+    body = await request.json()
+    msg  = str(body.get("msg", "")).strip()
+    if not msg:
+        return JSONResponse({"ok": False, "error": "msg is required"}, status_code=400)
+    result = await asyncio.to_thread(ProjectIntelligenceAgent.run, msg)
+    return {"ok": True, **result}

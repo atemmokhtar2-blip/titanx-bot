@@ -651,6 +651,674 @@ class ProjectBrain:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# PROJECT INTELLIGENCE AGENT — Phase 3: 5-Step Protocol
+# Scan → Understand → Impact → Plan → Execute
+# Applied to EVERY modification request before any answer is generated.
+# Never generic. Always uses actual project structure.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class ProjectIntelligenceAgent:
+    """
+    Five-step intelligence protocol for modification requests.
+
+    STEP 1: Scan    — build live project snapshot (files, routers, handlers, services)
+    STEP 2: Understand — classify request type + extract entities
+    STEP 3: Impact  — compute affected files / APIs / templates / DB tables / risks
+    STEP 4: Plan    — generate execution steps using ACTUAL paths, never generic
+    STEP 5: Execute — format complete response; expose for API delivery
+    """
+
+    _RISK_ICON = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢",
+                  "MAYBE": "🔵", "AFFECTED": "⚠️", "INSPECT": "🔍", "USE": "♻️",
+                  "MODIFY": "✏️", "CREATE": "🆕"}
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # STEP 1 — SCAN
+    # ──────────────────────────────────────────────────────────────────────────
+    @classmethod
+    def _scan(cls) -> dict:
+        """Build a live snapshot of the project from the filesystem."""
+        brain     = ProjectBrain.get()
+        files     = walk_project()           # 60s-cached list of all project files
+        structure = analyze_structure()      # categorised by type
+        dep_map   = build_dependency_map()   # route → {file, templates, css, js}
+
+        existing = {
+            "handlers":  [f for f in files if "handlers/" in f  and f.endswith(".py")],
+            "routers":   [f for f in files if "routers/"  in f  and f.endswith(".py")],
+            "templates": [f for f in files if f.endswith(".html")],
+            "services":  [f for f in files if "services/" in f  and f.endswith(".py")],
+            "models":    [f for f in files if "database/" in f  and f.endswith(".py")],
+        }
+
+        return {
+            "brain":        brain,
+            "files":        files,
+            "structure":    structure,
+            "dep_map":      dep_map,
+            "existing":     existing,
+            "total_files":  len(files),
+            "router_names": [Path(f).stem for f in existing["routers"]],
+            "handler_names":[Path(f).stem for f in existing["handlers"]],
+            "service_names":[Path(f).stem for f in existing["services"]],
+            "ts":           datetime.now().isoformat(),
+        }
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # STEP 2 — UNDERSTAND
+    # ──────────────────────────────────────────────────────────────────────────
+    @classmethod
+    def _understand(cls, msg: str) -> dict:
+        """Classify the request and extract named entities."""
+        ml = msg.lower()
+
+        # What is being operated on?
+        entities = {
+            "is_bot":           bool(re.search(r"\bbot\b|\bبوت\b|\bhandler\b", ml)),
+            "is_page":          bool(re.search(r"\bpage\b|\bصفحة\b|\bscreen\b|\bview\b", ml)),
+            "is_auth":          bool(re.search(r"\bauth\b|\blogin\b|\bتسجيل\s*الدخول\b|\bمصادقة\b", ml)),
+            "is_db":            bool(re.search(r"\bdatabase\b|\bdb\b|\bقاعدة\b|\btable\b|\bجدول\b", ml)),
+            "is_notification":  bool(re.search(r"\bnotif\b|\bإشعار\b|\bتنبيه\b|\bnotification\b", ml)),
+            "is_broadcast":     bool(re.search(r"\bbroadcast\b|\bبث\b", ml)),
+            "is_subscription":  bool(re.search(r"\bsubscri\b|\bاشتراك\b", ml)),
+            "is_download":      bool(re.search(r"\bdownload\b|\bتحميل\b", ml)),
+            "is_css":           bool(re.search(r"\bcss\b|\bstyle\b|\bتصميم\b|\bألوان\b|\btheme\b", ml)),
+            "is_sidebar":       bool(re.search(r"\bsidebar\b|\bقائمة\s*جانبية\b|\bnavigation\b", ml)),
+        }
+
+        # What operation?
+        operation = "create"
+        if re.search(r"\bfix\b|\bإصلاح\b|\bصلح\b|\bdebug\b|\brepair\b|\bbroken\b", ml):
+            operation = "fix"
+        elif re.search(r"\bdelete\b|\bremove\b|\bحذف\b|\bأزل\b|\bأزلت\b", ml):
+            operation = "delete"
+        elif re.search(r"\bmodify\b|\bchange\b|\bedit\b|\bupdate\b|\bعدّل\b|\bغيّر\b|\bعدل\b", ml):
+            operation = "modify"
+        elif re.search(r"\bredesign\b|\brevamp\b|\bإعادة\s+تصميم\b|\bredo\b", ml):
+            operation = "redesign"
+
+        # Classify request type
+        if operation == "fix":
+            req_type = "debug_fix"
+        elif entities["is_auth"] and operation != "create":
+            req_type = "modify_auth"
+        elif entities["is_db"]:
+            req_type = "modify_db"
+        elif entities["is_bot"]:
+            req_type = "create_bot" if operation == "create" else "modify_bot"
+        elif entities["is_page"]:
+            req_type = "create_page" if operation == "create" else "modify_ui"
+        elif operation == "redesign":
+            req_type = "modify_ui"
+        elif entities["is_css"] or entities["is_sidebar"]:
+            req_type = "modify_ui"
+        else:
+            req_type = "create_feature"
+
+        # Extract name hint from the message
+        name_match = re.search(
+            r"(?:called?|named?|for|about|باسم|لـ?\s*|إنشاء\s+|أنشئ\s+|create\s+|build\s+|add\s+)"
+            r"[\"']?([a-zA-Z][\w\s_-]{1,25})[\"']?",
+            msg, re.IGNORECASE,
+        )
+        name = name_match.group(1).strip() if name_match else None
+
+        return {
+            "operation":  operation,
+            "req_type":   req_type,
+            "entities":   entities,
+            "name_hint":  name,
+            "raw":        msg,
+        }
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # STEP 3 — IMPACT
+    # ──────────────────────────────────────────────────────────────────────────
+    @classmethod
+    def _calculate_impact(cls, und: dict, scan: dict) -> dict:
+        """Compute affected files using ACTUAL project structure, not generic paths."""
+        req_type = und["req_type"]
+        entities = und["entities"]
+        existing = scan["existing"]
+        files    = scan["files"]
+        router_names  = scan["router_names"]
+        handler_names = scan["handler_names"]
+        service_names = scan["service_names"]
+
+        affected   = []
+        risks      = []
+        reusable   = []
+
+        # ── Create Bot ────────────────────────────────────────────────────────
+        if req_type in ("create_bot", "modify_bot"):
+            # Check what ACTUALLY exists
+            has_notifier  = any("notifier" in f for f in files)
+            has_scheduler = any("scheduler" in f or "job" in f for f in files)
+            has_sub_svc   = any("subscri" in f for f in files)
+
+            affected = [
+                {"file": "bot.py",                          "role": "ENTRY",    "action": "MODIFY",
+                 "why": "تسجيل الـ handlers الجديدة في application.add_handler()", "risk": "HIGH"},
+                {"file": "scripts/start.sh",                "role": "PROCESS",  "action": "MAYBE",
+                 "why": "إذا كان البوت منفصلاً يحتاج workflow مستقل", "risk": "HIGH"},
+                {"file": "control_panel/app.py",            "role": "ENTRY",    "action": "MAYBE",
+                 "why": "إضافة راوتر مراقبة البوت الجديد", "risk": "MEDIUM"},
+                {"file": "control_panel/templates/base.html","role": "NAV",     "action": "MAYBE",
+                 "why": "إضافة رابط في القائمة الجانبية", "risk": "LOW"},
+                {"file": "database/db.py",                  "role": "DATABASE", "action": "MAYBE",
+                 "why": "إذا احتاج البوت جداول جديدة — لا يوجد migration system", "risk": "HIGH"},
+            ]
+            if entities.get("is_notification"):
+                if has_notifier:
+                    reusable.append(("services/notifier.py", "نظام الإشعارات موجود — أعِد استخدامه مباشرة"))
+                else:
+                    affected.append({"file": "services/notifier.py", "role": "SERVICE", "action": "CREATE",
+                                     "why": "خدمة الإشعارات غير موجودة — يجب إنشاؤها", "risk": "LOW"})
+            if entities.get("is_broadcast"):
+                reusable.append(("control_panel/routers/broadcast.py", "نظام البث موجود في اللوحة — يمكن إعادة استخدام المنطق"))
+            if entities.get("is_subscription") and has_sub_svc:
+                reusable.append(("services/subscription.py", "خدمة الاشتراكات موجودة — لا تعد بنائها"))
+            if handler_names:
+                reusable.append((f"handlers/{handler_names[0]}.py", f"استخدم {handler_names[0]}.py كنموذج للبنية"))
+
+            risks = [
+                "🔴 لا تشارك BOT_TOKEN بين بوتين — كل بوت يحتاج token مستقلاً في Secrets",
+                "🟠 كل بوت منفصل يحتاج workflow مستقل في scripts/start.sh",
+                "🟠 قاعدة البيانات المشتركة (bot.db) قد تسبب write conflicts — أضف جداول جديدة فقط",
+                "🟡 config/settings.py يحتاج token جديد — أضفه في Replit Secrets وليس في الكود",
+            ]
+
+        # ── Create Control Panel Page ─────────────────────────────────────────
+        elif req_type == "create_page":
+            affected = [
+                {"file": "control_panel/app.py",                "role": "ENTRY",    "action": "MODIFY",
+                 "why": "تسجيل الراوتر الجديد بـ include_router() — خطأ هنا يوقف اللوحة كلها", "risk": "HIGH"},
+                {"file": "control_panel/templates/base.html",   "role": "NAV",      "action": "MODIFY",
+                 "why": "إضافة رابط في القائمة الجانبية — 19 صفحة تعتمد على هذا الملف", "risk": "MEDIUM"},
+                {"file": "control_panel/auth.py",               "role": "AUTH",     "action": "USE",
+                 "why": "require_owner يُستخدم لحماية الصفحة الجديدة تلقائياً", "risk": "LOW"},
+                {"file": "control_panel/static/css/style.css",  "role": "CSS",      "action": "USE",
+                 "why": "الـ CSS العام يُطبَّق تلقائياً على الصفحة الجديدة", "risk": "LOW"},
+            ]
+            if router_names:
+                reusable = [
+                    (f"control_panel/routers/{r}.py",
+                     f"استخدم `{r}.py` كنموذج للبنية — router, auth, templates")
+                    for r in router_names[:3]
+                ]
+            risks = [
+                f"🔴 app.py حرج — خطأ في include_router() يوقف اللوحة كلها",
+                f"🟠 أسماء الراوترات الموجودة: {', '.join(router_names[:8])} — اختر اسماً فريداً",
+                "🟡 القالب يجب أن يرث من base.html: {% extends 'base.html' %}",
+            ]
+
+        # ── Modify Auth ───────────────────────────────────────────────────────
+        elif req_type == "modify_auth":
+            affected = [
+                {"file": "control_panel/auth.py",               "role": "CORE",     "action": "MODIFY",
+                 "why": "require_owner() و verify_token() و password hash — منطق المصادقة الكامل", "risk": "CRITICAL"},
+                {"file": "control_panel/app.py",                "role": "ENTRY",    "action": "MODIFY",
+                 "why": "POST /panel/login، POST /panel/logout، cookie session", "risk": "HIGH"},
+                {"file": "control_panel/templates/access.html", "role": "TEMPLATE", "action": "MAYBE",
+                 "why": "صفحة تسجيل الدخول — standalone (لا ترث base.html)", "risk": "LOW"},
+                {"file": f"ALL {len(existing['routers'])} routers",
+                 "role": "DEPENDENT", "action": "AFFECTED",
+                 "why": "كل الراوترات تستخدم Depends(require_owner) من auth.py", "risk": "CRITICAL"},
+            ]
+            risks = [
+                "🔴 CRITICAL: أي خطأ في auth.py يُغلق اللوحة كلها فوراً",
+                "🔴 SECRET_KEY في itsdangerous — تغييره يُلغي جميع الجلسات النشطة",
+                "🟠 اختبر /panel/login بيانات صحيحة وخاطئة قبل إعلان الاكتمال",
+                "🟡 .panel_settings.json يحتوي password hash — لا تحذفه",
+            ]
+
+        # ── Modify Database ───────────────────────────────────────────────────
+        elif req_type == "modify_db":
+            db_models = [Path(f).stem for f in existing["models"]]
+            affected = [
+                {"file": "database/db.py",                      "role": "CORE",     "action": "MODIFY",
+                 "why": "init_db() ينشئ الجداول — يُستدعى عند بدء تشغيل البوت", "risk": "CRITICAL"},
+                {"file": "bot.py",                              "role": "ENTRY",    "action": "AFFECTED",
+                 "why": "يستدعي init_db() — فشله يمنع البوت من البدء تماماً", "risk": "CRITICAL"},
+                {"file": "handlers/start.py",                   "role": "HANDLER",  "action": "AFFECTED",
+                 "why": "يقرأ/يكتب في جدول users — أي تغيير في schema يؤثر عليه", "risk": "HIGH"},
+                {"file": "control_panel/routers/users.py",      "role": "ROUTER",   "action": "AFFECTED",
+                 "why": "يعرض بيانات المستخدمين — يتأثر بأي تغيير في schema", "risk": "HIGH"},
+            ]
+            if db_models:
+                reusable = [(f"database/{m}.py", f"نموذج {m}.py — ادرسه قبل التعديل") for m in db_models[:3]]
+            risks = [
+                "🔴 CRITICAL: لا يوجد Alembic — كل تغيير schema = تدخل يدوي كامل",
+                "🔴 احتفظ بنسخة احتياطية من database/bot.db قبل أي تعديل",
+                "🟠 خطأ في init_db() يمنع البوت من بدء التشغيل — لا يظهر إلا عند الـ restart",
+                "🟠 استخدم CREATE TABLE IF NOT EXISTS — لا تستخدم DROP TABLE أبداً",
+            ]
+
+        # ── Redesign / Modify UI ──────────────────────────────────────────────
+        elif req_type == "modify_ui":
+            concept_hits = _find_concept(und["raw"])
+            route_info   = _route_for_concept(und["raw"])
+
+            if route_info:
+                tpl = route_info.get("template", "")
+                rtr = route_info.get("router", "")
+                affected = [
+                    {"file": tpl, "role": "TEMPLATE", "action": "MODIFY",
+                     "why": "بنية HTML للصفحة المستهدفة", "risk": "LOW"},
+                    {"file": rtr, "role": "ROUTER",   "action": "MAYBE",
+                     "why": "بيانات الصفحة من الباك-إند", "risk": "LOW"},
+                ]
+                for c in route_info.get("css", []):
+                    affected.append({"file": c, "role": "CSS", "action": "MODIFY",
+                                     "why": "الألوان والتخطيط — يؤثر على جميع الصفحات", "risk": "MEDIUM"})
+            elif concept_hits:
+                affected = [
+                    {"file": p, "role": r.upper(), "action": "MODIFY", "why": d, "risk": "MEDIUM"}
+                    for p, r, d in concept_hits[:4]
+                ]
+            else:
+                affected = [
+                    {"file": "control_panel/static/css/style.css",  "role": "CSS",      "action": "MODIFY",
+                     "why": "الألوان والتخطيط العام — يؤثر على جميع الـ 20 صفحة", "risk": "HIGH"},
+                    {"file": "control_panel/templates/base.html",   "role": "TEMPLATE", "action": "MODIFY",
+                     "why": "الهيكل المشترك (sidebar, header) — 19 صفحة تعتمد عليه", "risk": "HIGH"},
+                ]
+            risks = [
+                "🟠 style.css يؤثر على جميع الـ 20 صفحة — اختبر على صفحتين على الأقل",
+                "🟠 base.html تعتمد عليه 19 صفحة — خطأ في HTML يكسر كل التنقل",
+                "🟡 احتفظ بنسخة احتياطية قبل تعديل أي من الملفين المشتركين",
+            ]
+
+        # ── Debug Fix ─────────────────────────────────────────────────────────
+        elif req_type == "debug_fix":
+            live_errors  = detect_log_errors()[:4]
+            concept_hits = _find_concept(und["raw"])
+            route_info   = _route_for_concept(und["raw"])
+
+            if route_info:
+                affected = [
+                    {"file": route_info.get("template", "—"), "role": "TEMPLATE", "action": "INSPECT",
+                     "why": "تحقق من HTML للعنصر المكسور", "risk": "LOW"},
+                    {"file": route_info.get("router", "—"),   "role": "ROUTER",   "action": "INSPECT",
+                     "why": "تحقق من المنطق والاستثناءات في الباك-إند", "risk": "LOW"},
+                    {"file": "control_panel/static/js/app.js","role": "JS",       "action": "INSPECT",
+                     "why": "تحقق من event handlers للأزرار", "risk": "LOW"},
+                ]
+            elif concept_hits:
+                affected = [
+                    {"file": p, "role": r.upper(), "action": "INSPECT", "why": d, "risk": "LOW"}
+                    for p, r, d in concept_hits[:4]
+                ]
+            else:
+                affected = [
+                    {"file": "control_panel/static/js/app.js",     "role": "JS",      "action": "INSPECT",
+                     "why": "أغلب مشاكل الأزرار والتفاعل هنا", "risk": "LOW"},
+                    {"file": "control_panel/static/css/style.css", "role": "CSS",     "action": "INSPECT",
+                     "why": "مشاكل المظهر والتصميم", "risk": "LOW"},
+                ]
+            risks = [
+                f"⚠️ {e.get('file','?')}: {e.get('line','')[:70]}"
+                for e in live_errors
+            ] or ["🟢 لا أخطاء في السجلات — المشكلة في الكود أو CSS/JS frontend"]
+
+        # ── Create Feature (default) ───────────────────────────────────────────
+        else:
+            affected = [
+                {"file": "control_panel/app.py",                "role": "ENTRY",    "action": "MAYBE",
+                 "why": "تسجيل الميزة إذا كانت صفحة أو API", "risk": "MEDIUM"},
+                {"file": "control_panel/templates/base.html",   "role": "NAV",      "action": "MAYBE",
+                 "why": "إضافة رابط في القائمة إذا كانت الميزة تحتاج صفحة", "risk": "LOW"},
+                {"file": "database/db.py",                      "role": "DATABASE", "action": "MAYBE",
+                 "why": "إذا احتاجت الميزة جداول جديدة — انتبه لغياب migration system", "risk": "HIGH"},
+            ]
+            if service_names:
+                reusable.append((f"services/{service_names[0]}.py",
+                                 f"استخدم {service_names[0]}.py كنموذج لبنية الخدمة"))
+            risks = ["🟡 حدد نوع الميزة أولاً: bot handler / panel page / service / API endpoint"]
+
+        return {
+            "req_type":  req_type,
+            "affected":  affected,
+            "risks":     risks,
+            "reusable":  reusable,
+        }
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # STEP 4 — PLAN
+    # ──────────────────────────────────────────────────────────────────────────
+    @classmethod
+    def _generate_plan(cls, und: dict, impact: dict, scan: dict) -> dict:
+        """Generate execution steps using ACTUAL file paths from the live scan."""
+        req_type = und["req_type"]
+        name_raw = und.get("name_hint") or "new_component"
+        clean    = re.sub(r"[^a-z0-9_]", "_", name_raw.lower())[:20]
+        router_names = scan["router_names"]
+
+        if req_type in ("create_bot", "modify_bot"):
+            steps = [
+                "**① نسخ احتياطية** (إلزامي): اسأل `إنشاء نسخة احتياطية` الآن",
+                f"**② إنشاء handler:** `handlers/{clean}_handler.py`",
+                f"   • استوردها من: `from python_telegram_bot import CommandHandler, MessageHandler`",
+                f"   • نمذجها على handlers موجودة: `handlers/{scan['handler_names'][0]}.py`" if scan['handler_names'] else "",
+                f"**③ تسجيل في `bot.py`:**",
+                f"   • `from handlers.{clean}_handler import setup_{clean}`",
+                f"   • `application.add_handler(CommandHandler('{clean}', ...))`",
+                "**④ إعدادات** (إن احتاج):",
+                "   • أضف TOKEN في Replit Secrets (لا في الكود)",
+                "   • أضف OWNER_ID أو ADMIN_IDS في config/settings.py",
+                "**⑤ اختبار:** أرسل أمر للبوت وتأكد من الاستجابة",
+                f"**⑥ لوحة التحكم** (اختياري): أضف صفحة مراقبة في `control_panel/routers/{clean}.py`",
+            ]
+            rollback = f"احذف handlers/{clean}_handler.py وأزل السطور المضافة من bot.py"
+
+        elif req_type == "create_page":
+            sample_router = router_names[0] if router_names else "dashboard"
+            steps = [
+                "**① نسخ احتياطية:** اسأل `إنشاء نسخة احتياطية` الآن",
+                f"**② إنشاء الراوتر:** `control_panel/routers/{clean}.py`",
+                f"   • انسخ بنية `control_panel/routers/{sample_router}.py` كنقطة بداية",
+                f"   • عدّل: `@router.get('/{clean}')` و `TemplateResponse(request, '{clean}.html', ...)`",
+                f"**③ إنشاء القالب:** `control_panel/templates/{clean}.html`",
+                "   • أول سطرين إلزاميان:",
+                "     `{% extends 'base.html' %}`",
+                "     `{% block content %}` ... `{% endblock %}`",
+                f"**④ تسجيل الراوتر في `control_panel/app.py`:**",
+                f"   • ابحث عن سطر `include_router` موجود واضف بعده:",
+                f"   • `from control_panel.routers import {clean}`",
+                f"   • `app.include_router({clean}.router, prefix='/panel', dependencies=[...])`",
+                f"**⑤ القائمة الجانبية في `base.html`:** ابحث عن `<nav` وأضف:",
+                f"   `<a href='/panel/{clean}' class='nav-link'>📄 {clean}</a>`",
+                f"**⑥ اختبر:** تصفح `/panel/{clean}` — يجب أن يظهر القالب ويطلب تسجيل الدخول",
+            ]
+            rollback = (f"احذف control_panel/routers/{clean}.py و control_panel/templates/{clean}.html، "
+                        f"وأزل سطر include_router من app.py وسطر الرابط من base.html")
+
+        elif req_type == "modify_auth":
+            steps = [
+                "**① نسخ احتياطية أولاً** — auth.py هو الأحرج في المشروع",
+                "**② افتح `control_panel/auth.py`** واقرأ: `require_owner()`, `verify_token()`, `hash_password()`",
+                "**③ افتح `control_panel/app.py`** واقرأ: POST /panel/login و POST /panel/logout",
+                "**④ اختبر بعد التعديل:**",
+                "   • تسجيل دخول بكلمة مرور صحيحة → يجب يعيد التوجيه للـ /panel",
+                "   • تسجيل دخول بكلمة مرور خاطئة → يجب يُظهر رسالة خطأ",
+                "   • بعد الخروج → يجب أن تُمنع جميع الصفحات",
+                "**⑤ أعِد تشغيل** TitanX Control Panel workflow",
+            ]
+            rollback = "أعِد الملف القديم من النسخة الاحتياطية — لا تحاول إصلاح auth مكسور يدوياً"
+
+        elif req_type == "modify_db":
+            steps = [
+                "**① نسخة احتياطية للـ database/bot.db** (الملف الثنائي) — ليس فقط الكود",
+                "**② افتح `database/db.py`** وادرس `init_db()` والجداول الموجودة",
+                "**③ أضف الجدول الجديد داخل `init_db()`:**",
+                "   ```sql",
+                "   CREATE TABLE IF NOT EXISTS new_table (",
+                "       id INTEGER PRIMARY KEY AUTOINCREMENT,",
+                "       user_id INTEGER NOT NULL,",
+                "       created_at TEXT DEFAULT (datetime('now'))",
+                "   );",
+                "   ```",
+                "**④ أنشئ ملف model** في `database/` للـ CRUD operations",
+                "**⑤ اختبر `init_db()` منفصلاً** قبل تشغيل البوت",
+                "**⑥ أعِد تشغيل** PrimeDownloader Bot workflow وتأكد من عدم وجود أخطاء",
+            ]
+            rollback = "أعِد ملف database/bot.db من النسخة الاحتياطية وأزل الكود الجديد من db.py"
+
+        elif req_type == "debug_fix":
+            steps = [
+                "**① اقرأ السجلات:** `/panel/logs` أو اسأل `ما أخطاء السجلات الأخيرة؟`",
+                "**② افتح الملفات المحددة** في تحليل التأثير أعلاه",
+                "**③ ابحث عن:**",
+                "   • `try/except` بدون logging (أخطاء صامتة)",
+                "   • `console.error` في JS / F12 في المتصفح",
+                "   • return codes غير متوقعة في الراوتر",
+                "**④ بعد الإصلاح:** أعِد تشغيل الـ workflow المعني",
+                "**⑤ اختبر** الوظيفة المُصلحة مباشرة",
+            ]
+            rollback = "احتفظ بنسخ احتياطية يدوية للملفات قبل التعديل"
+
+        elif req_type == "modify_ui":
+            steps = [
+                "**① نسخ احتياطية:** style.css وbase.html ملفات مشتركة — نسخ احتياطية إلزامية",
+                "**② حدد الهدف بدقة:** صفحة واحدة أم جميع الصفحات؟",
+                "   • صفحة واحدة → عدّل قالبها المحدد فقط",
+                "   • جميع الصفحات → عدّل `control_panel/static/css/style.css`",
+                "   • الهيكل (sidebar/header) → عدّل `control_panel/templates/base.html`",
+                "**③ اختبر على:** dashboard + users + صفحة أخرى للتأكد من عدم كسر CSS",
+                "**④ اختبر Dark/Light mode:** زر التبديل في الـ header",
+            ]
+            rollback = "أعِد style.css أو base.html من النسخة الاحتياطية"
+
+        else:
+            sample_svc = scan["service_names"][0] if scan["service_names"] else "downloader"
+            steps = [
+                "**① حدد نوع الميزة:** bot handler / panel page / service / API endpoint فقط",
+                f"**② ابنِ الطبقة المناسبة:** `services/{clean}.py` أو `handlers/{clean}_handler.py`",
+                f"   • نمذجها على: `services/{sample_svc}.py` الموجود",
+                "**③ سجّل في نقطة الدخول** (bot.py أو control_panel/app.py)",
+                "**④ اختبر قبل الإعلان** عن الاكتمال",
+            ]
+            rollback = "احذف الملفات الجديدة وأزل أسطر التسجيل"
+
+        return {"steps": [s for s in steps if s], "rollback": rollback, "name": clean}
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # STEP 5 — FORMAT
+    # ──────────────────────────────────────────────────────────────────────────
+    @classmethod
+    def _format(cls, msg: str, und: dict, scan: dict, impact: dict, plan: dict) -> dict:
+        req_type = und["req_type"]
+        affected  = impact["affected"]
+        risks     = impact["risks"]
+        reusable  = impact["reusable"]
+        steps     = plan["steps"]
+        rollback  = plan["rollback"]
+        existing  = scan["existing"]
+        total     = scan["total_files"]
+        ri        = cls._RISK_ICON
+
+        labels = {
+            "create_bot":    "🤖 إنشاء بوت",    "modify_bot":   "🤖 تعديل البوت",
+            "create_page":   "📄 إنشاء صفحة",  "create_feature":"✨ إنشاء ميزة",
+            "modify_auth":   "🔐 تعديل المصادقة","modify_db":   "🗄️ تعديل قاعدة البيانات",
+            "modify_ui":     "🎨 تعديل الواجهة","debug_fix":    "🔧 إصلاح خطأ",
+        }
+        label = labels.get(req_type, f"🛠️ {req_type}")
+
+        lines = [
+            f"# {label}\n",
+            f"> 📝 **الطلب:** `{msg}`\n",
+            "---",
+
+            # ── STEP 1: Scan ──────────────────────────────────────────────────
+            "## 🔍 الخطوة 1 — مسح المشروع",
+            f"**{total} ملف** تم فحصها · "
+            f"{len(existing['routers'])} راوتر · "
+            f"{len(existing['templates'])} قالب · "
+            f"{len(existing['handlers'])} handler · "
+            f"{len(existing['services'])} service",
+
+            # ── STEP 2: Understand ────────────────────────────────────────────
+            "",
+            "## 🧠 الخطوة 2 — فهم الطلب",
+            f"**نوع العملية:** {label} | **العملية:** {und['operation']}",
+
+            # ── STEP 3: Impact ────────────────────────────────────────────────
+            "",
+            "## 💥 الخطوة 3 — حساب التأثير",
+            "**الملفات المتأثرة:**",
+        ]
+
+        for af in affected:
+            icon   = ri.get(af.get("risk", "LOW"), "⚪")
+            action = af.get("action", "")
+            lines.append(f"  {icon} `{af['file']}` **[{af['role']}]** `{action}` — {af['why']}")
+
+        if reusable:
+            lines.append("\n**♻️ أنظمة موجودة يمكن إعادة استخدامها:**")
+            for path, why in reusable:
+                lines.append(f"  ♻️ `{path}` — {why}")
+
+        if risks:
+            lines.append("\n**⚠️ المخاطر:**")
+            for r in risks:
+                lines.append(f"  {r}")
+
+        # ── STEP 4+5: Plan ────────────────────────────────────────────────────
+        lines += [
+            "",
+            "## 📋 الخطوة 4+5 — خطة التنفيذ",
+            *steps,
+            "",
+            f"**🔄 استراتيجية الاسترجاع:** {rollback}",
+        ]
+
+        return {
+            "text": "\n".join(lines),
+            "data": {
+                "mode":       "project_intelligence_v2",
+                "req_type":   req_type,
+                "operation":  und["operation"],
+                "affected":   [a["file"] for a in affected],
+                "risks":      risks,
+                "steps":      steps,
+                "rollback":   rollback,
+                "scan_total": total,
+            },
+        }
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # PUBLIC ENTRY POINT
+    # ──────────────────────────────────────────────────────────────────────────
+    @classmethod
+    def run(cls, msg: str) -> dict:
+        """
+        Execute the full 5-step intelligence protocol.
+        This is the ONLY entry point for any modification request.
+        """
+        try:
+            scan  = cls._scan()
+            und   = cls._understand(msg)
+            imp   = cls._calculate_impact(und, scan)
+            plan  = cls._generate_plan(und, imp, scan)
+            result = cls._format(msg, und, scan, imp, plan)
+            AIMemoryLayer.record_decision(
+                f"[PIA] {und['req_type']} — {und['operation']}",
+                f"affected: {len(imp['affected'])} files, risks: {len(imp['risks'])}",
+            )
+            return result
+        except Exception as e:
+            _ai_log.error("ProjectIntelligenceAgent.run error: %s", e, exc_info=True)
+            return {
+                "text": f"⚠️ خطأ في محرك الذكاء: {e}\nاسأل عن الطلب بصياغة مختلفة.",
+                "data": {"error": str(e), "mode": "project_intelligence_error"},
+            }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROJECT SELF-AUDIT ENGINE — Continuous background integrity check
+# Detects: dead code, broken imports, SPOF files, syntax errors, security issues
+# 10-minute TTL cache — does NOT block chat responses
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class ProjectSelfAudit:
+    """
+    Continuous integrity monitor.
+    Checks: SPOF health, syntax errors, security patterns, log errors, tech debt.
+    """
+    _cache: dict = {}
+    _ts:    float = 0.0
+    _TTL:   float = 600.0   # 10-minute cache
+
+    # Single-Point-of-Failure files — every project MUST have these healthy
+    _SPOF_FILES = [
+        ("control_panel/config.py",          "12 راوتر تعتمد عليه — أي خطأ syntax يوقف اللوحة"),
+        ("control_panel/app.py",             "نقطة دخول اللوحة — تعطله = اللوحة ساقطة"),
+        ("control_panel/auth.py",            "12 راوتر يستخدمون require_owner — تعطله = كل الصفحات مقفلة"),
+        ("control_panel/templates/base.html","19 صفحة ترثه — خطأ فيه = كل الواجهة مكسورة"),
+        ("control_panel/static/css/style.css","ملف CSS الوحيد لـ 20 صفحة"),
+        ("database/db.py",                   "init_db() — فشله يمنع بدء البوت"),
+        ("bot.py",                           "نقطة دخول PrimeDownloader — تعطله = البوت ساقط"),
+    ]
+
+    @classmethod
+    def audit(cls) -> dict:
+        """Return cached audit, rebuild if TTL expired."""
+        if time.time() - cls._ts < cls._TTL and cls._cache:
+            return cls._cache
+
+        result = {
+            "spof":         cls._check_spof(),
+            "syntax_errors":cls._check_syntax(),
+            "security":     security_scan()[:8],
+            "log_errors":   detect_log_errors()[:8],
+            "tech_debt":    ProjectBrain.TECH_DEBT,
+            "risks":        ProjectBrain.RISKS,
+            "generated_at": datetime.now().isoformat(),
+        }
+        cls._cache = result
+        cls._ts    = time.time()
+        return result
+
+    @classmethod
+    def _check_spof(cls) -> list:
+        """Verify each SPOF file exists and has no syntax errors."""
+        results = []
+        for rel, description in cls._SPOF_FILES:
+            fp = EXTRACTED_DIR / rel
+            if not fp.exists():
+                results.append({"file": rel, "description": description,
+                                 "status": "MISSING", "error": "ملف غير موجود"})
+                continue
+            if rel.endswith(".py"):
+                try:
+                    src = fp.read_text(encoding="utf-8", errors="ignore")
+                    ast.parse(src)
+                    results.append({"file": rel, "description": description,
+                                    "status": "OK", "error": None})
+                except SyntaxError as e:
+                    results.append({"file": rel, "description": description,
+                                    "status": "SYNTAX_ERROR", "error": str(e)})
+            else:
+                results.append({"file": rel, "description": description,
+                                 "status": "OK", "error": None})
+        return results
+
+    @classmethod
+    def _check_syntax(cls) -> list:
+        """Scan all Python files for syntax errors."""
+        errors = []
+        for rel in [f for f in walk_project() if f.endswith(".py")][:60]:
+            try:
+                src = (EXTRACTED_DIR / rel).read_text(encoding="utf-8", errors="ignore")
+                ast.parse(src)
+            except SyntaxError as e:
+                errors.append({"file": rel, "error": str(e), "line": e.lineno})
+            except Exception:
+                pass
+        return errors
+
+    @classmethod
+    def summary(cls) -> str:
+        """One-line health status for display in dashboards."""
+        a          = cls.audit()
+        spof_ok    = sum(1 for s in a["spof"] if s["status"] == "OK")
+        spof_err   = sum(1 for s in a["spof"] if s["status"] != "OK")
+        syntax_err = len(a["syntax_errors"])
+        sec_issues = len(a["security"])
+        log_err    = len(a["log_errors"])
+        if spof_err > 0 or syntax_err > 0:
+            status = "🔴 CRITICAL"
+        elif log_err > 0 or sec_issues > 3:
+            status = "⚠️ ISSUES"
+        else:
+            status = "✅ HEALTHY"
+        return (f"{status} | SPOF: {spof_ok}/{len(a['spof'])} OK · "
+                f"Syntax: {syntax_err} err · Security: {sec_issues} patterns · "
+                f"Log errors: {log_err}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CONVERSATION KNOWLEDGE BASE
 # Used by _r_conversation() — general tech knowledge, no project file access
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -3576,261 +4244,43 @@ def _r_hf_query() -> dict:
 
 
 def _r_create_feature(msg: str) -> dict:
-    """Handler for 'create notification bot', 'build X feature', etc."""
+    """
+    Project Intelligence Mode — 5-step protocol.
+    Scan → Understand → Impact → Plan → Execute.
+    Never generic. Always uses actual project structure.
+    """
     update_stats("total_plans")
-    ml = msg.lower()
-
-    # Classify what type of thing is being created
-    if re.search(r"bot\b", ml):
-        kind = "Bot / Telegram Handler"
-        files_to_create = [
-            ("handlers/new_bot_handler.py", "handler", "منطق الأوامر الجديدة"),
-            ("bot.py", "entrypoint", "تسجيل الهاندلر الجديد"),
-            ("config/settings.py", "config", "إضافة أي إعدادات مطلوبة"),
-        ]
-        steps = [
-            "1. أنشئ `handlers/new_bot_handler.py` وعرّف أوامر البوت",
-            "2. سجّل الهاندلر في `bot.py` ضمن `application.add_handler()`",
-            "3. أضف أي إعدادات مطلوبة في `config/settings.py`",
-            "4. اختبر بـ /start وتأكد أن الأوامر الجديدة تستجيب",
-        ]
-        risk = "low"
-    elif re.search(r"(notification|تنبيه|إشعار)", ml):
-        kind = "Notification System"
-        files_to_create = [
-            ("services/notifier.py", "service", "منطق الإشعارات"),
-            ("handlers/notifications.py", "handler", "هاندلر الإشعارات"),
-            ("bot.py", "entrypoint", "تسجيل وظيفة الإشعارات"),
-        ]
-        steps = [
-            "1. أنشئ `services/notifier.py` بدالة `send_notification(user_id, text)`",
-            "2. أضف مهمة جدولة (job_queue) في `bot.py`",
-            "3. اختبر الإشعار يدوياً عبر أمر `/test_notify`",
-        ]
-        risk = "low"
-    elif re.search(r"page\b|screen\b|view\b", ml):
-        kind = "Control Panel Page"
-        files_to_create = [
-            ("control_panel/routers/new_router.py", "router", "نقاط نهاية الصفحة الجديدة"),
-            ("control_panel/templates/new_page.html", "template", "واجهة الصفحة"),
-            ("control_panel/app.py", "entrypoint", "تسجيل الراوتر"),
-            ("control_panel/templates/base.html", "navigation", "إضافة رابط في القائمة الجانبية"),
-        ]
-        steps = [
-            "1. أنشئ `control_panel/routers/new_router.py` مع `@router.get('/{page}')`",
-            "2. أنشئ `control_panel/templates/new_page.html` يرث من `base.html`",
-            "3. سجّل الراوتر في `control_panel/app.py` بـ `app.include_router()`",
-            "4. أضف الرابط في القائمة الجانبية ضمن `base.html`",
-        ]
-        risk = "low"
-    else:
-        kind = "Feature / Module"
-        files_to_create = [
-            ("services/new_feature.py", "service", "منطق الميزة الجديدة"),
-            ("handlers/new_feature_handler.py", "handler", "استقبال الطلبات"),
-        ]
-        steps = [
-            "1. حدد المتطلبات الكاملة للميزة",
-            "2. أنشئ طبقة الخدمة في `services/`",
-            "3. أنشئ الهاندلر أو الراوتر في `handlers/` أو `routers/`",
-            "4. سجّل المكون الجديد في نقطة الدخول المناسبة",
-        ]
-        risk = "low"
-
-    lines = [
-        f"🚀 **طلب إنشاء: {kind}**\n",
-        f"🔎 **تحليل الطلب:** `{msg}`\n",
-        "**📂 الملفات المطلوبة:**",
-    ]
-    for path, role, why in files_to_create:
-        lines.append(f"  • `{path}` [{role.upper()}] — {why}")
-    lines.append(f"\n**🎯 مستوى التعقيد:** {risk.upper()}")
-    lines.append("\n**📋 خطوات التنفيذ:**")
-    lines.extend(steps)
-    lines.append("\n💡 **اسأل عن أي خطوة للحصول على تفاصيل أعمق.**")
-
-    AIMemoryLayer.record_decision(f"Feature plan generated: {kind}", msg)
-
-    return {
-        "text": "\n".join(lines),
-        "data": {"kind": kind, "files": files_to_create, "steps": steps, "risk": risk},
-    }
+    return ProjectIntelligenceAgent.run(msg)
 
 
 def _r_ui_redesign(msg: str) -> dict:
-    """Handler for 'redesign homepage', 'revamp sidebar', etc."""
+    """
+    Project Intelligence Mode — 5-step protocol.
+    Scan → Understand → Impact → Plan → Execute.
+    Never generic. Always uses actual project structure.
+    """
     update_stats("total_plans")
-    ml = msg.lower()
-
-    # Detect target of redesign
-    target = "غير محدد"
-    route_info = _route_for_concept(msg)
-    concept_hits = _find_concept(msg)
-
-    if re.search(r"homepage|dashboard|الرئيسية|لوحة التحكم", ml):
-        target = "الصفحة الرئيسية (Dashboard)"
-    elif re.search(r"sidebar|القائمة الجانبية", ml):
-        target = "القائمة الجانبية (Sidebar)"
-    elif re.search(r"login|تسجيل الدخول|الدخول", ml):
-        target = "صفحة تسجيل الدخول"
-    elif concept_hits:
-        target = concept_hits[0][2]
-
-    lines = [
-        f"🎨 **طلب إعادة تصميم: {target}**\n",
-        "**📂 الملفات المطلوبة للتعديل:**",
-    ]
-
-    if route_info:
-        lines.append(f"  🎨 **Template:** `{route_info.get('template', '—')}` — الواجهة الرئيسية للصفحة")
-        for c in route_info.get("css", []):
-            lines.append(f"  🎨 **CSS:** `{c}` — الألوان، المساحات، التخطيط")
-        lines.append(f"  ⚙️ **Router:** `{route_info.get('router', '—')}` — بيانات الصفحة")
-    else:
-        lines.append("  🎨 `control_panel/static/css/style.css` — الألوان والتخطيط العام")
-        lines.append("  🎨 `control_panel/templates/base.html` — القائمة الجانبية والهيكل")
-        if concept_hits:
-            for path, role, desc in concept_hits[:3]:
-                lines.append(f"  📄 `{path}` [{role}] — {desc}")
-
-    lines += [
-        "\n**📋 خطوات إعادة التصميم:**",
-        "  1. خذ نسخة احتياطية أولاً: **أنشئ نسخة احتياطية**",
-        "  2. عدّل ملف `template.html` للبنية HTML",
-        "  3. عدّل `style.css` للألوان والمساحات والخطوط",
-        "  4. اختبر على شاشات مختلفة",
-        "\n🔄 **استراتيجية الاسترجاع:** نسخة احتياطية قبل أي تعديل",
-        "💡 **اسأل:** `ما الملفات المسؤولة عن [اسم الصفحة]؟` للتفاصيل الكاملة.",
-    ]
-
-    return {
-        "text": "\n".join(lines),
-        "data": {"target": target, "route_info": route_info, "files": concept_hits},
-    }
+    return ProjectIntelligenceAgent.run(msg)
 
 
 def _r_debug_fix(msg: str) -> dict:
-    """Handler for 'fix broken button', 'fix error in X', 'investigate broken Y'."""
+    """
+    Project Intelligence Mode — 5-step protocol.
+    Scan → Understand → Impact → Plan → Execute.
+    Never generic. Always uses actual project structure.
+    """
     update_stats("total_scans")
-    ml = msg.lower()
-
-    # Detect what needs fixing
-    target_file = None
-    concept_hits = _find_concept(msg)
-    route_info   = _route_for_concept(msg)
-
-    problem_type = "عام"
-    if re.search(r"button|زر|btn", ml):
-        problem_type = "زر / عنصر واجهة"
-        target_file  = "control_panel/static/js/app.js (JavaScript handler)"
-    elif re.search(r"page|صفحة", ml):
-        problem_type = "صفحة"
-    elif re.search(r"error|خطأ|exception", ml):
-        problem_type = "خطأ في الكود"
-    elif re.search(r"crash|انهيار|توقف", ml):
-        problem_type = "انهيار / توقف"
-    elif re.search(r"link|رابط", ml):
-        problem_type = "رابط / مسار"
-
-    # Run live error scan
-    live_errors = detect_log_errors()[:5]
-    live_issues = detect_code_issues()[:3]
-
-    lines = [
-        f"🔧 **تشخيص: {problem_type}**\n",
-        f"📝 **الطلب:** `{msg}`\n",
-    ]
-
-    if route_info:
-        lines += [
-            "**📂 الملفات المحتملة للمشكلة:**",
-            f"  🎨 `{route_info.get('template', '—')}` — تحقق من HTML / القوالب",
-            f"  ⚙️ `{route_info.get('router', '—')}` — تحقق من المسارات والمنطق",
-        ]
-        for c in route_info.get("css", []):
-            lines.append(f"  🎨 `{c}` — تحقق من CSS إذا كان مشكلة تصميم")
-    elif concept_hits:
-        lines.append("**📂 الملفات المرتبطة:**")
-        for path, role, desc in concept_hits[:3]:
-            lines.append(f"  • `{path}` [{role}] — {desc}")
-    elif target_file:
-        lines.append(f"**📂 الملف الأرجح:** `{target_file}`")
-
-    if live_errors:
-        lines.append("\n**⚠️ أخطاء حديثة في السجلات:**")
-        for e in live_errors[:3]:
-            lines.append(f"  🔴 `{e.get('file', '?')}` — {e.get('line', '')[:80]}")
-
-    if live_issues:
-        lines.append("\n**🔍 مشاكل في الكود:**")
-        for i in live_issues[:3]:
-            lines.append(f"  ⚠️ `{i.get('file', '?')}` [{i.get('type', '')}]")
-
-    lines += [
-        "\n**🛠️ خطوات التشخيص:**",
-        "  1. افحص ملف السجلات: `السجلات الأخيرة`",
-        "  2. تحقق من وحدة تحكم المتصفح للأخطاء",
-        "  3. اقرأ الملف المحدد واستخدم `أين الخطأ في [اسم الملف]`",
-        "  4. بعد الإصلاح: اختبر الوظيفة مباشرة",
-    ]
-
-    return {
-        "text": "\n".join(lines),
-        "data": {"problem_type": problem_type, "live_errors": live_errors, "files": concept_hits},
-    }
+    return ProjectIntelligenceAgent.run(msg)
 
 
 def _r_new_page(msg: str) -> dict:
-    """Handler for 'create new page', 'add new screen', etc."""
+    """
+    Project Intelligence Mode — 5-step protocol.
+    Scan → Understand → Impact → Plan → Execute.
+    Never generic. Always uses actual project structure.
+    """
     update_stats("total_plans")
-
-    page_name = "new_page"
-    m = re.search(r"(?:called?|named?|for|about|لـ?|باسم)\s+[\"']?(\w+)[\"']?", msg, re.IGNORECASE)
-    if m:
-        page_name = m.group(1)
-
-    lines = [
-        f"📄 **إنشاء صفحة جديدة: `{page_name}`**\n",
-        "**📂 الملفات التي يجب إنشاؤها:**",
-        f"  ⚙️ `control_panel/routers/{page_name}.py` [ROUTER] — نقاط نهاية الصفحة",
-        f"  🎨 `control_panel/templates/{page_name}.html` [TEMPLATE] — واجهة الصفحة",
-        "\n**📂 الملفات التي يجب تعديلها:**",
-        "  🔧 `control_panel/app.py` [ENTRYPOINT] — تسجيل الراوتر الجديد",
-        "  🎨 `control_panel/templates/base.html` [NAVIGATION] — إضافة رابط في القائمة الجانبية",
-        "\n**📋 خطوات التنفيذ:**",
-        f"  1. أنشئ `control_panel/routers/{page_name}.py`:",
-        "     ```python",
-        "     from fastapi import APIRouter, Depends, Request",
-        "     from fastapi.responses import HTMLResponse",
-        "     from fastapi.templating import Jinja2Templates",
-        "     from ..auth import require_owner",
-        "     router = APIRouter()",
-        f"     @router.get('/{page_name}', response_class=HTMLResponse)",
-        f"     async def {page_name}_page(request: Request, session=Depends(require_owner)):",
-        f"         return templates.TemplateResponse(request, '{page_name}.html', {{}})",
-        "     ```",
-        f"  2. أنشئ `control_panel/templates/{page_name}.html` يرث من `base.html`",
-        "  3. في `control_panel/app.py` أضف:",
-        f"     `from control_panel.routers import {page_name}`",
-        f"     `app.include_router({page_name}.router, prefix='/panel')`",
-        "  4. في `base.html` أضف في القائمة الجانبية:",
-        f"     `<a href='/panel/{page_name}' class='nav-link'>📄 {page_name}</a>`",
-        "\n🔄 **استراتيجية الاسترجاع:** احذف الملفات الجديدة وأعِد السطور في app.py و base.html",
-    ]
-
-    AIMemoryLayer.record_decision(f"New page plan generated: {page_name}", msg)
-
-    return {
-        "text": "\n".join(lines),
-        "data": {
-            "page_name": page_name,
-            "files_to_create": [
-                f"control_panel/routers/{page_name}.py",
-                f"control_panel/templates/{page_name}.html",
-            ],
-            "files_to_modify": ["control_panel/app.py", "control_panel/templates/base.html"],
-        },
-    }
+    return ProjectIntelligenceAgent.run(msg)
 
 
 def _r_find_file(msg: str) -> dict:
