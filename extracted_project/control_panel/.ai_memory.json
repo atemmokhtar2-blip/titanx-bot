@@ -110,36 +110,6 @@
   "chat_history": [
     {
       "role": "user",
-      "text": "ما وظيفتك",
-      "ts": "2026-06-19T18:03:33.120541"
-    },
-    {
-      "role": "assistant",
-      "text": "🧠 **أنا X AI Operator — المرحلة 3**\n\n**ما أنا؟**\nمحرك ذكاء اصطناعي متخصص مدمج في **X Control Center v5.0**.\nلا أبحث في الملفات لأي سؤال — أفكر أولاً، أفهم السياق، ثم أجيب.\n\n**وضعان للعمل:**\n  💬 **وضع المحادثة** — أسئلة تقنية عامة: Python، FastAPI، SQL، مقارنات\n  🔍 **وضع المشروع** — ملفات، مسارات، إنشاء ميزات، تشخيص أخطاء\n\n**مكوناتي (المرحلة 3):**\n  🧠 **Reasoning Engine** — أصنّف كل رسالة قبل أي بحث\n  💾 **AI Memory Layer** — أتذكر سياق المحادثة (3 دورة)\n  📋 **AI Planner** — أخطط قبل التنفيذ مع تح",
-      "ts": "2026-06-19T18:03:33.120541"
-    },
-    {
-      "role": "user",
-      "text": "هل المشروع آمن؟",
-      "ts": "2026-06-19T18:03:33.248286"
-    },
-    {
-      "role": "assistant",
-      "text": "🔐 **8 ملاحظات أمنية:**\n\n• `control_panel/ai_engine.py` — النمط: `eval(`\n• `control_panel/ai_engine.py` — النمط: `exec(`\n• `control_panel/ai_engine.py` — النمط: `subprocess.call(`\n• `control_panel/ai_engine.py` — النمط: `os.system(`\n• `control_panel/ai_engine.py` — النمط: `pickle.load`\n• `control_panel/ai_engine.py` — النمط: `yaml.load(`\n• `control_panel/ai_engine.py` — النمط: `__import__`\n• `control_panel/routers/ai_workspace.py` — النمط: `os.system(`",
-      "ts": "2026-06-19T18:03:33.248286"
-    },
-    {
-      "role": "user",
-      "text": "ما أكبر نقطة ضعف بالمشروع؟",
-      "ts": "2026-06-19T18:03:33.974901"
-    },
-    {
-      "role": "assistant",
-      "text": "🔍 **تحليل نقاط الضعف الرئيسية في المشروع**\n\n**1. نقطة فشل واحدة — `config/settings.py`**\n   🔴 الخطر: CRITICAL — 33 ملف يستورد config/settings.py مباشرة — أي خطأ syntax فيه يوقف البوتات واللوحة كلها. لا يوجد fallback.\n\n**2. لا يوجد نظام اختبار تلقائي (Unit Tests)**\n   🟠 الخطر: HIGH — أي تعديل على الكود قد يكسر ميزة موجودة دون أي تحذير. يجب إضافة pytest.\n\n**3. مخاوف أمنية — 8 نمط مكتشف**\n   🟡 الخطر: MEDIUM — مثال: النمط `eval(` في `control_panel/ai_engine.py`\n\n**4. أخطاء في السجلات — 8 خطأ نشط**\n ",
-      "ts": "2026-06-19T18:03:33.974901"
-    },
-    {
-      "role": "user",
       "text": "كيف تطور المشروع",
       "ts": "2026-06-19T18:03:34.557545"
     },
@@ -357,6 +327,36 @@
       "role": "assistant",
       "text": "🔬 **تحليل المشروع الكامل**\n\n📁 إجمالي الملفات: 145\n🌐 المسارات المعروفة: 20\n🧠 المفاهيم الدلالية: 68\n🎨 القوالب: 20\n⚙️ الـ Routers: 15\n🤖 المعالجات: 39\n🗄️ نماذج DB: 17\n\n⚠️ 4 أخطاء في السجلات\n🔧 10 مشاكل في الكود\n\n─────────────────────────────────────\n📁 **أدلة الفحص المباشر (Scan Evidence):**\n  • `control_panel/templates/dashboard.html`\n  • `control_panel/routers/dashboard.py`\n⚠️ مستوى المخاطرة: **MEDIUM**",
       "ts": "2026-06-19T19:14:43.006879"
+    },
+    {
+      "role": "user",
+      "text": "احذف زر إدارة لوحة المفاتيح من البوت الرئيسي\n\nحلل أولاً\n\nولا تنفذ",
+      "ts": "2026-06-19T19:29:46.927339"
+    },
+    {
+      "role": "assistant",
+      "text": "🔬 **تحليل المشروع الكامل**\n\n📁 إجمالي الملفات: 145\n🌐 المسارات المعروفة: 20\n🧠 المفاهيم الدلالية: 68\n🎨 القوالب: 20\n⚙️ الـ Routers: 15\n🤖 المعالجات: 39\n🗄️ نماذج DB: 17\n\n⚠️ 4 أخطاء في السجلات\n🔧 10 مشاكل في الكود\n\n─────────────────────────────────────\n📁 **أدلة الفحص المباشر (Scan Evidence):**\n  • `control_panel/templates/dashboard.html`\n  • `control_panel/routers/dashboard.py`\n⚠️ مستوى المخاطرة: **MEDIUM**",
+      "ts": "2026-06-19T19:29:46.927339"
+    },
+    {
+      "role": "user",
+      "text": "احذف زر إدارة لوحة المفاتيح من البوت الرئيسي\n\nحلل أولاً",
+      "ts": "2026-06-19T19:30:15.736261"
+    },
+    {
+      "role": "assistant",
+      "text": "🔬 **تحليل المشروع الكامل**\n\n📁 إجمالي الملفات: 145\n🌐 المسارات المعروفة: 20\n🧠 المفاهيم الدلالية: 68\n🎨 القوالب: 20\n⚙️ الـ Routers: 15\n🤖 المعالجات: 39\n🗄️ نماذج DB: 17\n\n⚠️ 4 أخطاء في السجلات\n🔧 10 مشاكل في الكود\n\n─────────────────────────────────────\n📁 **أدلة الفحص المباشر (Scan Evidence):**\n  • `control_panel/templates/dashboard.html`\n  • `control_panel/routers/dashboard.py`\n⚠️ مستوى المخاطرة: **MEDIUM**",
+      "ts": "2026-06-19T19:30:15.736261"
+    },
+    {
+      "role": "user",
+      "text": "احذف زر إدارة لوحة المفاتيح من البوت الرئيسي",
+      "ts": "2026-06-19T19:30:30.738673"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **X AI Operator** · X Control Center\n\nلم أستطع تحديد نوع طلبك بدقة كافية.\n\n**أعد الصياغة بإحدى هذه الطرق:**\n  • **سؤال تقني** — \"اشرح FastAPI\" · \"الفرق بين Python و JavaScript\"\n  • **تحليل تأثير** — \"لو عدلت style.css ماذا سيحدث؟\"\n  • **إنشاء ميزة** — \"كيف أضيف بوت إشعارات؟\"\n  • **تقييم المشروع** — \"هل بنية المشروع جيدة؟\"\n  • **إصلاح مشكلة** — \"إصلاح خطأ في صفحة الإعدادات\"",
+      "ts": "2026-06-19T19:30:30.738673"
     }
   ],
   "analysis_cache": {},
@@ -367,7 +367,7 @@
     "errors_found": 57,
     "last_scan": null
   },
-  "updated": "2026-06-19T19:14:43.006879",
+  "updated": "2026-06-19T19:30:30.738673",
   "project": {
     "name": "X Control Center",
     "main_bot": "PrimeDownloader Bot (bot.py)",
@@ -382,10 +382,10 @@
     ]
   },
   "stats": {
-    "total_scans": 72,
+    "total_scans": 74,
     "total_plans": 14,
     "total_questions": 8,
-    "total_chats": 363
+    "total_chats": 366
   },
   "created": "2026-06-19T09:05:02.173299",
   "decisions": [],

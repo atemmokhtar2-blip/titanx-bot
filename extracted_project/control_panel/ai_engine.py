@@ -3139,7 +3139,9 @@ INTENTS: dict = {
         r"add\b.{0,30}(bot|notification|command|feature|handler|service)",
         r"implement\b.{0,40}(bot|feature|system|module)",
         r"develop\b.{0,30}(bot|feature|system)",
-        r"أنشئ\b", r"اصنع", r"أضف.*بوت", r"بناء.*بوت", r"طور.*ميزة",
+        r"أنشئ\b", r"اصنع",
+        r"أضف\s+(?:بوت|bot)\b",   # bot IS the thing being added, not the destination
+        r"بناء.*(?:بوت|bot)", r"طور.*ميزة",
     ],
     "ui_redesign": [
         r"redesign\b", r"revamp\b", r"إعادة\s*تصميم",
@@ -3336,7 +3338,9 @@ def detect_intent(msg: str) -> str:
         r"add\b.{0,30}(bot|notification|command|feature|handler|service)",
         r"implement\b.{0,40}(bot|feature|system|module)",
         r"develop\b.{0,30}(bot|feature|system)",
-        r"أنشئ\b", r"اصنع", r"أضف.*بوت", r"بناء.*بوت",
+        r"أنشئ\b", r"اصنع",
+        r"أضف\s+(?:بوت|bot)\b",   # "أضف بوت X" — bot IS the thing being added
+        r"بناء.*بوت", r"بناء.*bot",
     ]
     if any(re.search(p, ml) for p in _P0_CREATE):
         return "create_feature"
@@ -3499,6 +3503,80 @@ def detect_intent(msg: str) -> str:
             scores[intent] = score
     if scores:
         return max(scores, key=lambda k: scores[k])
+
+    # ── PROJECT MODIFICATION GATE ─────────────────────────────────────────────
+    # Catches short imperative Arabic commands that score 0 on every keyword list
+    # above because they carry no tech-explainer or comparison signal — yet are
+    # unambiguously project modification requests.
+    #
+    # Pattern: modification verb + project component noun → "project_mod"
+    #
+    # Examples caught here (were previously falling to "general"):
+    #   احذف زر / أضف زر / انقل زر / غير نص / احذف قائمة / عدل رسالة
+    #   غير أمر / أزل صفحة / أضف صفحة / أوقف ميزة / فعل ميزة
+    #   احذف زر إدارة لوحة الإدارة من البوت الرئيسي
+    #   أضف قائمة inline للبوت / غير نص رسالة الترحيب
+    _MOD_VERB_RE = re.compile(
+        r'\b(?:احذف|أحذف|احزف|أزل|أزيل|انقل|أنقل|'
+        r'غيّر|غير|عدّل|عدل|أضف|اضف|أضيف|'
+        r'أوقف|اوقف|وقف|فعّل|فعل|فعّلي|'
+        r'أخفِ|أخفي|خبّي|أظهر|اظهر|'
+        r'بدّل|بدل|عطّل|عطل|امسح|احجب|'
+        r'ألغِ|الغِ|أنشئ|أنشي|أرسل|'
+        r'حذف|إضافة|إزالة|تغيير|تعديل|نقل|'
+        r'إيقاف|تفعيل|إخفاء|تبديل|إظهار|'
+        r'ربط|أربط|اربط|فصل|أفصل|'
+        r'أعد|اعد|أعيد|أعدل|أرتّب|رتّب)\b',
+        re.IGNORECASE
+    )
+    # NOTE: No \b word-boundary wrapper — Arabic prefixes (لل/ال/من) prevent \b
+    # from matching mid-word Arabic text (e.g. "للزر", "الرسالة", "من البوت").
+    # underscore tokens (callback_data, inline_keyboard) also break \b.
+    # These terms are distinctive enough that no word boundary is needed.
+    _MOD_TARGET_RE = re.compile(
+        r'(?:'
+        # UI elements
+        r'زر|أزرار|زرار|زرّ|'
+        r'قائمة|قوائم|منيو|'
+        r'لوحة\s*(?:مفاتيح|المفاتيح)|كيبورد|keyboard|inline_keyboard|reply_markup|'
+        r'نافذة|نوافذ|popup|modal|'
+        # Bot/Telegram elements — callback_data BEFORE callback to avoid partial match
+        r'أمر|أوامر|كوماند|command|'
+        r'handler|هاندلر|معالج|'
+        r'callback_data|callback|كولباك|'
+        r'رسالة|رسائل|message|'
+        r'إشعار|إشعارات|notification|'
+        r'بوت|بوتات|bot|'
+        r'ترحيب|welcome|'
+        # Pages / UI structure
+        r'صفحة|صفحات|page|'
+        r'واجهة|interface|'
+        r'قسم|أقسام|section|'
+        r'عنصر|عناصر|element|'
+        # Code / files
+        r'ملف|ملفات|file|'
+        r'router|روتر|مسار|route|endpoint|'
+        r'api|'
+        # Styling
+        r'css|html|style|تصميم|'
+        r'template|قالب|'
+        r'لون|ألوان|color|colour|'
+        # Feature / system
+        r'ميزة|ميزات|feature|'
+        r'خاصية|خصائص|وظيفة|وظائف|'
+        r'نظام|أنظمة|system|'
+        r'وحدة|وحدات|module|'
+        # Data
+        r'قاعدة\s*(?:البيانات|بيانات)|database|'
+        r'إعداد|إعدادات|setting|config|'
+        # Text / links
+        r'نص|نصوص|text|label|عنوان|عناوين|'
+        r'رابط|روابط|link'
+        r')',
+        re.IGNORECASE
+    )
+    if _MOD_VERB_RE.search(ml) and _MOD_TARGET_RE.search(ml):
+        return "project_mod"
 
     # ── Semantic reasoning — broad Arabic / mixed patterns ────────────────────
     # These catch well-formed questions that score 0 on keyword lists but have
@@ -4902,6 +4980,8 @@ def process_chat(msg: str) -> dict:
         "improve", "weakness", "strategy", "scale", "tech_debt", "redesign",
         "errors", "create_feature", "ui_redesign", "debug_fix", "new_page",
         "routes", "structure", "runtime_graph",
+        # Project modification intent — catches imperative Arabic commands
+        "project_mod",
     }
     if intent in _PROJECT_INTENTS:
         try:
@@ -4933,6 +5013,7 @@ def process_chat(msg: str) -> dict:
         "ui_redesign":    lambda: _r_ui_redesign(msg),
         "debug_fix":      lambda: _r_debug_fix(msg),
         "new_page":       lambda: _r_new_page(msg),
+        "project_mod":    lambda: _r_project_mod(msg),
         # ── Project knowledge ─────────────────────────────────────────────────
         "find_file":      lambda: _r_find_file(msg),
         "plan_modify":    lambda: _r_plan(msg),
@@ -6482,6 +6563,36 @@ def _r_reuse_systems(msg: str) -> dict:
     )
 
     return {"text": "\n".join(lines), "data": {"reusable_count": len(reusable)}}
+
+
+def _r_project_mod(msg: str) -> dict:
+    """
+    PROJECT MODIFICATION MODE — activated by any imperative modification command
+    that targets a project component (button, menu, command, page, feature, etc.).
+
+    The 7-step intelligence protocol is applied automatically because this intent
+    is registered in _PROJECT_INTENTS, which means AgentReasoningChain.execute()
+    runs BEFORE this handler is called (scan evidence is in _ACTIVE_CHAIN).
+
+    This handler then routes to AgentPlanningGate.submit() which runs the full
+    5-step ProjectIntelligenceAgent protocol:
+      Step 1: Scan  — live filesystem scan for related files
+      Step 2: Understand — classify operation type + extract entities
+      Step 3: Impact  — dependency graph + transitive risk
+      Step 4: Plan    — real file list + ordered steps + rollback
+      Step 5: Gate    — await explicit user approval before any execution
+
+    Telegram-specific requests (buttons, keyboards, commands, callbacks, messages)
+    are automatically detected by the scan phase which prioritizes:
+      bot.py, handlers/, keyboards/, reply_markup patterns, callback_data patterns
+
+    UI/CSS requests prioritize:
+      templates/, static/css/style.css, static/js/app.js
+
+    Page/router requests prioritize:
+      control_panel/routers/, control_panel/templates/
+    """
+    return AgentPlanningGate.submit(msg)
 
 
 def _r_general(msg: str) -> dict:
