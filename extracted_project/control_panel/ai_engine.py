@@ -1479,6 +1479,18 @@ def detect_intent(msg: str) -> str:
     if any(re.search(p, ml) for p in _HF_P):
         return "hf_query"
 
+    # ── Priority -0·5: Conditional override — "لو X ماذا سيتأثر؟" ─────────────
+    # The conditional opener ("لو"/"إذا") signals reasoning, not action.
+    # Must come BEFORE _P0_CREATE so "لو أضفت بوت" → impact, not create_feature.
+    _COND_OVERRIDE = [
+        r"^لو\s+(?:أضفت|حذفت|عدلت|غيرت|بنيت|أنشأت|دمجت|أزلت)",
+        r"^إذا\s+(?:أضفت|حذفت|عدلت|غيرت|بنيت|أنشأت|أزلت)",
+        r"(?:لو|إذا).{0,40}ماذا\s+(?:سيتأثر|سيحدث|سيتغير|سيتعطل|ينكسر|سيُكسر)",
+        r"(?:if|suppose).{0,20}(?:add|delete|remove|change|modify).{0,30}(?:what|which).{0,20}(?:affected|breaks?|happens?)",
+    ]
+    if any(re.search(p, ml) for p in _COND_OVERRIDE):
+        return "impact"
+
     # ── Priority 0: Action intents (must beat file-finding patterns) ──────────
     # "Create notification bot" → create_feature
     _P0_CREATE = [
@@ -1566,7 +1578,19 @@ def detect_intent(msg: str) -> str:
     if re.search(r"اختبر نفسك|self.?test|test yourself", ml):
         return "self_test"
 
-    # ── Priority 2·5: Architecture quality (before scored match steals "بنية") ─
+    # ── Priority 2·5: Weakness / vulnerability / risk ────────────────────────
+    # "ما أكبر نقطة ضعف بالمشروع؟" / "biggest risk in the system?"
+    _WEAKNESS_Q = [
+        r"(?:أكبر|أشد|أخطر|أهم).{0,20}(?:نقطة\s+ضعف|مشكلة|ثغرة|خطر|تحدي)",
+        r"(?:نقطة|نقاط)\s+(?:ضعف|ضعيفة).{0,20}(?:بالمشروع|في\s+المشروع|المشروع)?",
+        r"أين\s+(?:الضعف|المشكلة\s+الكبرى|الثغرة|الخطر)",
+        r"(?:biggest|main|major|worst).{0,15}(?:weakness|problem|risk|vulnerability|flaw)",
+        r"what.{0,15}(?:risk|weak|vulnerable|fragile).{0,15}(?:project|system|app)",
+    ]
+    if any(re.search(p, ml) for p in _WEAKNESS_Q):
+        return "weakness"
+
+    # ── Priority 2·6: Architecture quality (before scored match steals "بنية") ─
     # "هل بنية المشروع جيدة؟" / "is the project structure good?"
     _ARCH_Q = [
         r"هل.{0,10}(?:بنية|هيكل)\s+المشروع",
@@ -2766,6 +2790,7 @@ def process_chat(msg: str) -> dict:
         "backup":         lambda: _r_backup_info(),
         "restore":        lambda: _r_restore_info(),
         "self_test":      lambda: _r_self_test(),
+        "weakness":       lambda: _r_weakness(msg),
         "help":           lambda: _r_help(),
         "general":        lambda: _r_general(msg),
     }
@@ -3331,16 +3356,118 @@ def _r_dependency(msg: str) -> dict:
 
 
 def _r_impact(msg: str) -> dict:
+    """
+    Reasoning-first impact analysis.
+    1. Try to find a specific file/concept the user mentioned → file-level analysis.
+    2. If no specific file, reason semantically about what the operation affects.
+    """
+    ml = msg.lower()
+
+    # ── Semantic operation detection ─────────────────────────────────────────
+    _ADD_BOT  = re.search(r"(?:أضفت|بنيت|أنشأت|دمجت).{0,20}(?:بوت|bot)|add.{0,20}bot", ml)
+    _ADD_FEAT = re.search(r"(?:أضفت|بنيت|أنشأت).{0,20}(?:ميزة|نظام|feature|service)", ml)
+    _DEL_DB   = re.search(r"(?:حذفت|عدلت|غيرت).{0,20}(?:قاعدة\s*البيانات|database|db\.py)", ml)
+    _DEL_CSS  = re.search(r"(?:حذفت|عدلت|غيرت).{0,20}(?:style\.css|css)", ml)
+    _DEL_BOT  = re.search(r"(?:حذفت|أزلت|عدلت).{0,20}(?:بوت|bot\.py)", ml)
+
+    # ── Case 1: Adding a new bot ──────────────────────────────────────────────
+    if _ADD_BOT:
+        return {
+            "text": (
+                "💥 **تحليل تأثير: إضافة بوت جديد**\n\n"
+                "🚨 **مستوى الخطر:** HIGH — تعديلات متعددة في البنية الأساسية\n\n"
+                "**الملفات المتأثرة:**\n"
+                "  🔴 `scripts/start.sh` — يجب إضافة أمر تشغيل البوت الجديد\n"
+                "  🔴 `config/settings.py` — TOKEN جديد + ADMIN_IDS\n"
+                "  🔠 `control_panel/app.py` — راوتر مراقبة اختياري\n"
+                "  🟠 `control_panel/templates/base.html` — رابط في الشريط الجانبي\n\n"
+                "**المخاطر:**\n"
+                "  • تعارض البوتات على نفس الـ webhook إذا شاركوا TOKEN\n"
+                "  • كل بوت يحتاج workflow مستقل في Replit\n"
+                "  • قاعدة البيانات المشتركة قد تسبب تعارضات في الجداول\n\n"
+                "**الخطوات الآمنة:**\n"
+                "  1. أنشئ `new_bot/bot.py` مستقلاً عن `bot.py`\n"
+                "  2. أضف TOKEN مختلف في Secrets\n"
+                "  3. سجّل workflow جديد\n"
+                "  4. لا تلمس `database/db.py` — أضف جداول جديدة فقط"
+            ),
+            "data": {"operation": "add_bot", "risk": "high"},
+        }
+
+    # ── Case 2: Adding a feature/service ─────────────────────────────────────
+    if _ADD_FEAT:
+        return {
+            "text": (
+                "💥 **تحليل تأثير: إضافة ميزة جديدة**\n\n"
+                "🚨 **مستوى الخطر:** MEDIUM\n\n"
+                "**المتأثرات الأساسية:**\n"
+                "  🟠 `control_panel/app.py` — تسجيل الراوتر الجديد\n"
+                "  🟠 `control_panel/templates/base.html` — إضافة رابط في القائمة\n"
+                "  🟡 `database/db.py` — إذا احتاجت الميزة جدول جديد\n\n"
+                "**جوانب غير مباشرة:**\n"
+                "  • الـ CSS العام (`style.css`) يُطبَّق تلقائياً على الصفحة الجديدة\n"
+                "  • `auth.py` يحمي أي مسار يستخدم `require_owner`\n\n"
+                "**الخطر الأكبر:** تعديل `app.py` بشكل خاطئ يوقف اللوحة كلها."
+            ),
+            "data": {"operation": "add_feature", "risk": "medium"},
+        }
+
+    # ── Case 3: Database change ───────────────────────────────────────────────
+    if _DEL_DB:
+        return {
+            "text": (
+                "💥 **تحليل تأثير: تعديل قاعدة البيانات**\n\n"
+                "🔴 **مستوى الخطر:** CRITICAL\n\n"
+                "**المتأثرات المباشرة:**\n"
+                "  🔴 `bot.py` — لن يبدأ إذا فشلت `init_db()`\n"
+                "  🔴 `database/users.py` — 4 ملفات تعتمد عليه مباشرة\n"
+                "  🔴 `handlers/start.py`, `handlers/admin.py` — توقف كامل\n"
+                "  🔴 `control_panel/routers/users.py` — لوحة المستخدمين تتعطل\n\n"
+                "**تحذيرات:**\n"
+                "  ⚠️ أي تغيير في schema يتطلب migration — لا يوجد Alembic في المشروع حالياً\n"
+                "  ⚠️ البوتات تبدأ بـ `init_db()` — خطأ فيه = فشل كامل في الـ startup"
+            ),
+            "data": {"operation": "modify_db", "risk": "critical"},
+        }
+
+    # ── Case 4: CSS change ────────────────────────────────────────────────────
+    if _DEL_CSS:
+        entries = _find_concept(msg)
+        if not entries:
+            entries = [("control_panel/static/css/style.css", "CSS", "stylesheet")]
+        target = entries[0][0]
+        impact = analyze_file_impact(target)
+        lines  = [f"💥 **تأثير تغيير: `{target}`**\n",
+                  f"🚨 **مستوى الخطر:** {impact.get('risk', 'unknown').upper()}"]
+        for a in impact.get("affects", []):
+            lines.append(f"  ⚠️ {a}")
+        return {"text": "\n".join(lines), "data": impact}
+
+    # ── Default: try file concept then generic reasoning ──────────────────────
     entries = _find_concept(msg)
-    if not entries:
-        entries = [("unknown", "unknown", "—")]
-    target = entries[0][0]
-    impact = analyze_file_impact(target)
-    lines  = [f"💥 **تأثير تغيير: `{target}`**\n",
-              f"🚨 **مستوى الخطر:** {impact.get('risk', 'unknown').upper()}"]
-    for a in impact.get("affects", []):
-        lines.append(f"  ⚠️ {a}")
-    return {"text": "\n".join(lines), "data": impact}
+    if entries:
+        target = entries[0][0]
+        impact = analyze_file_impact(target)
+        lines  = [f"💥 **تأثير تغيير: `{target}`**\n",
+                  f"🚨 **مستوى الخطر:** {impact.get('risk', 'unknown').upper()}"]
+        for a in impact.get("affects", []):
+            lines.append(f"  ⚠️ {a}")
+        return {"text": "\n".join(lines), "data": impact}
+
+    # No concept found — generic project-level reasoning
+    return {
+        "text": (
+            "💥 **تحليل التأثير العام**\n\n"
+            "لم أتمكن من تحديد العنصر المحدد في سؤالك.\n\n"
+            "**المبدأ العام في هذا المشروع:**\n"
+            "  🔴 CRITICAL: `app.py`, `auth.py`, `base.html`, `style.css`, `bot.py`, `db.py`\n"
+            "  🟠 HIGH: `config.py`, `ai_engine.py`, `database/users.py`\n"
+            "  🟡 MEDIUM: Routers فردية، templates فردية\n"
+            "  🟢 LOW: Static assets، بيانات، سجلات\n\n"
+            "**أعد السؤال مع تحديد العنصر** — مثال: \"لو حذفت style.css ماذا سيحدث؟\""
+        ),
+        "data": {"operation": "unknown", "risk": "unknown"},
+    }
 
 
 def _r_root_cause(msg: str) -> dict:
@@ -3448,23 +3575,165 @@ def _r_security() -> dict:
     return {"text": "\n".join(lines), "data": {"issues": issues}}
 
 
+def _r_weakness(msg: str) -> dict:
+    """
+    Reason about the biggest weaknesses in the project.
+    Uses live analysis: security scan + log errors + structural assessment.
+    """
+    sec_issues = security_scan()
+    errors     = detect_log_errors()
+    analysis   = full_analysis()
+    s          = analysis.get("structure", {})
+
+    risk_icon = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢"}
+
+    weaknesses = []
+
+    # 1. Single point of failure: config.py
+    weaknesses.append({
+        "title": "نقطة فشل واحدة — `config.py`",
+        "risk": "HIGH",
+        "detail": "12 راوتر يستوردون config مباشرة — أي خطأ فيه يوقف اللوحة كلها. لا يوجد fallback.",
+    })
+
+    # 2. No automated tests
+    weaknesses.append({
+        "title": "لا يوجد نظام اختبار تلقائي (Unit Tests)",
+        "risk": "HIGH",
+        "detail": "أي تعديل على الكود قد يكسر ميزة موجودة دون أي تحذير. يجب إضافة pytest.",
+    })
+
+    # 3. Live security issues
+    if sec_issues:
+        ex = sec_issues[0]
+        weaknesses.append({
+            "title": f"مخاوف أمنية — {len(sec_issues)} نمط مكتشف",
+            "risk": "MEDIUM",
+            "detail": f"مثال: النمط `{ex['pattern']}` في `{ex['file']}`",
+        })
+
+    # 4. Log errors
+    if errors:
+        ex = errors[0]
+        weaknesses.append({
+            "title": f"أخطاء في السجلات — {len(errors)} خطأ نشط",
+            "risk": "MEDIUM",
+            "detail": f"`{ex['file']}`: {ex['line'][:90]}",
+        })
+
+    # 5. DB coupling
+    weaknesses.append({
+        "title": "ارتباط مباشر بقاعدة البيانات — لا يوجد Migration System",
+        "risk": "HIGH",
+        "detail": "لا يوجد Alembic أو أي نظام migration. أي تغيير في schema يتطلب تدخلاً يدوياً.",
+    })
+
+    # 6. Scalability: single process
+    weaknesses.append({
+        "title": "تشغيل بـ uvicorn عملية واحدة",
+        "risk": "LOW",
+        "detail": "لوحة التحكم تعمل بعملية uvicorn واحدة — لا يوجد load balancing لحركة مرور عالية.",
+    })
+
+    lines = ["🔍 **تحليل نقاط الضعف الرئيسية في المشروع**\n"]
+    for i, w in enumerate(weaknesses, 1):
+        icon = risk_icon.get(w["risk"], "⚪")
+        lines.append(f"**{i}. {w['title']}**")
+        lines.append(f"   {icon} الخطر: {w['risk']} — {w['detail']}\n")
+
+    lines.append("💡 **الأولوية:** ابدأ بالبنود 1 و2 و5 — أعلى تأثير بأقل تعقيد.")
+    return {"text": "\n".join(lines), "data": {"weaknesses": weaknesses, "sec_count": len(sec_issues), "err_count": len(errors)}}
+
+
 def _r_improve(msg: str) -> dict:
-    entries = _find_concept(msg)
+    """
+    Reasoning-based improvement suggestions.
+    If a specific component is mentioned → targeted advice.
+    If no component → run full analysis and suggest concrete priorities.
+    """
+    ml         = msg.lower()
+    entries    = _find_concept(msg)
     route_info = _route_for_concept(msg)
-    lines = ["💡 **اقتراحات التحسين**\n"]
+
+    # ── Specific component mentioned ──────────────────────────────────────────
     if route_info:
-        lines.append(f"للتحسين يجب تعديل:")
-        lines.append(f"• `{route_info['template']}` — HTML structure")
+        lines = ["💡 **تحسين مستهدف**\n", "الملفات المطلوبة للتعديل:"]
+        lines.append(f"• `{route_info['template']}` — HTML / layout")
         for c in route_info.get("css", []):
             lines.append(f"• `{c}` — Styling")
         for j in route_info.get("js", []):
             lines.append(f"• `{j}` — Interactivity")
-    elif entries:
+        return {"text": "\n".join(lines), "data": {"entries": entries}}
+
+    if entries:
+        lines = ["💡 **تحسين مستهدف**\n"]
         for path, role, desc in entries[:4]:
             lines.append(f"• `{path}` [{role}] — {desc}")
-    else:
-        lines.append("حدد الجزء الذي تريد تحسينه (homepage, sidebar, colors, users, bots...)")
-    return {"text": "\n".join(lines), "data": {"entries": entries}}
+        return {"text": "\n".join(lines), "data": {"entries": entries}}
+
+    # ── No specific component — reason about the whole project ───────────────
+    analysis  = full_analysis()
+    sec       = security_scan()
+    errors    = detect_log_errors()
+    s         = analysis.get("structure", {})
+
+    suggestions = []
+
+    # Priority 1: error reduction
+    if errors:
+        suggestions.append({
+            "priority": 1,
+            "title": f"إصلاح {len(errors)} خطأ في السجلات",
+            "impact": "HIGH",
+            "effort": "LOW",
+            "detail": f"خطأ مثال: `{errors[0]['file']}` — {errors[0]['line'][:70]}",
+        })
+
+    # Priority 2: test coverage
+    suggestions.append({
+        "priority": 2,
+        "title": "إضافة Unit Tests بـ pytest",
+        "impact": "HIGH",
+        "effort": "MEDIUM",
+        "detail": "يحمي التعديلات المستقبلية ويكتشف الأخطاء فور حدوثها.",
+    })
+
+    # Priority 3: security
+    if sec:
+        suggestions.append({
+            "priority": 3,
+            "title": f"معالجة {len(sec)} ملاحظة أمنية",
+            "impact": "MEDIUM",
+            "effort": "LOW",
+            "detail": f"مثال: `{sec[0]['file']}` — النمط `{sec[0]['pattern']}`",
+        })
+
+    # Priority 4: migration system
+    suggestions.append({
+        "priority": len(suggestions) + 1,
+        "title": "إضافة نظام Database Migration (Alembic)",
+        "impact": "HIGH",
+        "effort": "MEDIUM",
+        "detail": "يجعل تغييرات Schema آمنة وقابلة للتراجع.",
+    })
+
+    # Priority 5: caching
+    suggestions.append({
+        "priority": len(suggestions) + 1,
+        "title": "إضافة Caching للـ API endpoints الثقيلة",
+        "impact": "MEDIUM",
+        "effort": "LOW",
+        "detail": "تحليل المشروع وقراءة الملفات يمكن caching لمدة 5 دقائق.",
+    })
+
+    lines = ["💡 **أفضل تطويرات للمشروع — بالأولوية**\n"]
+    impact_icon = {"HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢"}
+    for s in suggestions:
+        lines.append(f"**{s['priority']}. {s['title']}**")
+        lines.append(f"   {impact_icon.get(s['impact'], '⚪')} التأثير: {s['impact']} | الجهد: {s['effort']}")
+        lines.append(f"   {s['detail']}\n")
+
+    return {"text": "\n".join(lines), "data": {"suggestions": suggestions}}
 
 
 def _r_memory() -> dict:
