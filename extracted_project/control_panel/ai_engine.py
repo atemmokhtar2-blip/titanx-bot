@@ -130,7 +130,7 @@ class ReasoningEngine:
     _COMPARE = re.compile(
         r"\b(?:difference\s+between|compare|vs\b|versus|contrast|"
         r"better\s+than|pros\s+and\s+cons|advantages|disadvantages|"
-        r"when\s+to\s+use|الفرق\s+بين|مقارنة|مقابل|أيهما|أفضل\s+من)\b",
+        r"when\s+to\s+use|الفرق\s+بين|فرق\s+بين|مقارنة|مقابل|أيهما|أفضل\s+من)\b",
         re.IGNORECASE,
     )
 
@@ -1434,10 +1434,11 @@ def detect_intent(msg: str) -> str:
     # ①  Comparison / reasoning (catches "difference between X and Y" before action patterns)
     _COMPARE_P = [
         r"difference between", r"\bcompare\b.{0,25}\band\b", r"\bvs\b", r"\bversus\b",
-        r"الفرق بين", r"\bcontrast\b", r"compare.{0,20}and", r"between.{0,30}and",
+        r"الفرق\s+بين", r"فرق\s+بين", r"\bcontrast\b", r"compare.{0,20}and",
+        r"between.{0,30}and",
     ]
     if any(re.search(p, ml) for p in _COMPARE_P):
-        return "general"
+        return "conversation"
 
     # ①·⁵  Social / wellbeing — "How are you?", "What's up?", etc. → greeting
     _SOCIAL_P = [
