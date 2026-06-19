@@ -27,71 +27,84 @@ HELP_TEXT = (
     "💡 <i>أرسل أمرك الآن…</i>"
 )
 
-# Intent patterns: (compiled_regex, action_key, description)
+
+def _normalize_ar(text: str) -> str:
+    """Normalize Arabic text: hamza variants → ا, remove tatweel and diacritics."""
+    text = re.sub(r'[أإآٱ]', 'ا', text)
+    text = re.sub(r'ى(?=\s|$)', 'ي', text)
+    text = re.sub(r'[ـ]', '', text)
+    text = re.sub(r'[\u064B-\u065F\u0670]', '', text)
+    return text
+
+
+# Intent patterns are matched against NORMALIZED text (applied at runtime)
+# so hamza/tatweel/diacritic variants all resolve to the canonical form here.
 INTENTS = [
-    # Backup
-    (re.compile(r"(نسخة احتياطية|نسخ احتياطي|backup|احتياط)", re.I),
+    # Backup — create
+    (r"(نسخة احتياطية|نسخ احتياطي|backup|احتياط|نسخ|خذ نسخة)",
      "dv_bkp_create", "إنشاء نسخة احتياطية"),
 
     # Health check
-    (re.compile(r"(افحص|فحص|health|سلامة|صحة المشروع|فحص المشروع)", re.I),
+    (r"(افحص|فحص|health|سلامة|صحة المشروع|فحص المشروع|فحص النظام|تحقق|اختبر)",
      "dv_health", "فحص المشروع"),
 
     # Monitor / stats
-    (re.compile(r"(مستخدم|إحصاء|إحصائيات|مراقبة|monitor|تقرير النظام|عدد)", re.I),
+    (r"(مستخدم|احصاء|احصائيات|مراقبة|monitor|تقرير النظام|عدد|كم مستخدم|اعرض الاحصاء)",
      "dv_monitor", "مراقبة النظام"),
 
     # Restart all
-    (re.compile(r"(جميع البوتات|كل البوتات|restart all|أعد تشغيل الكل)", re.I),
+    (r"(جميع البوتات|كل البوتات|restart all|اعد تشغيل الكل|تشغيل الكل)",
      "dv_svc_restart_all_confirm", "إعادة تشغيل جميع البوتات"),
 
-    # Restart main
-    (re.compile(r"(البوت الأساسي|الرئيسي|main bot)", re.I),
+    # Restart main bot
+    (r"(البوت الاساسي|الرئيسي|main bot|بوت الرئيسي)",
      "dv_svc_restart_main_confirm", "إعادة تشغيل البوت الأساسي"),
 
-    # Restart support
-    (re.compile(r"(بوت الدعم|support bot)", re.I),
+    # Restart support bot
+    (r"(بوت الدعم|support bot|دعم فني)",
      "dv_svc_restart_support_confirm", "إعادة تشغيل بوت الدعم"),
 
-    # Restart admin
-    (re.compile(r"(بوت الأدمن|admin bot)", re.I),
-     "dv_svc_restart_admin_confirm", "إعادة تشغيل بوت الأدمن"),
-
     # Service status
-    (re.compile(r"(حالة الخدمات|حالة البوتات|service status|هل يعمل)", re.I),
+    (r"(حالة الخدمات|حالة البوتات|service status|هل يعمل|الخدمات شغالة|حالة النظام)",
      "dv_svc_status", "حالة الخدمات"),
 
     # Errors / logs
-    (re.compile(r"(أخطاء|خطأ|logs|سجل|error)", re.I),
+    (r"(اخطاء|خطا|logs|سجل|error|آخر الاخطاء|اخر الاخطاء|سجل الاخطاء)",
      "dv_errors", "عرض سجل الأخطاء"),
 
     # Emergency
-    (re.compile(r"(طوارئ|emergency|استعادة طارئة|أزمة)", re.I),
+    (r"(طوارئ|emergency|استعادة طارئة|ازمة|وضع الطوارئ)",
      "dv_emergency", "وضع الطوارئ"),
 
     # File manager
-    (re.compile(r"(ملفات|مدير الملفات|files|استعرض|تصفح)", re.I),
+    (r"(ملفات|مدير الملفات|files|استعرض|تصفح|اعرض الملفات)",
      "dv_files", "مدير الملفات"),
 
     # Search
-    (re.compile(r"(ابحث|بحث|search|ابحث عن)", re.I),
+    (r"(ابحث|بحث|search|ابحث عن|ابحث في)",
      "dv_search_prompt", "البحث في المشروع"),
 
     # Updates
-    (re.compile(r"(تحديث|updates|upload|رفع)", re.I),
+    (r"(تحديث|updates|upload|رفع|تحديثات)",
      "dv_updates", "إدارة التحديثات"),
 
     # Backups list
-    (re.compile(r"(عرض النسخ|قائمة النسخ|list backups)", re.I),
+    (r"(عرض النسخ|قائمة النسخ|list backups|اعرض النسخ|النسخ الاحتياطية)",
      "dv_bkp_list", "عرض النسخ الاحتياطية"),
 
     # Security log
-    (re.compile(r"(سجل الإجراءات|أمان|security|نشاط)", re.I),
+    (r"(سجل الاجراءات|امان|security|نشاط|سجل النشاط)",
      "dv_sec_log", "سجل الأمان"),
 
     # Main menu
-    (re.compile(r"(القائمة الرئيسية|رجوع|menu|رئيسية)", re.I),
+    (r"(القائمة الرئيسية|رجوع|menu|رئيسية|قائمة)",
      "dv_menu", "القائمة الرئيسية"),
+]
+
+# Compile all patterns once at module load for speed
+_COMPILED_INTENTS = [
+    (re.compile(pat, re.IGNORECASE | re.UNICODE), action, label)
+    for pat, action, label in INTENTS
 ]
 
 
@@ -146,10 +159,13 @@ async def handle_ai_command(update, context):
     context.user_data.pop("dv_state", None)
     log_action(uid, "ai_command", text[:200], "processing")
 
+    # Normalize Arabic before matching so hamza/tatweel variants always hit
+    normalized = _normalize_ar(text)
+
     matched_action = None
     matched_label = None
-    for pattern, action, label in INTENTS:
-        if pattern.search(text):
+    for pattern, action, label in _COMPILED_INTENTS:
+        if pattern.search(normalized):
             matched_action = action
             matched_label = label
             break

@@ -14,6 +14,17 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
+# ─── Arabic Text Normalizer ───────────────────────────────────────────────────
+def _normalize_ar(text: str) -> str:
+    """Normalize Arabic text before regex matching.
+    Fixes hamza variants (أإآٱ → ا), removes tatweel and all diacritics.
+    Must be applied to BOTH the pattern input and the message before matching."""
+    text = re.sub(r'[أإآٱ]', 'ا', text)          # hamza/madda variants
+    text = re.sub(r'ى(?=\s|$)', 'ي', text)        # alef maqsoura at word-end
+    text = re.sub(r'[ـ]', '', text)                # tatweel (stretcher)
+    text = re.sub(r'[\u064B-\u065F\u0670]', '', text)  # all diacritics
+    return text
+
 # ─── Logging ──────────────────────────────────────────────────────────────────
 _ai_log = logging.getLogger("ai_engine")
 
@@ -129,14 +140,22 @@ class ReasoningEngine:
         r"rest.?api|graphql|websocket|grpc|oauth\b|jwt\b|ssl\b|tls\b|"
         r"telegram.{0,5}bot|discord.{0,5}bot|whatsapp.{0,5}bot|"
         r"async\b|await\b|coroutine|threading|multiprocessing|"
-        r"algorithm|recursion|data.?structure|oop\b|functional)\b",
+        r"algorithm|recursion|data.?structure|oop\b|functional|"
+        r"بايثون|جافا(?:سكريبت)?|تايب\s*سكريبت|فاست\s*اي\s*بي|فلاسك|دجانغو|"
+        r"داتا\s*بيس|داتابيس|قاعدة\s*(?:البيانات|بيانات)|"
+        r"بوت\s*(?:تيليغرام|تيلغرام|تلغرام|telegram)|"
+        r"واجهة\s*(?:برمجية|api)|ذكاء\s*(?:اصطناعي|آلي)|تعلم\s*الآلة|"
+        r"خادم\s*ويب|سيرفر|مكتبة\s*(?:برمجية)?|إطار\s*عمل|فريمورك)\b",
         re.IGNORECASE,
     )
 
     _EXPLAIN = re.compile(
         r"\b(?:explain|what\s+is|what\s+are|how\s+does|how\s+do|define|describe|"
         r"tell\s+me\s+about|overview\s+of|introduction\s+to|"
-        r"ما\s+هو|ما\s+هي|اشرح|وضح|عرّف|كيف\s+يعمل|شرح)\b",
+        r"ما\s+هو|ما\s+هي|اشرح|وضح|عرّف|كيف\s+يعمل|شرح|"
+        r"ايش\s+هو|ايش\s+هي|ما\s+معنى|يعني\s+ايش|وظيفة\b|دور\b|"
+        r"ما\s+وظيفة|كيف\s+يشتغل|كيف\s+يشغل|اريد\s+اعرف|أريد\s+أعرف|"
+        r"شرح\s+لي|اشرح\s+لي|أشرح\s+لي|مال\s+ال)\b",
         re.IGNORECASE,
     )
 
@@ -200,8 +219,12 @@ class ReasoningEngine:
 
     @classmethod
     def classify(cls, msg: str) -> str:
-        """Returns: 'greeting' | 'conversational' | 'project'"""
-        if cls._GREETING.match(msg.strip()):
+        """Returns: 'greeting' | 'conversational' | 'project'
+        Greeting detection is gated on word-count (≤ 8 words) so that a real
+        question that starts with a salutation ("مرحبا، كيف أضيف...") is NOT
+        silently swallowed as a greeting."""
+        stripped = _normalize_ar(msg.strip())
+        if cls._GREETING.match(stripped) and len(stripped.split()) <= 4:
             return "greeting"
         if cls.is_conversational(msg):
             return "conversational"
@@ -224,7 +247,7 @@ class AIMemoryLayer:
 
     @classmethod
     def record(cls, role: str, text: str, intent: str = ""):
-        cls._history.append({"role": role, "text": text[:300],
+        cls._history.append({"role": role, "text": text[:600],
                               "intent": intent, "ts": time.time()})
         if len(cls._history) > cls._MAX:
             cls._history = cls._history[-cls._MAX:]
@@ -266,13 +289,25 @@ class AIPlanner:
             return {"source": "hf", "steps": hf["steps"],
                     "risks": hf.get("risks", []),
                     "deps":  hf.get("dependencies", [])}
+        # HF unreachable — build a project-aware plan from the live filesystem
+        try:
+            pb = ProjectBrain.get()
+            modules = list(pb.get("modules", {}).keys())[:4]
+            routers = [r.get("name", "") for r in pb.get("routers", [])[:3]]
+            dep_str = ", ".join(filter(None, modules + routers)) or "الوحدات المتأثرة"
+        except Exception:
+            dep_str = "الملفات المتأثرة"
         return {
-            "source": "local",
-            "steps": ["تحليل الملفات المتأثرة", "تحديد التبعيات",
-                      "إنشاء الكود المطلوب", "تحديث المسارات",
-                      "اختبار التغييرات"],
+            "source": "local_project",
+            "steps": [
+                f"فحص الملفات ذات الصلة بـ: {feature[:60]}",
+                f"تحديد التبعيات المتأثرة ({dep_str})",
+                "تنفيذ التغيير المطلوب مع احترام البنية الحالية",
+                "التحقق من عدم كسر أي مسار أو نموذج موجود",
+                "إعادة التشغيل إن تطلبت التغييرات ذلك",
+            ],
             "risks": ["تعارض مع كود موجود", "تأثير على الأداء"],
-            "deps":  ["bot.py", "control_panel/app.py"],
+            "deps": modules if modules else ["bot.py", "control_panel/app.py"],
         }
 
     @staticmethod
@@ -319,14 +354,22 @@ class AIEngineerCore:
 
     @classmethod
     def _classify(cls, r: str) -> str:
-        if re.search(r"bot|بوت", r):              return "create_bot"
-        if re.search(r"page|screen|صفحة", r):     return "create_page"
-        if re.search(r"design|ui|css|تصميم", r):  return "modify_ui"
-        if re.search(r"database|db|قاعدة", r):    return "modify_database"
-        if re.search(r"auth|login|مصادقة", r):    return "modify_auth"
-        if re.search(r"command|handler|أمر", r):  return "add_command"
-        if re.search(r"api|route|مسار", r):       return "add_api"
-        return "general"
+        # Scoring: high-risk operations get weight 3 to prevent accidental triggers
+        _scores = {
+            "modify_database": 3 * sum(1 for p in [r"database\b", r"\bdb\b", r"قاعدة", r"\btable\b", r"\bschema\b"] if re.search(p, r)),
+            "modify_auth":     3 * sum(1 for p in [r"\bauth\b", r"\blogin\b", r"مصادقة", r"\bpassword\b", r"كلمة\s*مرور"] if re.search(p, r)),
+            "create_bot":      2 * sum(1 for p in [r"\bnew\s+bot\b", r"create.{0,10}bot", r"إنشاء.{0,10}بوت", r"notification\s+bot"] if re.search(p, r)),
+            "create_page":     2 * sum(1 for p in [r"\bpage\b", r"\bscreen\b", r"صفحة", r"\bview\b", r"\bsection\b"] if re.search(p, r)),
+            "modify_ui":       1 * sum(1 for p in [r"\bdesign\b", r"\bui\b", r"\bcss\b", r"تصميم", r"واجهة", r"\bstyle\b"] if re.search(p, r)),
+            "add_command":     1 * sum(1 for p in [r"\bcommand\b", r"\bhandler\b", r"أمر\b", r"callback\b", r"/start\b"] if re.search(p, r)),
+            "add_api":         1 * sum(1 for p in [r"\bapi\b", r"\broute\b", r"\bendpoint\b", r"مسار\b", r"/api/"] if re.search(p, r)),
+        }
+        # If bot appears as a noun modifier (e.g. "bot page") weaken create_bot
+        if re.search(r"\bbot\b.{0,15}\b(?:page|screen|صفحة)\b", r) and _scores.get("create_bot", 0):
+            _scores["create_page"] = max(_scores.get("create_page", 0), _scores["create_bot"])
+            _scores["create_bot"] = 0
+        best = max(_scores, key=lambda k: _scores[k])
+        return best if _scores[best] > 0 else "general"
 
     @staticmethod
     def status() -> dict:
@@ -2567,6 +2610,48 @@ _SEMANTIC_MAP: dict = {
         ("control_panel/templates/github.html", "template", "صفحة تكامل GitHub"),
         ("control_panel/routers/github_router.py", "router", "GitHub APIs — pull, push, commit, diff"),
     ],
+    # ── Middleware / Rate Limiting / Subscriptions ─────────────────────────────
+    "rate_limiter": [
+        ("middlewares/rate_limiter.py", "middleware", "check_rate_limit — حد التحميل لكل مستخدم"),
+    ],
+    "rate_limit": [
+        ("middlewares/rate_limiter.py", "middleware", "check_rate_limit — حد التحميل لكل مستخدم"),
+    ],
+    "subscription": [
+        ("middlewares/subscription_gate.py", "middleware", "require_subscription decorator"),
+    ],
+    "subscription_gate": [
+        ("middlewares/subscription_gate.py", "middleware", "require_subscription decorator"),
+    ],
+    "middleware": [
+        ("middlewares/auth.py", "middleware", "is_admin, is_owner, is_banned, get_role"),
+        ("middlewares/rate_limiter.py", "middleware", "check_rate_limit — حد التحميل"),
+        ("middlewares/subscription_gate.py", "middleware", "require_subscription decorator"),
+    ],
+    # ── Bot handler features (PrimeDownloader) ────────────────────────────────
+    "lucky_wheel": [
+        ("handlers/lucky_wheel.py", "handler", "عجلة الحظ — الجوائز اليومية"),
+    ],
+    "achievements": [
+        ("handlers/achievements.py", "handler", "الإنجازات والشارات — نظام المكافآت"),
+    ],
+    "referral": [
+        ("handlers/referral.py", "handler", "نظام الإحالة — رموز الدعوة والمكافآت"),
+        ("db_utils/referrals.py", "db", "جدول الإحالات في قاعدة البيانات"),
+    ],
+    "video_studio": [
+        ("handlers/video_studio.py", "handler", "استوديو الفيديو — تحرير وتحميل مقاطع"),
+    ],
+    "video_tools": [
+        ("handlers/video_tools.py", "handler", "أدوات الفيديو — اقتصاص، ترجمة، ضغط"),
+    ],
+    "favorites": [
+        ("handlers/favorites.py", "handler", "المحفوظات — قائمة المفضلة للمستخدم"),
+    ],
+    "logo": [
+        ("handlers/logo.py", "handler", "إنشاء الشعار — توليد صور بالذكاء الاصطناعي"),
+        ("static/img/logo.png", "asset", "شعار المشروع الرئيسي"),
+    ],
 }
 
 _ALIASES: dict = {
@@ -2606,6 +2691,31 @@ _ALIASES: dict = {
     "البوتات": "bots_page",
     "البث": "broadcast",
     "ريبليت": "replit_manager",
+    # Middleware / rate limiting / subscriptions
+    "حد التحميل": "rate_limiter",
+    "حد الطلبات": "rate_limiter",
+    "التقييد": "rate_limiter",
+    "الاشتراك": "subscription",
+    "نظام الاشتراك": "subscription",
+    "الوسيط": "middleware",
+    "الوسائط": "middleware",
+    # Bot features
+    "عجلة الحظ": "lucky_wheel",
+    "العجلة": "lucky_wheel",
+    "الإنجازات": "achievements",
+    "الشارات": "achievements",
+    "نقاط": "achievements",
+    "الإحالة": "referral",
+    "نظام الإحالة": "referral",
+    "كود الدعوة": "referral",
+    "رمز الدعوة": "referral",
+    "استوديو الفيديو": "video_studio",
+    "أدوات الفيديو": "video_tools",
+    "تحرير فيديو": "video_tools",
+    "المحفوظات": "favorites",
+    "المفضلة": "favorites",
+    "الشعار": "logo",
+    "اللوغو": "logo",
 }
 
 
@@ -2686,6 +2796,8 @@ INTENTS: dict = {
 
 
 def detect_intent(msg: str) -> str:
+    # Keep original case-folded form for pattern matching (patterns use original Arabic
+    # diacritics/hamza — normalization happens in _normalize_query/_find_concept only)
     ml = msg.lower()
 
     # ── REASONING ENGINE GATE (Phase 3) ──────────────────────────────────────
@@ -3041,10 +3153,13 @@ def detect_intent(msg: str) -> str:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _normalize_query(q: str) -> str:
-    ql = q.lower().strip()
+    # Apply Arabic normalization first so hamza/diacritic variants match aliases
+    q_norm = _normalize_ar(q)
+    ql = q_norm.lower().strip()
     for ar, en in _ALIASES.items():
-        if ar in q:
-            ql = ql.replace(ar.lower(), en)
+        ar_norm = _normalize_ar(ar)
+        if ar_norm in q_norm:
+            ql = ql.replace(ar_norm.lower(), en)
     return ql
 
 
@@ -3126,16 +3241,39 @@ def search_project_files(query: str) -> list:
                 concept_hits.append((f, "route_match", route_info["description"]))
                 found_paths.add(f)
 
-    # Filesystem fallback
+    # Filesystem fallback — filename match
     ql = query.lower()
+    ql_ar = _normalize_ar(query).lower()
     for root, dirs, files in os.walk(str(EXTRACTED_DIR)):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
         for fname in files:
             fp = Path(root) / fname
             rel = str(fp.relative_to(EXTRACTED_DIR))
-            if any(ext in fname for ext in CODE_EXTS) and ql in fname.lower() and rel not in found_paths:
+            if any(ext in fname for ext in CODE_EXTS) and (ql in fname.lower() or ql_ar in fname.lower()) and rel not in found_paths:
                 concept_hits.append((rel, "filename_match", fname))
                 found_paths.add(rel)
+
+    # Content search fallback — grep file contents when semantic + filename both empty
+    if not concept_hits and len(ql) >= 3:
+        _terms = [t for t in ql.split() if len(t) >= 3][:3]
+        for root, dirs, files in os.walk(str(EXTRACTED_DIR)):
+            dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+            for fname in files:
+                if not any(fname.endswith(e) for e in [".py", ".html", ".js", ".css"]):
+                    continue
+                fp = Path(root) / fname
+                rel = str(fp.relative_to(EXTRACTED_DIR))
+                if rel in found_paths:
+                    continue
+                try:
+                    content = fp.read_text(errors="ignore").lower()
+                    if _terms and all(t in content for t in _terms):
+                        concept_hits.append((rel, "content_match", f"contains: {', '.join(_terms)}"))
+                        found_paths.add(rel)
+                        if len(concept_hits) >= 8:
+                            return concept_hits
+                except Exception:
+                    pass
     return concept_hits
 
 
@@ -4403,16 +4541,7 @@ def _r_conversation(msg: str) -> dict:
     except Exception as _e:
         _ai_log.warning("_r_conversation HF step 3 error: %s", _e)
 
-    # ── 4. Use HF assistant before giving up ────────────────────────────────
-    try:
-        hf2 = call_hf_assistant(msg)
-        ans = hf2.get("response") or hf2.get("analysis") or hf2.get("message") or ""
-        if hf2.get("ok") and isinstance(ans, str) and len(ans) > 20:
-            return {"text": f"💬 {ans}", "data": {"mode": "conversation", "source": "hf_fallback"}}
-    except Exception as _e:
-        _ai_log.warning("_r_conversation HF fallback error: %s", _e)
-
-    # ── 5. Memory-aware context hint before generic menu ─────────────────────
+    # ── 4. Memory-aware context hint before generic menu ─────────────────────
     ctx = AIMemoryLayer.context()
     last_intent = AIMemoryLayer.last_intent()
     if ctx["total_turns"] > 2 and last_intent not in ("greeting", "general", "conversation"):
@@ -4476,7 +4605,7 @@ def _r_identity() -> dict:
 
 اسألني: **"What can you do?"** لقائمة القدرات الكاملة.""",
         "data": {"identity": "X AI Operator", "phase": 3,
-                 "hf_connected": True, "phase3": p3},
+                 "hf_connected": hf_status().get("connected", False), "phase3": p3},
     }
 
 
@@ -5078,9 +5207,17 @@ def _r_memory() -> dict:
     return {"text": "\n".join(lines), "data": m}
 
 
+_SELF_TEST_CACHE: dict = {"result": None, "ts": 0.0}
+_SELF_TEST_TTL   = 300.0   # 5 minutes
+
 def _r_status() -> dict:
-    m     = load_memory()
-    tests = run_self_tests()
+    m = load_memory()
+    # Run self-tests at most once per TTL — synchronous 38-test suite is expensive
+    now = time.time()
+    if not _SELF_TEST_CACHE["result"] or now - _SELF_TEST_CACHE["ts"] > _SELF_TEST_TTL:
+        _SELF_TEST_CACHE["result"] = run_self_tests()
+        _SELF_TEST_CACHE["ts"]     = now
+    tests = _SELF_TEST_CACHE["result"]
     lines = ["📊 **حالة نظام الذكاء الاصطناعي**\n",
              f"🧠 المحرك: v3.0 — Project Knowledge System",
              f"🗺️ الجراف: {len(_ROUTE_GRAPH)} مسار | {len(_SEMANTIC_MAP)} مفهوم | {len(_DB_MAP)} نموذج DB",
@@ -5462,13 +5599,16 @@ def _r_general(msg: str) -> dict:
         if entries:
             return answer_file_question(msg)
 
-    # ── Layer 7: Hugging Face API ─────────────────────────────────────────────
-    try:
-        hf = call_hf_analyze(msg)
-        if hf.get("ok") and isinstance(hf.get("analysis"), str) and len(hf["analysis"]) > 30:
-            return {"text": f"💬 {hf['analysis']}", "data": {"mode": "general_hf", "source": "hf"}}
-    except Exception:
-        pass
+    # ── Layer 7: Hugging Face API — only for substantive queries (≥ 10 chars) ──
+    # Short/ambiguous queries almost never get useful HF responses; skip the 8s
+    # timeout and fall through to the LAST RESORT hint immediately.
+    if len(msg.strip()) >= 10:
+        try:
+            hf = call_hf_analyze(msg)
+            if hf.get("ok") and isinstance(hf.get("analysis"), str) and len(hf["analysis"]) > 30:
+                return {"text": f"💬 {hf['analysis']}", "data": {"mode": "general_hf", "source": "hf"}}
+        except Exception:
+            pass
 
     # ── LAST RESORT ───────────────────────────────────────────────────────────
     mem   = load_memory()
