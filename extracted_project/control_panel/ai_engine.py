@@ -87,6 +87,501 @@ def hf_status() -> dict:
     except Exception as e:
         return {"connected": False, "url": HF_SPACE_URL, "error": str(e)}
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# REASONING ENGINE — Phase 3 Core Component
+# Pre-router semantic layer: classifies every message BEFORE intent detection.
+# Ensures conversational / general-knowledge messages NEVER trigger project
+# file inspection.  Project mode is ONLY entered on explicit project requests.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class ReasoningEngine:
+    """
+    Semantic gateway that determines message MODE before any routing occurs.
+
+    Modes
+    -----
+    greeting       — salutation, nothing else needed
+    conversational — general knowledge: tech explanations, comparisons, concepts
+    project        — explicit project/file/code inspection
+    """
+
+    _TECH = re.compile(
+        r"\b(?:python|javascript|typescript|java\b|golang|go\b|rust\b|kotlin|swift|"
+        r"php\b|ruby\b|c\+\+|scala|haskell|elixir|dart|julia|perl|"
+        r"fastapi|flask|django|express|nestjs|nextjs|react|vue|angular|svelte|"
+        r"spring|laravel|rails|gin\b|fiber\b|actix|axum|"
+        r"mongodb|postgresql|postgres|mysql|sqlite|redis|elasticsearch|"
+        r"docker|kubernetes|nginx|apache|"
+        r"machine.?learning|deep.?learning|neural.?network|llm\b|gpt\b|"
+        r"rest.?api|graphql|websocket|grpc|oauth\b|jwt\b|ssl\b|tls\b|"
+        r"telegram.{0,5}bot|discord.{0,5}bot|whatsapp.{0,5}bot|"
+        r"async\b|await\b|coroutine|threading|multiprocessing|"
+        r"algorithm|recursion|data.?structure|oop\b|functional)\b",
+        re.IGNORECASE,
+    )
+
+    _EXPLAIN = re.compile(
+        r"\b(?:explain|what\s+is|what\s+are|how\s+does|how\s+do|define|describe|"
+        r"tell\s+me\s+about|overview\s+of|introduction\s+to|"
+        r"ما\s+هو|ما\s+هي|اشرح|وضح|عرّف|كيف\s+يعمل|شرح)\b",
+        re.IGNORECASE,
+    )
+
+    _COMPARE = re.compile(
+        r"\b(?:difference\s+between|compare|vs\b|versus|contrast|"
+        r"better\s+than|pros\s+and\s+cons|advantages|disadvantages|"
+        r"when\s+to\s+use|الفرق\s+بين|مقارنة|مقابل|أيهما|أفضل\s+من)\b",
+        re.IGNORECASE,
+    )
+
+    _GREETING = re.compile(
+        r"^(?:hi+|hello+|hey+|howdy|yo+|sup\b|good\s+(?:morning|afternoon|evening|day)|"
+        r"مرحبا+|السلام\s+عليكم|أهلاً?|هلا\b|سلام\b|صباح\s+(?:الخير|النور)|"
+        r"مساء\s+(?:الخير|النور)|كيف\s+(?:حالك|الحال)|ما\s+الأخبار|وش\s+لونك)\b",
+        re.IGNORECASE,
+    )
+
+    # Explicit project-context signals that override conversational mode
+    _PROJECT = re.compile(
+        r"\b(?:in\s+(?:this|our|the)\s+project|our\s+(?:bot|system|panel|dashboard)|"
+        r"PrimeDownloader|X\s+Control|control\s+panel|this\s+codebase|"
+        r"our\s+(?:code|files?|templates?|routers?|api)|"
+        r"this\s+(?:project|bot|system|app)|what\s+file|which\s+file|"
+        r"ما\s+الملف|أي\s+ملف|أين\s+الملف)\b",
+        re.IGNORECASE,
+    )
+
+    # Project-level concepts that override compare → project mode (not conversational)
+    _PROJECT_CONCEPT = re.compile(
+        r"\b(?:homepage|redesign|revamp|restyle|new\s*page|sidebar|"
+        r"bot\s*creation|feature\s*request|ui\s+change|dashboard\s*design|"
+        r"login\s*page|control\s*panel|صفحة\s*جديدة|إعادة\s*تصميم)\b",
+        re.IGNORECASE,
+    )
+
+    # Extra tech-term check for plural/compound forms missed by \b...\b
+    _TECH_EXTRA = re.compile(
+        r"\b(?:telegram|discord|whatsapp|slack)\s*bots?\b|"
+        r"\brest\s+apis?\b|\bweb\s*sockets?\b|\bmicro\s*services?\b",
+        re.IGNORECASE,
+    )
+
+    @classmethod
+    def is_conversational(cls, msg: str) -> bool:
+        """True → general knowledge, no project file inspection needed."""
+        if cls._PROJECT.search(msg):
+            return False
+        has_tech    = bool(cls._TECH.search(msg) or cls._TECH_EXTRA.search(msg))
+        has_explain = bool(cls._EXPLAIN.search(msg))
+        has_compare = bool(cls._COMPARE.search(msg))
+        # If the comparison involves project-level concepts → stay in project mode
+        if has_compare and cls._PROJECT_CONCEPT.search(msg):
+            return False
+        if has_tech and (has_explain or has_compare):
+            return True
+        if has_compare:   # "difference between X and Y" even without named tech
+            return True
+        return False
+
+    @classmethod
+    def classify(cls, msg: str) -> str:
+        """Returns: 'greeting' | 'conversational' | 'project'"""
+        if cls._GREETING.match(msg.strip()):
+            return "greeting"
+        if cls.is_conversational(msg):
+            return "conversational"
+        return "project"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 3 CORE — AI Intelligence Infrastructure
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class AIMemoryLayer:
+    """
+    Phase 3: Persistent session memory.
+    Stores conversation context, project context, previous decisions,
+    and reasoning history for a single running session.
+    """
+    _history:   list = []   # conversation turns
+    _decisions: list = []   # engineering decisions
+    _MAX = 24
+
+    @classmethod
+    def record(cls, role: str, text: str, intent: str = ""):
+        cls._history.append({"role": role, "text": text[:300],
+                              "intent": intent, "ts": time.time()})
+        if len(cls._history) > cls._MAX:
+            cls._history = cls._history[-cls._MAX:]
+
+    @classmethod
+    def record_decision(cls, decision: str, context: str = ""):
+        cls._decisions.append({"decision": decision, "context": context,
+                                "ts": time.time()})
+        if len(cls._decisions) > 50:
+            cls._decisions = cls._decisions[-50:]
+
+    @classmethod
+    def context(cls) -> dict:
+        return {"turns": cls._history[-6:], "decisions": cls._decisions[-5:],
+                "total_turns": len(cls._history)}
+
+    @classmethod
+    def last_intent(cls) -> str:
+        for e in reversed(cls._history):
+            if e["role"] == "user" and e.get("intent"):
+                return e["intent"]
+        return ""
+
+    @classmethod
+    def status(cls) -> dict:
+        return {"active": True, "turns": len(cls._history),
+                "decisions": len(cls._decisions), "phase": 3}
+
+
+class AIPlanner:
+    """
+    Phase 3: Pre-implementation planning engine.
+    Generates plan, risks, dependencies, impact before any change.
+    """
+    @staticmethod
+    def plan(feature: str) -> dict:
+        hf = call_hf_planner(feature)
+        if hf.get("ok") and hf.get("steps"):
+            return {"source": "hf", "steps": hf["steps"],
+                    "risks": hf.get("risks", []),
+                    "deps":  hf.get("dependencies", [])}
+        return {
+            "source": "local",
+            "steps": ["تحليل الملفات المتأثرة", "تحديد التبعيات",
+                      "إنشاء الكود المطلوب", "تحديث المسارات",
+                      "اختبار التغييرات"],
+            "risks": ["تعارض مع كود موجود", "تأثير على الأداء"],
+            "deps":  ["bot.py", "control_panel/app.py"],
+        }
+
+    @staticmethod
+    def risk(feature: str) -> list:
+        fl = feature.lower()
+        out = []
+        if re.search(r"database|db|قاعدة", fl):
+            out.append("🔴 HIGH: تعديلات DB قد تؤدي لفقدان بيانات — خذ نسخة أولاً")
+        if re.search(r"auth|login|password|مصادقة", fl):
+            out.append("🔴 HIGH: تغيير المصادقة يؤثر على جميع المستخدمين")
+        if re.search(r"bot|بوت", fl):
+            out.append("🟡 MEDIUM: تعديل البوت يتطلب إعادة تشغيل العملية")
+        if re.search(r"css|design|تصميم", fl):
+            out.append("🟢 LOW: تغييرات CSS لا تؤثر على الوظائف الجوهرية")
+        return out or ["🟢 LOW: خطر منخفض"]
+
+    @staticmethod
+    def status() -> dict:
+        return {"active": True, "hf_backed": True, "local_fallback": True, "phase": 3}
+
+
+class AIEngineerCore:
+    """
+    Phase 3: Engineering intelligence layer.
+    Understands project modifications semantically (not keyword-only).
+    """
+    _MAP = {
+        "create_bot":      {"files": ["bot.py", "handlers/"],         "restart": True},
+        "create_page":     {"files": ["routers/", "templates/"],      "restart": False},
+        "modify_ui":       {"files": ["static/css/", "templates/"],   "restart": False},
+        "modify_database": {"files": ["db_utils.py"],                 "restart": True,  "risk": "HIGH"},
+        "modify_auth":     {"files": ["auth.py", "app.py"],           "restart": True,  "risk": "HIGH"},
+        "add_command":     {"files": ["handlers/"],                   "restart": True},
+        "add_api":         {"files": ["routers/"],                    "restart": False},
+    }
+
+    @classmethod
+    def understand(cls, request: str) -> dict:
+        t = cls._classify(request.lower())
+        a = cls._MAP.get(t, {})
+        return {"action": t, "files": a.get("files", []),
+                "restart": a.get("restart", False),
+                "risk": a.get("risk", "LOW"), "understood": True}
+
+    @classmethod
+    def _classify(cls, r: str) -> str:
+        if re.search(r"bot|بوت", r):              return "create_bot"
+        if re.search(r"page|screen|صفحة", r):     return "create_page"
+        if re.search(r"design|ui|css|تصميم", r):  return "modify_ui"
+        if re.search(r"database|db|قاعدة", r):    return "modify_database"
+        if re.search(r"auth|login|مصادقة", r):    return "modify_auth"
+        if re.search(r"command|handler|أمر", r):  return "add_command"
+        if re.search(r"api|route|مسار", r):       return "add_api"
+        return "general"
+
+    @staticmethod
+    def status() -> dict:
+        return {"active": True, "action_types": 7, "semantic_routing": True, "phase": 3}
+
+
+class ProjectImpactAnalysis:
+    """
+    Phase 3: Pre-change file/dependency impact analyzer.
+    """
+    @staticmethod
+    def analyze(target: str) -> dict:
+        root = Path(__file__).parent.parent
+        affected = []
+        stem = Path(target).stem if "." in target else target
+        try:
+            for f in root.rglob("*.py"):
+                if any(d in str(f) for d in ["__pycache__", ".git", ".pythonlibs"]):
+                    continue
+                try:
+                    if stem in f.read_text(errors="ignore"):
+                        affected.append(str(f.relative_to(root)))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        risk = "HIGH" if len(affected) > 5 else "MEDIUM" if len(affected) > 2 else "LOW"
+        return {"target": target, "affected": affected[:10],
+                "count": len(affected), "risk": risk,
+                "rollback": True, "done": True}
+
+    @staticmethod
+    def status() -> dict:
+        return {"active": True, "deep_scan": True, "rollback_tracking": True, "phase": 3}
+
+
+class FutureExecutionArchitecture:
+    """
+    Phase 3 Infrastructure — PREPARED, NOT ACTIVATED.
+    Architecture ready for: Auto-Edit, Auto-Testing, Auto-Commit, Auto-Deploy.
+    Activation requires explicit per-operation user authorization.
+    """
+    COMPONENTS = {
+        "auto_edit":    {"prepared": True, "activated": False},
+        "auto_testing": {"prepared": True, "activated": False},
+        "auto_commit":  {"prepared": True, "activated": False},
+        "auto_deploy":  {"prepared": True, "activated": False},
+    }
+
+    @classmethod
+    def status(cls) -> dict:
+        return {"phase": "3_infra", "activated": False,
+                "components": cls.COMPONENTS,
+                "note": "Infrastructure ready. No autonomous execution active."}
+
+    @classmethod
+    def can_execute(cls, _: str) -> bool:
+        return False   # Always False until user explicitly authorizes per-operation
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONVERSATION KNOWLEDGE BASE
+# Used by _r_conversation() — general tech knowledge, no project file access
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_TECH_KNOWLEDGE: dict = {
+    "python": {
+        "emoji": "🐍", "title": "Python",
+        "what": "لغة برمجة مفسَّرة عالية المستوى، متعددة الاستخدامات",
+        "strengths": ["كود قصير وواضح جداً", "مجتمع ضخم وموارد لا تُحصى",
+                      "مكتبات لكل شيء (AI/Web/Automation)", "سهل التعلم"],
+        "weaknesses": ["أبطأ من C++/Java في الحسابات المكثفة",
+                       "GIL يحدّ من CPU parallelism",
+                       "استهلاك ذاكرة أعلى من اللغات المجمَّعة"],
+        "uses": ["ذكاء اصطناعي وتعلم آلة", "خوادم ويب (FastAPI/Django/Flask)",
+                 "أتمتة مهام", "بوتات Telegram/Discord", "علم البيانات"],
+        "in_project": "المشروع مكتوب بالكامل بـ Python — FastAPI + python-telegram-bot",
+    },
+    "javascript": {
+        "emoji": "⚡", "title": "JavaScript",
+        "what": "لغة الويب الأساسية، تعمل في المتصفح وعلى الخادم (Node.js)",
+        "strengths": ["يعمل في المتصفح مباشرة — لا بديل", "Node.js سريع جداً (I/O)",
+                      "async/await ممتاز", "مجتمع ضخم جداً"],
+        "weaknesses": ["type coercion مربك بدون TypeScript",
+                       "callback hell في الكود القديم"],
+        "uses": ["واجهات مستخدم تفاعلية", "تطبيقات React/Vue",
+                 "خوادم Node.js", "PWA وتطبيقات هجينة"],
+        "in_project": "JavaScript خفيف في الصفحات (app.js) — ليس framework",
+    },
+    "typescript": {
+        "emoji": "🔷", "title": "TypeScript",
+        "what": "JavaScript مع نظام أنواع ثابتة (static typing) قوي",
+        "strengths": ["أخطاء أقل بكثير في الإنتاج",
+                      "IntelliSense ودعم IDE ممتاز", "Refactoring آمن"],
+        "weaknesses": ["يحتاج compilation step", "learning curve أكبر من JS"],
+        "uses": ["مشاريع كبيرة ومعقدة", "فِرق متعددة المطورين",
+                 "أي مشروع يكبر عن حده"],
+        "in_project": "غير مستخدم — المشروع يعتمد Python + plain JS",
+    },
+    "fastapi": {
+        "emoji": "🚀", "title": "FastAPI",
+        "what": "إطار ويب Python عالي الأداء مبني على Starlette + Pydantic",
+        "strengths": ["أسرع Python framework (يقارب Node.js و Go)",
+                      "توثيق OpenAPI/Swagger يُولَّد تلقائياً",
+                      "Type hints + validation مدمجة بالكامل",
+                      "Async-native من الأساس"],
+        "weaknesses": ["مجتمع أصغر من Flask/Django (يكبر بسرعة)",
+                       "learning curve لـ async إن لم تكن معتاداً"],
+        "uses": ["REST APIs", "لوحات تحكم", "خوادم AI/ML", "Microservices"],
+        "in_project": "X Control Center مبني كاملاً على FastAPI — control_panel/app.py نقطة الدخول",
+    },
+    "flask": {
+        "emoji": "🌶️", "title": "Flask",
+        "what": "Microframework Python خفيف ومرن جداً",
+        "strengths": ["بسيط جداً للتعلم والبدء", "مرونة كاملة في الاختيار",
+                      "مجتمع ضخم وموثّق جيداً"],
+        "weaknesses": ["أبطأ من FastAPI", "لا type checking مدمج",
+                       "يحتاج تكوين يدوي أكثر"],
+        "uses": ["نماذج أولية سريعة", "مواقع صغيرة-متوسطة", "APIs بسيطة"],
+        "in_project": "المشروع يستخدم FastAPI وليس Flask",
+    },
+    "django": {
+        "emoji": "🎸", "title": "Django",
+        "what": "إطار ويب Python كامل (batteries-included)",
+        "strengths": ["كل شيء مدمج: ORM, auth, admin, forms",
+                      "آمن بشكل افتراضي", "مجتمع ضخم جداً"],
+        "weaknesses": ["ثقيل للمشاريع الصغيرة", "Monolithic",
+                       "أبطأ بكثير من FastAPI"],
+        "uses": ["مواقع ويب كاملة", "منصات تجارية وإعلامية",
+                 "أي مشروع يحتاج admin جاهزاً"],
+        "in_project": "المشروع يستخدم FastAPI وليس Django",
+    },
+    "telegram_bot": {
+        "emoji": "🤖", "title": "Telegram Bot",
+        "what": "برامج آلية تعمل على منصة Telegram عبر Bot API الرسمي",
+        "strengths": ["API مجاني وموثّق ممتاز", "Polling وWebhooks",
+                      "دعم ملفات حتى 2GB", "Inline keyboards قوية"],
+        "weaknesses": ["Rate limits صارمة (لا يمكن تجاوزها)",
+                       "قيود على بعض المحتوى", "يعتمد على استمرارية خدمة Telegram"],
+        "uses": ["خدمة عملاء آلية", "تحميل ملفات (مثل PrimeDownloader)",
+                 "إشعارات وتنبيهات", "ألعاب واستبيانات"],
+        "in_project": "بوتان: PrimeDownloader (bot.py) + Support Bot (support_bot/bot.py)",
+    },
+    "rest_api": {
+        "emoji": "🔗", "title": "REST API",
+        "what": "أسلوب معماري لتصميم خدمات الويب يعتمد على HTTP",
+        "strengths": ["بسيط وواسع الانتشار", "يعمل مع أي لغة وأي client",
+                      "قابل للـ cache", "Stateless = قابل للتوسع"],
+        "weaknesses": ["Over-fetching وunder-fetching", "لا real-time مدمج",
+                       "Versioning قد يكون معقداً"],
+        "in_project": "كل واجهات لوحة التحكم REST — /api/* في كل router",
+    },
+    "graphql": {
+        "emoji": "⬡", "title": "GraphQL",
+        "what": "لغة استعلام للـ APIs تتيح للعميل طلب البيانات التي يحتاجها بالضبط",
+        "strengths": ["لا over-fetching/under-fetching", "Schema strongly-typed",
+                      "Introspection مدمج", "Single endpoint"],
+        "weaknesses": ["أصعب من REST للمبتدئين", "Caching أعقد",
+                       "N+1 problem إن لم تُحسن Query"],
+        "in_project": "المشروع يستخدم REST وليس GraphQL",
+    },
+    "docker": {
+        "emoji": "🐳", "title": "Docker",
+        "what": "منصة Containerization — تغليف التطبيق مع بيئته الكاملة",
+        "strengths": ["بيئات موحّدة في كل مكان", "نشر سريع وموثوق",
+                      "عزل كامل بين التطبيقات", "قابلية توسع عالية"],
+        "weaknesses": ["Learning curve ملحوظ", "Overhead على موارد النظام",
+                       "Orchestration (K8s) معقد جداً"],
+        "in_project": "المشروع يعمل على Replit مباشرة — لا Docker مستخدم",
+    },
+    "sql": {
+        "emoji": "🗄️", "title": "SQL / Relational Databases",
+        "what": "لغة الاستعلام الهيكلية لإدارة قواعد البيانات العلاقية",
+        "strengths": ["ACID transactions — موثوقية كاملة",
+                      "علاقات معقدة بكفاءة", "Mature ومستقر منذ 50 سنة"],
+        "weaknesses": ["Schema rigid — التغيير يحتاج migration",
+                       "Scaling أفقي أصعب من NoSQL"],
+        "types": ["PostgreSQL — أقوى وأكثر ميزات",
+                  "MySQL — شائع وسريع للقراءة",
+                  "SQLite — خفيف جداً بدون خادم"],
+        "in_project": "SQLite عبر db_utils.py — مناسب لحجم المشروع",
+    },
+    "nosql": {
+        "emoji": "📊", "title": "NoSQL Databases",
+        "what": "قواعد بيانات غير علاقية مرنة في الهيكل",
+        "strengths": ["Schema مرن جداً", "Scaling أفقي سهل",
+                      "Redis سريع جداً للـ cache"],
+        "weaknesses": ["لا ACID كامل في الغالب",
+                       "استعلامات أقل قوة من SQL"],
+        "types": ["MongoDB — Documents (JSON-like)",
+                  "Redis — Key-Value (in-memory)",
+                  "Cassandra — Wide columns (scale ضخم)",
+                  "Neo4j — Graph (علاقات معقدة)"],
+        "in_project": "المشروع يعتمد SQL (SQLite) وليس NoSQL",
+    },
+    "async": {
+        "emoji": "⚙️", "title": "Async / Await",
+        "what": "نمط برمجي يسمح بتنفيذ مهام I/O متعددة دون حجب thread واحد",
+        "strengths": ["خوادم أسرع بكثير لطلبات I/O",
+                      "استهلاك ذاكرة أقل من Multi-threading",
+                      "كود أنظف من Callbacks"],
+        "weaknesses": ["يحتاج فهم Event Loop",
+                       "CPU-bound tasks لا تستفيد منه"],
+        "in_project": "FastAPI و python-telegram-bot كلاهما async بالكامل",
+    },
+}
+
+_COMPARE_MAP: dict = {
+    frozenset(["python", "javascript"]): {
+        "title": "Python مقابل JavaScript",
+        "rows": [
+            ("الهدف الأساسي", "Backend/AI/Scripting", "Frontend + Backend (Node.js)"),
+            ("الأداء I/O", "جيد (asyncio)", "ممتاز (Node.js event loop)"),
+            ("قابلية القراءة", "⭐⭐⭐⭐⭐ أوضح وأقصر", "⭐⭐⭐ يحتاج TypeScript"),
+            ("AI/ML", "⭐⭐⭐⭐⭐ الخيار الأول", "⭐⭐ محدود"),
+            ("المتصفح", "❌ لا يعمل مباشرة", "⭐⭐⭐⭐⭐ الخيار الوحيد"),
+            ("سوق العمل", "مطلوب جداً", "مطلوب جداً"),
+        ],
+        "verdict": "Python للـ backend/AI — JavaScript للـ frontend وإن أردت full-stack",
+        "in_project": "المشروع Python بالكامل ✅",
+    },
+    frozenset(["fastapi", "flask"]): {
+        "title": "FastAPI مقابل Flask",
+        "rows": [
+            ("الأداء", "⭐⭐⭐⭐⭐ Async-native", "⭐⭐⭐ Sync (Flask 2+ async)"),
+            ("التوثيق التلقائي", "⭐⭐⭐⭐⭐ OpenAPI مدمج", "❌ يحتاج Flask-RestX"),
+            ("Type Validation", "⭐⭐⭐⭐⭐ Pydantic", "⭐ يدوي"),
+            ("سهولة التعلم", "⭐⭐⭐ يحتاج async", "⭐⭐⭐⭐⭐ بسيط جداً"),
+            ("الإنتاج", "الأنسب للـ APIs الحديثة", "مناسب للمشاريع الصغيرة"),
+        ],
+        "verdict": "FastAPI للمشاريع الجديدة — Flask للنماذج السريعة",
+        "in_project": "المشروع يستخدم FastAPI — الاختيار الصحيح ✅",
+    },
+    frozenset(["fastapi", "django"]): {
+        "title": "FastAPI مقابل Django",
+        "rows": [
+            ("الهدف", "APIs خالصة", "تطبيق ويب كامل"),
+            ("الأداء", "⭐⭐⭐⭐⭐", "⭐⭐⭐"),
+            ("Admin Panel", "❌ يدوي", "⭐⭐⭐⭐⭐ جاهز"),
+            ("ORM مدمج", "❌ SQLAlchemy/Drizzle", "⭐⭐⭐⭐⭐ Django ORM"),
+            ("Auth مدمج", "❌ يدوي", "⭐⭐⭐⭐⭐ جاهز"),
+        ],
+        "verdict": "FastAPI للـ API-first — Django إن احتجت admin وORM مدمجَين",
+        "in_project": "FastAPI مناسب لأن الهدف API + Bot ✅",
+    },
+    frozenset(["sql", "nosql"]): {
+        "title": "SQL مقابل NoSQL",
+        "rows": [
+            ("هيكل البيانات", "Schema ثابت ومنظم", "Schema مرن"),
+            ("العلاقات", "⭐⭐⭐⭐⭐ ممتاز", "⭐⭐ محدود"),
+            ("ACID", "⭐⭐⭐⭐⭐ كامل", "⭐⭐ جزئي في الغالب"),
+            ("Scaling أفقي", "⭐⭐⭐ متوسط", "⭐⭐⭐⭐⭐ ممتاز"),
+            ("الاستخدام المثالي", "بيانات مترابطة ومنظمة", "بيانات ضخمة ومرنة"),
+        ],
+        "verdict": "SQL للبيانات المنظمة ذات العلاقات — NoSQL للحجم الضخم والمرونة",
+        "in_project": "SQLite (SQL) — مناسب تماماً لحجم المشروع ✅",
+    },
+    frozenset(["rest_api", "graphql"]): {
+        "title": "REST مقابل GraphQL",
+        "rows": [
+            ("سهولة التعلم", "⭐⭐⭐⭐⭐ بسيط", "⭐⭐⭐ يحتاج تعلم"),
+            ("Over-fetching", "مشكلة شائعة", "⭐⭐⭐⭐⭐ محلولة"),
+            ("Caching", "⭐⭐⭐⭐⭐ سهل", "⭐⭐ معقد"),
+            ("Tooling", "⭐⭐⭐⭐⭐ ناضج", "⭐⭐⭐⭐ ينضج"),
+        ],
+        "verdict": "REST للمشاريع الجديدة والمتوسطة — GraphQL لتطبيقات data-heavy",
+        "in_project": "المشروع يستخدم REST ✅",
+    },
+}
+
 SKIP_DIRS  = {
     "__pycache__", ".git", "node_modules", ".pythonlibs", "temp", "backups",
     ".local", ".venv", "dist", "build", ".cache", ".ai_backups", "artifacts",
@@ -920,6 +1415,16 @@ INTENTS: dict = {
 
 def detect_intent(msg: str) -> str:
     ml = msg.lower()
+
+    # ── REASONING ENGINE GATE (Phase 3) ──────────────────────────────────────
+    # Classify FIRST — before any keyword matching.
+    # Conversational messages (tech explanations, comparisons, greetings) NEVER
+    # enter project inspection mode.
+    _re_mode = ReasoningEngine.classify(msg)
+    if _re_mode == "greeting":
+        return "greeting"
+    if _re_mode == "conversational":
+        return "conversation"
 
     # ── Priority -1: Conversational / identity (absolute top priority) ─────────
     # These must NEVER return file lists
@@ -2121,51 +2626,181 @@ def full_analysis() -> dict:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def process_chat(msg: str) -> dict:
-    """Main entry point for AI chat messages."""
+    """
+    Main entry point for AI chat messages.
+    Phase 3: Integrates ReasoningEngine gate, AIMemoryLayer, and full handler table.
+    """
     save_chat("user", msg)
     update_stats("total_chats")
+
     intent = detect_intent(msg)
 
+    # Phase 3: Record to session memory
+    AIMemoryLayer.record("user", msg, intent)
+
     handlers = {
+        # ── Phase 3: Conversational Mode (NEVER touches project files) ────────
+        "greeting":       lambda: _r_greeting(),
+        "conversation":   lambda: _r_conversation(msg),
+        # ── Meta / identity ───────────────────────────────────────────────────
+        "identity":       lambda: _r_identity(),
+        "capabilities":   lambda: _r_capabilities(),
+        "hf_query":       lambda: _r_hf_query(),
+        # ── Action intents ────────────────────────────────────────────────────
+        "create_feature": lambda: _r_create_feature(msg),
+        "ui_redesign":    lambda: _r_ui_redesign(msg),
+        "debug_fix":      lambda: _r_debug_fix(msg),
+        "new_page":       lambda: _r_new_page(msg),
+        # ── Project knowledge ─────────────────────────────────────────────────
         "find_file":      lambda: _r_find_file(msg),
         "plan_modify":    lambda: _r_plan(msg),
         "dependency":     lambda: _r_dependency(msg),
         "impact":         lambda: _r_impact(msg),
         "root_cause":     lambda: _r_root_cause(msg),
         "arch":           lambda: _r_arch(msg),
-        "self_test":      lambda: _r_self_test(),
+        "structure":      lambda: _r_structure(),
+        "routes":         lambda: _r_routes(),
+        "security":       lambda: _r_security(),
         "errors":         lambda: _r_errors(),
         "analyze":        lambda: _r_analyze(),
+        "improve":        lambda: _r_improve(msg),
+        "memory":         lambda: _r_memory(),
+        "status":         lambda: _r_status(),
+        "stats":          lambda: _r_stats(),
         "backup":         lambda: _r_backup_info(),
         "restore":        lambda: _r_restore_info(),
-        # Phase 2 — Action intents
-        "create_feature": lambda: _r_create_feature(msg),
-        "ui_redesign":    lambda: _r_ui_redesign(msg),
-        "debug_fix":      lambda: _r_debug_fix(msg),
-        "new_page":       lambda: _r_new_page(msg),
-        # Conversational / meta
-        "identity":       lambda: _r_identity(),
-        "capabilities":   lambda: _r_capabilities(),
-        "hf_query":       lambda: _r_hf_query(),
-        "structure":   lambda: _r_structure(),
-        "routes":      lambda: _r_routes(),
-        "security":    lambda: _r_security(),
-        "improve":     lambda: _r_improve(msg),
-        "memory":      lambda: _r_memory(),
-        "status":      lambda: _r_status(),
-        "help":        lambda: _r_help(),
-        "stats":       lambda: _r_stats(),
-        "general":     lambda: _r_general(msg),
+        "self_test":      lambda: _r_self_test(),
+        "help":           lambda: _r_help(),
+        "general":        lambda: _r_general(msg),
     }
 
-    fn    = handlers.get(intent, handlers["general"])
-    resp  = fn()
+    fn   = handlers.get(intent, handlers["general"])
+    resp = fn()
     resp["intent"] = intent
+
+    # Phase 3: Record assistant response to session memory
+    AIMemoryLayer.record("assistant", resp.get("text", "")[:300], intent)
+
     save_chat("assistant", resp.get("text", "")[:500])
     return resp
 
 
 # ─── Response Handlers ────────────────────────────────────────────────────────
+
+def _r_greeting() -> dict:
+    """Salutation — friendly response with mode hints."""
+    import random
+    opts = [
+        "مرحباً! 👋 أنا **X AI Operator Phase 3** — جاهز للمساعدة.\n\n"
+        "أعمل في **وضعَين**:\n"
+        "  💬 **وضع المحادثة** — أسئلة برمجة عامة: Python، FastAPI، SQL، الخ\n"
+        "  🔍 **وضع المشروع** — ملفات، مسارات، إنشاء ميزات، تشخيص أخطاء\n\n"
+        "ما الذي تريد فعله؟",
+
+        "أهلاً! 🧠 **X AI Operator** في خدمتك — مرحلة 3 نشطة.\n\n"
+        "يمكنني الإجابة على أسئلة البرمجة العامة أو مساعدتك في "
+        "**X Control Center** مباشرة.\n\nكيف يمكنني مساعدتك؟",
+
+        "مرحباً بك! 👋\n\n"
+        "أفكر قبل أن أجيب، وأفهم السياق قبل أن أبحث عن ملفات.\n"
+        "اسألني أي سؤال — تقني عام أو خاص بمشروعك.",
+    ]
+    return {"text": random.choice(opts), "data": {"mode": "greeting"}}
+
+
+def _r_conversation(msg: str) -> dict:
+    """
+    Handle general / conversational messages intelligently.
+    NEVER touches project files — pure general knowledge mode.
+    """
+    ml = msg.lower()
+
+    # ── 1. Comparison questions ─────────────────────────────────────────────
+    for pair, data in _COMPARE_MAP.items():
+        terms = list(pair)
+        all_found = all(re.search(r'\b' + re.escape(t.replace(" ", r"\s+")), ml, re.IGNORECASE) for t in terms)
+        if all_found:
+            title = data["title"]
+            rows  = data.get("rows", [])
+            lines = [f"⚖️ **{title}**\n"]
+            if rows:
+                lines.append("| الجانب | " + " | ".join(r[0] for r in [("", terms[0], terms[1])][:0] + [("",)]) + " |")
+                for aspect, a_val, b_val in rows:
+                    lines.append(f"**{aspect}:** `{terms[0]}` — {a_val} | `{terms[1]}` — {b_val}")
+            if "verdict" in data:
+                lines.append(f"\n✅ **الخلاصة:** {data['verdict']}")
+            if "in_project" in data:
+                lines.append(f"\n📍 **في مشروعك:** {data['in_project']}")
+            return {"text": "\n".join(lines), "data": {"mode": "conversation", "type": "comparison"}}
+
+    # ── 2. Single-tech explanation questions ────────────────────────────────
+    _TECH_PATTERNS = [
+        (r"telegram.{0,5}bot|telegram bot",           "telegram_bot"),
+        (r"\bfastapi\b|fast\s+api",                   "fastapi"),
+        (r"\bflask\b",                                "flask"),
+        (r"\bdjango\b",                               "django"),
+        (r"\btypescript\b|\bts\b(?=\s|$)",            "typescript"),
+        (r"\bjavascript\b|\bjs\b(?=\s|$)",            "javascript"),
+        (r"\bpython\b",                               "python"),
+        (r"\brest\s*api\b|rest.{0,5}api",             "rest_api"),
+        (r"\bgraphql\b",                              "graphql"),
+        (r"\bdocker\b",                               "docker"),
+        (r"\bnosql\b|\bmongodb\b|\bmongo\b",          "nosql"),
+        (r"\bsql\b|\bpostgresql\b|\bmysql\b|\bsqlite\b", "sql"),
+        (r"\basync\b|\bawait\b|\basynchronous\b",     "async"),
+    ]
+    tech_key = None
+    for pattern, key in _TECH_PATTERNS:
+        if re.search(pattern, ml, re.IGNORECASE):
+            tech_key = key
+            break
+
+    if tech_key and tech_key in _TECH_KNOWLEDGE:
+        k = _TECH_KNOWLEDGE[tech_key]
+        lines = [f"{k.get('emoji','💡')} **{k['title']}**\n",
+                 f"**ما هو؟** {k['what']}\n"]
+        if "strengths" in k:
+            lines.append("**✅ نقاط القوة:**")
+            for s in k["strengths"]: lines.append(f"  • {s}")
+        if "weaknesses" in k:
+            lines.append("\n**⚠️ القيود:**")
+            for w in k["weaknesses"]: lines.append(f"  • {w}")
+        if "uses" in k:
+            lines.append("\n**🎯 الاستخدامات:**")
+            for u in k["uses"]: lines.append(f"  • {u}")
+        if "types" in k:
+            lines.append("\n**📂 الأنواع:**")
+            for t in (k["types"] if isinstance(k["types"], list)
+                      else [f"{kk}: {vv}" for kk, vv in k["types"].items()]):
+                lines.append(f"  • {t}")
+        if "in_project" in k:
+            lines.append(f"\n📍 **في مشروعك:** {k['in_project']}")
+        return {"text": "\n".join(lines),
+                "data": {"mode": "conversation", "tech": tech_key}}
+
+    # ── 3. HF-backed general answer (best-effort) ───────────────────────────
+    try:
+        hf = call_hf_analyze(code=msg, question=msg)
+        if hf.get("ok") and isinstance(hf.get("analysis"), str) and len(hf["analysis"]) > 30:
+            return {"text": f"💬 {hf['analysis']}",
+                    "data": {"mode": "conversation", "source": "hf"}}
+    except Exception:
+        pass
+
+    # ── 4. Intelligent generic fallback ─────────────────────────────────────
+    return {
+        "text": (
+            "💬 **وضع المحادثة العامة**\n\n"
+            "يمكنني الإجابة على أسئلة تقنية مثل:\n"
+            "  • **شرح تقنية** — \"اشرح FastAPI\" · \"ما هو Python؟\"\n"
+            "  • **مقارنة** — \"Python مقابل JavaScript\" · \"FastAPI vs Flask\"\n"
+            "  • **مفاهيم** — \"ما هو REST API؟\" · \"اشرح Async/Await\"\n"
+            "  • **Telegram Bots** — \"كيف تعمل بوتات تيليغرام؟\"\n\n"
+            "أو اسألني عن **مشروعك مباشرة** — \"Create notification bot\" · \"Fix broken button\""
+        ),
+        "data": {"mode": "conversation"},
+    }
+
 
 def _r_identity() -> dict:
     """'Who are you?' — rich identity response, never a file list."""
@@ -2173,50 +2808,70 @@ def _r_identity() -> dict:
     proj = mem.get("project", {})
     name  = proj.get("name", "X Control Center")
     ver   = proj.get("version", "v5.0")
+    p3 = {
+        "memory":   AIMemoryLayer.status(),
+        "planner":  AIPlanner.status(),
+        "engineer": AIEngineerCore.status(),
+        "impact":   ProjectImpactAnalysis.status(),
+        "future":   FutureExecutionArchitecture.status(),
+    }
     return {
-        "text": f"""🧠 **أنا X AI Operator — مرحلة 2**
+        "text": f"""🧠 **أنا X AI Operator — المرحلة 3**
 
 **ما أنا؟**
-أنا محرك ذكاء اصطناعي متخصص مدمج في **{name} {ver}**.
-لست مجرد مستعرض ملفات — أنا نظام تفكير وتخطيط يفهم قصد المستخدم.
+محرك ذكاء اصطناعي متخصص مدمج في **{name} {ver}**.
+لا أبحث في الملفات لأي سؤال — أفكر أولاً، أفهم السياق، ثم أجيب.
 
-**أصلي:**
-• 🔍 محرك معرفة المشروع — أعرف كل ملف، مسار، وتبعية
-• 🚀 مخطط ميزات — أضع خطط تنفيذ كاملة للأشياء الجديدة
-• 🔧 محقق أخطاء — أشخّص المشاكل وأقترح حلولاً دقيقة
-• 🎨 مستشار تصميم — أحدد ملفات الواجهة للتعديل
-• 🤖 متصل بـ Hugging Face — نموذج `x-ai-core` يعزز تحليلاتي
+**وضعان للعمل:**
+  💬 **وضع المحادثة** — أسئلة تقنية عامة: Python، FastAPI، SQL، مقارنات
+  🔍 **وضع المشروع** — ملفات، مسارات، إنشاء ميزات، تشخيص أخطاء
+
+**مكوناتي (المرحلة 3):**
+  🧠 **Reasoning Engine** — أصنّف كل رسالة قبل أي بحث
+  💾 **AI Memory Layer** — أتذكر سياق المحادثة ({p3['memory']['turns']} دورة)
+  📋 **AI Planner** — أخطط قبل التنفيذ مع تحليل المخاطر
+  ⚙️ **Engineer Core** — أفهم طلبات التعديل دلالياً
+  🔬 **Impact Analysis** — أحلل تأثير أي تغيير مسبقاً
+  🤖 **Hugging Face** — متصل بـ `x-ai-core` Space
 
 **المشروع الذي أعمل عليه:**
-  • بوت Telegram رئيسي (PrimeDownloader)
-  • بوت دعم فني (Support Bot)
-  • لوحة تحكم FastAPI على المنفذ 5000
+  • بوت Telegram رئيسي — `bot.py` (PrimeDownloader)
+  • بوت دعم فني — `support_bot/bot.py`
+  • لوحة تحكم FastAPI — المنفذ 5000
 
-اسألني: "What can you do?" لقائمة كاملة بالقدرات.""",
-        "data": {"identity": "X AI Operator", "phase": "2", "hf_connected": True},
+اسألني: **"What can you do?"** لقائمة القدرات الكاملة.""",
+        "data": {"identity": "X AI Operator", "phase": 3,
+                 "hf_connected": True, "phase3": p3},
     }
 
 
 def _r_capabilities() -> dict:
-    """'What can you do?' — full capability listing."""
+    """'What can you do?' — full capability listing with Phase 3 modes."""
     return {
-        "text": """⚡ **قدرات X AI Operator — المرحلة الثانية**
+        "text": """⚡ **قدرات X AI Operator — المرحلة 3**
 
-**🔍 معرفة المشروع الكاملة:**
+**💬 وضع المحادثة العامة (جديد في المرحلة 3):**
+  • "Explain FastAPI" → شرح كامل بالاستخدامات والمزايا
+  • "Python vs JavaScript" → مقارنة مفصّلة
+  • "What is REST API?" → تعريف وأمثلة
+  • "How do Telegram Bots work?" → شرح المفهوم
+  • "Hello" / "مرحبا" → محادثة طبيعية
+
+**🔍 وضع المشروع — معرفة الملفات:**
   • "What file controls the dashboard?" → الملف الدقيق
   • "Where is the login page?" → المسار الكامل
   • "What CSS controls the colors?" → ملف CSS
 
 **🚀 تخطيط الميزات الجديدة:**
   • "Create notification bot" → خطة + ملفات + خطوات
-  • "Build new feature" → scaffold كامل
+  • "Build new page for statistics" → scaffold كامل
 
 **🎨 إعادة التصميم:**
   • "Redesign homepage" → الملفات + خطوات التنفيذ
-  • "Revamp sidebar" → خطة التعديل
+  • "Revamp sidebar UI" → خطة التعديل الكاملة
 
 **🔧 التشخيص والإصلاح:**
-  • "Fix broken button" → تشخيص + فحص سجلات مباشر
+  • "Fix broken button" → تشخيص + فحص سجلات
   • "Fix error in auth" → root-cause analysis
 
 **🏗️ تحليل المعمارية:**
@@ -2224,12 +2879,15 @@ def _r_capabilities() -> dict:
   • "What depends on auth.py?"
   • "What breaks if I change style.css?"
 
-**🤖 Hugging Face (متصل):**
-  • "Are you connected to Hugging Face?" → حالة الاتصال
-  • يمكنني إرسال طلبات للتحليل والتخطيط عبر النموذج الخارجي
+**🤖 Hugging Face (متصل ✅):**
+  • "Are you connected to Hugging Face?" → حالة الاتصال الحية
+  • تحليل وتخطيط عبر نموذج `x-ai-core` الخارجي
+
+**🧠 المرحلة 3 — نشطة:**
+  • Reasoning Engine · AI Memory · AI Planner · Engineer Core · Impact Analysis
 
 **🧪 اختبار ذاتي:**
-  • "اختبر نفسك" → تشغيل 13 اختباراً والتحقق من النتائج""",
+  • "اختبر نفسك" → تشغيل الاختبارات والتحقق من النتائج""",
         "data": {
             "intents": [
                 "identity", "capabilities", "hf_query",

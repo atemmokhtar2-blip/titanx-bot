@@ -7,53 +7,70 @@
 
   <!-- Sidebar -->
   <aside class="ai-chat-sidebar">
+
     <button class="ai-new-chat-btn" onclick="newChat()">
-      <span>✦</span> محادثة جديدة
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      محادثة جديدة
     </button>
 
-    <div class="ai-sidebar-section">
-      <div class="ai-sidebar-label">الإمكانيات</div>
-      <div class="ai-cap-grid">
-        <div class="ai-cap-card" onclick="sendQuick('افحص الأخطاء في المشروع')">
-          <div class="ai-cap-icon">🔍</div>
-          <div class="ai-cap-name">كشف الأخطاء</div>
-        </div>
-        <div class="ai-cap-card" onclick="sendQuick('افحص الثغرات الأمنية')">
-          <div class="ai-cap-icon">🔒</div>
-          <div class="ai-cap-name">فحص الأمان</div>
-        </div>
-        <div class="ai-cap-card" onclick="sendQuick('حلل المشروع وأعطني الإحصائيات')">
-          <div class="ai-cap-icon">📊</div>
-          <div class="ai-cap-name">تحليل المشروع</div>
-        </div>
-        <div class="ai-cap-card" onclick="sendQuick('أنشئ نسخة احتياطية الآن')">
-          <div class="ai-cap-icon">💾</div>
-          <div class="ai-cap-name">نسخة احتياطية</div>
-        </div>
-        <div class="ai-cap-card" onclick="sendQuick('اعرض المسارات في المشروع')">
-          <div class="ai-cap-icon">🛣️</div>
-          <div class="ai-cap-name">المسارات</div>
-        </div>
-        <div class="ai-cap-card" onclick="sendQuick('حالة النظام')">
-          <div class="ai-cap-icon">⚡</div>
-          <div class="ai-cap-name">حالة النظام</div>
-        </div>
+    <!-- AI Identity Card -->
+    <div class="ai-identity-card">
+      <div class="ai-identity-avatar">🧠</div>
+      <div class="ai-identity-info">
+        <div class="ai-identity-name">X AI Operator</div>
+        <div class="ai-identity-phase">المرحلة 3 — نشط</div>
       </div>
     </div>
 
-    <div class="ai-sidebar-section">
-      <div class="ai-sidebar-label">إحصائيات الذكاء</div>
-      <div class="ai-mini-stat"><span>محادثات</span><strong id="sb-chats">—</strong></div>
-      <div class="ai-mini-stat"><span>تحليلات</span><strong id="sb-analyses">—</strong></div>
-      <div class="ai-mini-stat"><span>نسخ احتياطية</span><strong id="sb-backups">—</strong></div>
+    <!-- Connection Status -->
+    <div class="ai-conn-block">
+      <div class="ai-conn-row">
+        <span class="ai-conn-dot ai-conn-green" id="hf-dot"></span>
+        <span class="ai-conn-label">Hugging Face</span>
+        <span class="ai-conn-val" id="hf-val">—</span>
+      </div>
+      <div class="ai-conn-row">
+        <span class="ai-conn-dot ai-conn-green"></span>
+        <span class="ai-conn-label">Reasoning Engine</span>
+        <span class="ai-conn-val" style="color:var(--neon,#00d4ff)">نشط</span>
+      </div>
+      <div class="ai-conn-row">
+        <span class="ai-conn-dot ai-conn-green"></span>
+        <span class="ai-conn-label">AI Memory</span>
+        <span class="ai-conn-val" id="mem-turns">—</span>
+      </div>
     </div>
 
+    <!-- Phase 3 Status -->
+    <div class="ai-sidebar-section">
+      <div class="ai-sidebar-label">المرحلة 3</div>
+      <div class="ai-p3-grid">
+        <div class="ai-p3-badge" title="Reasoning Engine">🧠 Reasoning</div>
+        <div class="ai-p3-badge" title="AI Memory Layer">💾 Memory</div>
+        <div class="ai-p3-badge" title="AI Planner">📋 Planner</div>
+        <div class="ai-p3-badge" title="Engineer Core">⚙️ Engineer</div>
+        <div class="ai-p3-badge" title="Impact Analysis">🔬 Impact</div>
+        <div class="ai-p3-badge ai-p3-dim" title="Auto-Execute — infrastructure ready, not activated">🚀 Auto*</div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="ai-sidebar-section">
+      <div class="ai-sidebar-label">أوامر سريعة</div>
+      <button class="ai-quick-action" onclick="sendQuick('من أنت؟')">🧠 من أنت؟</button>
+      <button class="ai-quick-action" onclick="sendQuick('What can you do?')">⚡ قدراتك</button>
+      <button class="ai-quick-action" onclick="sendQuick('Are you connected to Hugging Face?')">🤖 حالة HF</button>
+      <button class="ai-quick-action" onclick="sendQuick('اختبر نفسك')">🧪 اختبر نفسك</button>
+    </div>
+
+    <!-- Navigation -->
     <div class="ai-sidebar-section" style="margin-top:auto">
       <div class="ai-sidebar-label">صفحات الذكاء</div>
       <a href="/ai/engineer" class="ai-nav-link">🤖 مهندس الذكاء</a>
       <a href="/ai/memory"   class="ai-nav-link">🧠 ذاكرة المشروع</a>
       <a href="/ai/review"   class="ai-nav-link">📋 مراجعة التعديلات</a>
     </div>
+
   </aside>
 
   <!-- Main Chat -->
@@ -67,8 +84,8 @@
           🧠
         </div>
         <div>
-          <div class="ai-chat-title">X AI Operator</div>
-          <div class="ai-chat-sub">مهندس ذكاء متخصص في مشروع X Control Center</div>
+          <div class="ai-chat-title">X AI Operator <span class="ai-phase-tag">P3</span></div>
+          <div class="ai-chat-sub">محادثة عامة · معرفة مشروع · تخطيط · تشخيص</div>
         </div>
       </div>
       <div class="ai-chat-header-right">
@@ -80,7 +97,6 @@
 
     <!-- Messages -->
     <div class="ai-messages" id="ai-messages">
-      <!-- Welcome -->
       <div class="ai-msg ai-msg-bot ai-msg-appear" id="welcome-msg">
         <div class="ai-msg-avatar">🧠</div>
         <div class="ai-msg-bubble">
@@ -100,11 +116,11 @@
       </div>
     </div>
 
-    <!-- Input Area -->
+    <!-- Input -->
     <div class="ai-input-wrap">
       <div class="ai-input-box">
         <textarea class="ai-textarea" id="ai-input"
-          placeholder="اكتب رسالتك... مثال: افحص الأخطاء في المشروع"
+          placeholder="اكتب رسالتك... مثال: اشرح FastAPI · Python vs JS · Create notification bot"
           rows="1"
           onkeydown="handleKey(event)"
           oninput="autoResize(this)"></textarea>
@@ -118,10 +134,10 @@
         </div>
       </div>
       <div class="ai-quick-chips" id="ai-quick-chips">
-        <button class="ai-chip" onclick="sendQuick('مساعدة')">❓ المساعدة</button>
+        <button class="ai-chip" onclick="sendQuick('اشرح FastAPI')">🚀 FastAPI</button>
+        <button class="ai-chip" onclick="sendQuick('Python vs JavaScript')">⚖️ Python vs JS</button>
+        <button class="ai-chip" onclick="sendQuick('Create notification bot')">🤖 إنشاء بوت</button>
         <button class="ai-chip" onclick="sendQuick('افحص الأخطاء')">🔍 الأخطاء</button>
-        <button class="ai-chip" onclick="sendQuick('أنشئ نسخة احتياطية الآن')">💾 نسخة احتياطية</button>
-        <button class="ai-chip" onclick="sendQuick('افحص الأمان')">🔒 الأمان</button>
         <button class="ai-chip" onclick="sendQuick('هيكل المشروع')">📁 الهيكل</button>
       </div>
     </div>
@@ -135,32 +151,111 @@
 var _busy   = false;
 var _chatEl = document.getElementById('ai-messages');
 
-// ── Welcome message ──────────────────────────────────────────────────────────
+// ── Sidebar status CSS ────────────────────────────────────────────────────────
+(function injectSidebarStyles() {
+  var css = `
+    .ai-identity-card {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(0,212,255,0.04);
+      border: 1px solid rgba(0,212,255,0.12);
+      border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;
+    }
+    .ai-identity-avatar { font-size: 1.6rem; line-height: 1; }
+    .ai-identity-name { font-size: .82rem; font-weight: 700; color: #00d4ff;
+      text-shadow: 0 0 10px rgba(0,212,255,0.5); }
+    .ai-identity-phase { font-size: .68rem; color: rgba(0,212,255,0.55);
+      font-family: 'JetBrains Mono',monospace; }
+    .ai-conn-block {
+      background: rgba(0,0,0,0.25); border: 1px solid rgba(0,212,255,0.08);
+      border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; display: flex;
+      flex-direction: column; gap: 5px;
+    }
+    .ai-conn-row { display: flex; align-items: center; gap: 6px;
+      font-size: .72rem; }
+    .ai-conn-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+      animation: xPulseBreathe 2.5s ease-in-out infinite; }
+    .ai-conn-green { background: #00ff88;
+      box-shadow: 0 0 6px rgba(0,255,136,0.7); }
+    .ai-conn-yellow { background: #ffaa00;
+      box-shadow: 0 0 6px rgba(255,170,0,0.7); }
+    .ai-conn-label { flex: 1; color: var(--text2); }
+    .ai-conn-val { font-family: 'JetBrains Mono',monospace; font-size: .68rem;
+      color: var(--green); }
+    .ai-p3-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .ai-p3-badge {
+      font-size: .67rem; padding: 4px 6px; border-radius: 6px;
+      background: rgba(0,212,255,0.06); border: 1px solid rgba(0,212,255,0.15);
+      color: #00d4ff; text-align: center; font-weight: 600;
+      transition: background 0.2s;
+    }
+    .ai-p3-badge:hover { background: rgba(0,212,255,0.12); }
+    .ai-p3-dim { opacity: 0.45; }
+    .ai-quick-action {
+      width: 100%; text-align: right; background: rgba(0,212,255,0.03);
+      border: 1px solid rgba(0,212,255,0.10); border-radius: 7px;
+      padding: 7px 10px; font-size: .75rem; color: var(--text2);
+      cursor: pointer; margin-bottom: 4px; font-family: inherit;
+      transition: border-color 0.2s, background 0.2s, color 0.2s;
+      direction: rtl;
+    }
+    .ai-quick-action:hover {
+      border-color: rgba(0,212,255,0.35); background: rgba(0,212,255,0.07);
+      color: #00d4ff;
+    }
+    .ai-quick-action:active { transform: scale(0.97); }
+    .ai-phase-tag {
+      font-size: .6rem; font-weight: 800; background: rgba(0,212,255,0.15);
+      color: #00d4ff; border: 1px solid rgba(0,212,255,0.3);
+      border-radius: 4px; padding: 1px 5px; vertical-align: middle;
+      font-family: 'JetBrains Mono',monospace;
+    }
+  `;
+  var el = document.createElement('style');
+  el.textContent = css;
+  document.head.appendChild(el);
+})();
+
+// ── Welcome message ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   var welcome = [
-    'مرحباً! أنا **X AI Operator** — مهندس الذكاء المتخصص في مشروع X Control Center. 🧠',
+    '🧠 **X AI Operator Phase 3** — جاهز.',
     '',
-    'أستطيع تحليل الملفات الفعلية، كشف الأخطاء، فحص الأمان، وإنشاء نسخ احتياطية.',
+    '**وضعان للعمل:**',
+    '  💬 **وضع المحادثة** — اشرح Python · FastAPI vs Flask · ما هو REST API؟',
+    '  🔍 **وضع المشروع** — Create notification bot · Fix broken button · Redesign homepage',
     '',
-    'اكتب رسالتك أو اختر أحد الأوامر السريعة أدناه.'
+    'اكتب رسالتك أو اختر من الأوامر السريعة.'
   ].join('\n');
   document.getElementById('welcome-content').innerHTML = renderMd(welcome);
-  loadStats();
-  startStatsPolling(15000);
+  loadStatus();
 });
 
-// ── Load sidebar stats ───────────────────────────────────────────────────────
-async function loadStats() {
+// ── Load sidebar HF status ────────────────────────────────────────────────────
+async function loadStatus() {
   try {
-    var d = await apiGet('/ai/api/memory');
-    var s = d.ai_stats || {};
-    setText('sb-chats',    s.total_chats    || 0);
-    setText('sb-analyses', s.total_analyses || 0);
-    setText('sb-backups',  s.total_backups  || 0);
+    var d = await apiGet('/ai/api/hf/status');
+    var dot = document.getElementById('hf-dot');
+    var val = document.getElementById('hf-val');
+    if (d && d.connected) {
+      if (dot) { dot.className = 'ai-conn-dot ai-conn-green'; }
+      if (val) { val.textContent = 'متصل ✅'; val.style.color = '#00ff88'; }
+    } else {
+      if (dot) { dot.className = 'ai-conn-dot ai-conn-yellow'; }
+      if (val) { val.textContent = 'منقطع'; val.style.color = '#ffaa00'; }
+    }
+  } catch(e) {
+    var val = document.getElementById('hf-val');
+    if (val) { val.textContent = '—'; }
+  }
+
+  // Memory turns
+  try {
+    var mem = document.getElementById('mem-turns');
+    if (mem) { mem.textContent = '0 دورة'; }
   } catch(e) {}
 }
 
-// ── Send / receive ───────────────────────────────────────────────────────────
+// ── Send / receive ────────────────────────────────────────────────────────────
 async function sendMessage() {
   if (_busy) return;
   var inp = document.getElementById('ai-input');
@@ -176,15 +271,8 @@ async function sendMessage() {
   appendUserMsg(msg);
   showTyping(true);
 
-  // Handle built-in actions
-  if (msg === 'create_backup') {
-    await doCreateBackup();
-    return;
-  }
-  if (msg === 'list_backups') {
-    await doListBackups();
-    return;
-  }
+  if (msg === 'create_backup') { await doCreateBackup(); return; }
+  if (msg === 'list_backups')  { await doListBackups();  return; }
 
   try {
     var d = await apiPost('/ai/api/chat', { message: msg });
@@ -202,7 +290,13 @@ async function sendMessage() {
   _busy = false;
   document.getElementById('ai-send-btn').disabled = false;
   document.getElementById('ai-quick-chips').style.opacity = '1';
-  loadStats();
+
+  // Update memory turns counter
+  var mt = document.getElementById('mem-turns');
+  if (mt) {
+    var n = parseInt(mt.textContent) || 0;
+    mt.textContent = (n + 1) + ' دورة';
+  }
 }
 
 async function doCreateBackup() {
@@ -211,9 +305,9 @@ async function doCreateBackup() {
     var d = await apiPost('/ai/api/backup/create', { description: 'نسخة من مركز الذكاء الاصطناعي' });
     showTyping(false);
     if (d.ok) {
-      appendBotMsg('✅ **تم إنشاء النسخة الاحتياطية بنجاح!**\n\n📦 المعرف: `' + d.id + '`\n📄 الملفات: ' + d.files + '\n💾 الحجم: ' + d.size_h + '\n🕐 التوقيت: ' + d.datetime, 'success', []);
+      appendBotMsg('✅ **تم إنشاء النسخة الاحتياطية**\n\n📦 المعرف: `' + d.id + '`\n📄 الملفات: ' + d.files + '\n💾 الحجم: ' + d.size_h, 'success', []);
     } else {
-      appendBotMsg('❌ فشل إنشاء النسخة: ' + (d.error||''), 'error', []);
+      appendBotMsg('❌ فشل: ' + (d.error||''), 'error', []);
     }
   } catch(e) {
     showTyping(false);
@@ -222,7 +316,6 @@ async function doCreateBackup() {
   _busy = false;
   document.getElementById('ai-send-btn').disabled = false;
   document.getElementById('ai-quick-chips').style.opacity = '1';
-  loadStats();
 }
 
 async function doListBackups() {
@@ -231,11 +324,10 @@ async function doListBackups() {
     var bks = await apiGet('/ai/api/backup/list');
     showTyping(false);
     var txt = '💾 **النسخ الاحتياطية** (' + bks.length + ')\n\n';
-    if (!bks.length) {
-      txt += 'لا توجد نسخ احتياطية بعد.';
-    } else {
+    if (!bks.length) { txt += 'لا توجد نسخ احتياطية بعد.'; }
+    else {
       bks.slice(0,5).forEach(function(b,i) {
-        txt += (i+1)+'. `'+b.id+'`\n   📅 '+b.datetime+' · '+b.files+' ملف · '+b.size_h+'\n   '+b.description+'\n\n';
+        txt += (i+1)+'. `'+b.id+'`\n   📅 '+b.datetime+' · '+b.files+' ملف · '+b.size_h+'\n\n';
       });
     }
     appendBotMsg(txt, 'info', []);
@@ -254,10 +346,7 @@ function sendQuick(cmd) {
 }
 
 function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
-  }
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
 
 function autoResize(el) {
@@ -277,7 +366,7 @@ function appendUserMsg(text) {
 function appendBotMsg(text, type, actions) {
   var el = document.createElement('div');
   el.className = 'ai-msg ai-msg-bot ai-msg-appear';
-  var typeClass = type === 'error' ? 'ai-bubble-error' : type === 'warning' ? 'ai-bubble-warn' : type === 'success' ? 'ai-bubble-success' : '';
+  var typeClass = type === 'error' ? 'ai-bubble-error' : type === 'success' ? 'ai-bubble-success' : '';
   var actHtml = '';
   if (actions && actions.length) {
     actHtml = '<div class="ai-msg-actions">';
@@ -308,6 +397,8 @@ function scrollChat() {
 function newChat() {
   _chatEl.innerHTML = '';
   document.getElementById('ai-input').value = '';
+  var mt = document.getElementById('mem-turns');
+  if (mt) mt.textContent = '0 دورة';
 }
 
 function clearChat() {
@@ -332,13 +423,12 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ── Markdown renderer (minimal) ───────────────────────────────────────────────
 function renderMd(text) {
   var h = escHtml(text);
-  h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  h = h.replace(/`([^`]+)`/g, '<code class="ai-inline-code">$1</code>');
+  h = h.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/`([^`\n]+)`/g, '<code class="ai-inline-code">$1</code>');
   h = h.replace(/^  ·\s+(.+)$/gm, '<div class="ai-list-item"><span class="ai-list-dot">·</span>$1</div>');
-  h = h.replace(/^  ·([^·].+)$/gm, '<div class="ai-list-item"><span class="ai-list-dot">·</span>$1</div>');
+  h = h.replace(/^  •\s+(.+)$/gm, '<div class="ai-list-item"><span class="ai-list-dot">•</span>$1</div>');
   h = h.replace(/\n/g, '<br>');
   return h;
 }
