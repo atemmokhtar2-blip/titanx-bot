@@ -110,66 +110,6 @@
   "chat_history": [
     {
       "role": "user",
-      "text": "ما حالة Hugging Face؟",
-      "ts": "2026-06-19T10:10:35.079160"
-    },
-    {
-      "role": "assistant",
-      "text": "🤖 **نعم — متصل بـ Hugging Face ✅**\n\n**Space:** `https://7atemmmmm-x-ai-core.hf.space`\n**الحالة:** 🟢 متصل ومستجيب (تم التحقق للتو)\n\n**نقاط الاتصال الحية:**\n  • `POST /api/analyze` — تحليل الأخطاء والكود\n  • `POST /api/assistant` — مساعد ذكاء عام\n  • `POST /api/planner` — تخطيط الميزات خطوة بخطوة\n  • `GET  /api/memory` — ذاكرة المشروع من الـ Space ✅\n\n**API Proxy محلي (بعد المصادقة):**\n  • `GET  /ai/api/hf/status`\n  • `POST /ai/api/hf/analyze`\n  • `POST /ai/api/hf/assistant`\n  • `POST /ai/api/hf/pl",
-      "ts": "2026-06-19T10:10:35.257520"
-    },
-    {
-      "role": "user",
-      "text": "من انت",
-      "ts": "2026-06-19T10:11:07.732999"
-    },
-    {
-      "role": "assistant",
-      "text": "🧠 **X AI Operator** · **X Control Center**\n\nلم أتعرف على نوع هذا الطلب بدقة.\n**يمكنني مساعدتك في:**\n\n  🔍 **ملفات المشروع** — \"What file controls the dashboard?\"\n  🚀 **ميزات جديدة** — \"Create notification bot\"\n  🔧 **إصلاح مشاكل** — \"Fix broken button\"\n  🎨 **إعادة تصميم** — \"Redesign homepage\"\n  🏗️ **المعمارية** — \"How does the bot work?\"\n  ⚡ **قدراتي الكاملة** — \"What can you do?\"\n  🧪 **اختبار ذاتي** — \"اختبر نفسك\"\n\nأعِد صياغة سؤالك وسأحاول الإجابة بدقة أكبر.",
-      "ts": "2026-06-19T10:11:07.745863"
-    },
-    {
-      "role": "user",
-      "text": "ما الفرق بين:\n\n1- تعديل الصفحة الرئيسية\n\n2- إنشاء بوت جديد",
-      "ts": "2026-06-19T10:11:36.576009"
-    },
-    {
-      "role": "assistant",
-      "text": "🧠 **X AI Operator** · **X Control Center**\n\nلم أتعرف على نوع هذا الطلب بدقة.\n**يمكنني مساعدتك في:**\n\n  🔍 **ملفات المشروع** — \"What file controls the dashboard?\"\n  🚀 **ميزات جديدة** — \"Create notification bot\"\n  🔧 **إصلاح مشاكل** — \"Fix broken button\"\n  🎨 **إعادة تصميم** — \"Redesign homepage\"\n  🏗️ **المعمارية** — \"How does the bot work?\"\n  ⚡ **قدراتي الكاملة** — \"What can you do?\"\n  🧪 **اختبار ذاتي** — \"اختبر نفسك\"\n\nأعِد صياغة سؤالك وسأحاول الإجابة بدقة أكبر.",
-      "ts": "2026-06-19T10:11:36.589547"
-    },
-    {
-      "role": "user",
-      "text": "اشرح الفرق بين Python و JavaScript في 10 نقاط.",
-      "ts": "2026-06-19T10:12:51.084854"
-    },
-    {
-      "role": "assistant",
-      "text": "🏗️ **معمارية: PROJECT**\n\nX Control Center — نظام بوت Telegram مع لوحة تحكم FastAPI\n\n**components:**\n  • PrimeDownloader Bot (bot.py) — بوت التحميل الرئيسي\n  • Support Bot (support_bot/bot.py) — بوت الدعم الفني\n  • Control Panel (control_panel/app.py) — لوحة تحكم FastAPI على بورت 5000\n  • Database (database/) — SQLite (bot.db) + Support (support.db)\n  • AI Engine (control_panel/ai_engine.py) — نظام الذكاء الاصطناعي",
-      "ts": "2026-06-19T10:12:51.095641"
-    },
-    {
-      "role": "user",
-      "text": "ما الملف المسؤول عن تفسير رسائل المستخدم داخل نظام الذكاء الاصطناعي؟\n\nأريد الملف الرئيسي فقط.",
-      "ts": "2026-06-19T10:14:25.489645"
-    },
-    {
-      "role": "assistant",
-      "text": "📍 **الملفات المسؤولة عن: `ما الملف المسؤول عن تفسير رسائل المستخدم داخل نظام الذكاء الاصطناعي؟\n\nأريد الملف الرئيسي فقط.`**\n\n🌐 **الرابط:** `حالة النظام`\n  ⚙️ **ROUTER**: `control_panel/routers/system.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/system.html` ✅\n  🏗️ **BASE**: `control_panel/templates/base.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/system/api/stats`, `/system/api/bots`\n\n📂 **الملفات المرتبطة:**\n  🎨 **TEMP",
-      "ts": "2026-06-19T10:14:25.508273"
-    },
-    {
-      "role": "user",
-      "text": "Who are you?",
-      "ts": "2026-06-19T10:32:19.389596"
-    },
-    {
-      "role": "assistant",
-      "text": "🧠 **أنا X AI Operator — المرحلة 3**\n\n**ما أنا؟**\nمحرك ذكاء اصطناعي متخصص مدمج في **X Control Center v5.0**.\nلا أبحث في الملفات لأي سؤال — أفكر أولاً، أفهم السياق، ثم أجيب.\n\n**وضعان للعمل:**\n  💬 **وضع المحادثة** — أسئلة تقنية عامة: Python، FastAPI، SQL، مقارنات\n  🔍 **وضع المشروع** — ملفات، مسارات، إنشاء ميزات، تشخيص أخطاء\n\n**مكوناتي (المرحلة 3):**\n  🧠 **Reasoning Engine** — أصنّف كل رسالة قبل أي بحث\n  💾 **AI Memory Layer** — أتذكر سياق المحادثة (1 دورة)\n  📋 **AI Planner** — أخطط قبل التنفيذ مع تح",
-      "ts": "2026-06-19T10:32:19.396049"
-    },
-    {
-      "role": "user",
       "text": "What can you do?",
       "ts": "2026-06-19T10:32:19.398238"
     },
@@ -357,6 +297,66 @@
       "role": "assistant",
       "text": "🧠 **X AI Operator** · **X Control Center**\n\nلم أتعرف على نوع هذا الطلب بدقة.\n**يمكنني مساعدتك في:**\n\n  🔍 **ملفات المشروع** — \"What file controls the dashboard?\"\n  🚀 **ميزات جديدة** — \"Create notification bot\"\n  🔧 **إصلاح مشاكل** — \"Fix broken button\"\n  🎨 **إعادة تصميم** — \"Redesign homepage\"\n  🏗️ **المعمارية** — \"How does the bot work?\"\n  ⚡ **قدراتي الكاملة** — \"What can you do?\"\n  🧪 **اختبار ذاتي** — \"اختبر نفسك\"\n\nأعِد صياغة سؤالك وسأحاول الإجابة بدقة أكبر.",
       "ts": "2026-06-19T12:54:58.128238"
+    },
+    {
+      "role": "user",
+      "text": "من انت",
+      "ts": "2026-06-19T13:01:10.607900"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **X AI Operator** · **X Control Center**\n\nلم أتعرف على نوع هذا الطلب بدقة.\n**يمكنني مساعدتك في:**\n\n  🔍 **ملفات المشروع** — \"What file controls the dashboard?\"\n  🚀 **ميزات جديدة** — \"Create notification bot\"\n  🔧 **إصلاح مشاكل** — \"Fix broken button\"\n  🎨 **إعادة تصميم** — \"Redesign homepage\"\n  🏗️ **المعمارية** — \"How does the bot work?\"\n  ⚡ **قدراتي الكاملة** — \"What can you do?\"\n  🧪 **اختبار ذاتي** — \"اختبر نفسك\"\n\nأعِد صياغة سؤالك وسأحاول الإجابة بدقة أكبر.",
+      "ts": "2026-06-19T13:01:10.635975"
+    },
+    {
+      "role": "user",
+      "text": "من انت",
+      "ts": "2026-06-19T13:01:51.885879"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **X AI Operator** · **X Control Center**\n\nلم أتعرف على نوع هذا الطلب بدقة.\n**يمكنني مساعدتك في:**\n\n  🔍 **ملفات المشروع** — \"What file controls the dashboard?\"\n  🚀 **ميزات جديدة** — \"Create notification bot\"\n  🔧 **إصلاح مشاكل** — \"Fix broken button\"\n  🎨 **إعادة تصميم** — \"Redesign homepage\"\n  🏗️ **المعمارية** — \"How does the bot work?\"\n  ⚡ **قدراتي الكاملة** — \"What can you do?\"\n  🧪 **اختبار ذاتي** — \"اختبر نفسك\"\n\nأعِد صياغة سؤالك وسأحاول الإجابة بدقة أكبر.",
+      "ts": "2026-06-19T13:01:51.889091"
+    },
+    {
+      "role": "user",
+      "text": "عرفني بنفسك\n\nإيه اللي تقدر تعمله؟\n\nلو أنا صاحب المشروع تنصحني بإيه؟\n\nاشرحلي Python كأني مبتدئ.",
+      "ts": "2026-06-19T13:02:43.694038"
+    },
+    {
+      "role": "assistant",
+      "text": "🏗️ **معمارية: PROJECT**\n\nX Control Center — نظام بوت Telegram مع لوحة تحكم FastAPI\n\n**components:**\n  • PrimeDownloader Bot (bot.py) — بوت التحميل الرئيسي\n  • Support Bot (support_bot/bot.py) — بوت الدعم الفني\n  • Control Panel (control_panel/app.py) — لوحة تحكم FastAPI على بورت 5000\n  • Database (database/) — SQLite (bot.db) + Support (support.db)\n  • AI Engine (control_panel/ai_engine.py) — نظام الذكاء الاصطناعي",
+      "ts": "2026-06-19T13:02:43.706810"
+    },
+    {
+      "role": "user",
+      "text": "من أنت؟",
+      "ts": "2026-06-19T13:06:00.236859"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **أنا X AI Operator — المرحلة 3**\n\n**ما أنا؟**\nمحرك ذكاء اصطناعي متخصص مدمج في **X Control Center v5.0**.\nلا أبحث في الملفات لأي سؤال — أفكر أولاً، أفهم السياق، ثم أجيب.\n\n**وضعان للعمل:**\n  💬 **وضع المحادثة** — أسئلة تقنية عامة: Python، FastAPI، SQL، مقارنات\n  🔍 **وضع المشروع** — ملفات، مسارات، إنشاء ميزات، تشخيص أخطاء\n\n**مكوناتي (المرحلة 3):**\n  🧠 **Reasoning Engine** — أصنّف كل رسالة قبل أي بحث\n  💾 **AI Memory Layer** — أتذكر سياق المحادثة (1 دورة)\n  📋 **AI Planner** — أخطط قبل التنفيذ مع تح",
+      "ts": "2026-06-19T13:06:00.251030"
+    },
+    {
+      "role": "user",
+      "text": "ماذا تستطيع أن تفعل؟",
+      "ts": "2026-06-19T13:06:00.253996"
+    },
+    {
+      "role": "assistant",
+      "text": "⚡ **قدرات X AI Operator — المرحلة 3**\n\n**💬 وضع المحادثة العامة (جديد في المرحلة 3):**\n  • \"Explain FastAPI\" → شرح كامل بالاستخدامات والمزايا\n  • \"Python vs JavaScript\" → مقارنة مفصّلة\n  • \"What is REST API?\" → تعريف وأمثلة\n  • \"How do Telegram Bots work?\" → شرح المفهوم\n  • \"Hello\" / \"مرحبا\" → محادثة طبيعية\n\n**🔍 وضع المشروع — معرفة الملفات:**\n  • \"What file controls the dashboard?\" → الملف الدقيق\n  • \"Where is the login page?\" → المسار الكامل\n  • \"What CSS controls the colors?\" → ملف CSS\n\n**🚀 تخط",
+      "ts": "2026-06-19T13:06:00.259712"
+    },
+    {
+      "role": "user",
+      "text": "كيف حالك؟",
+      "ts": "2026-06-19T13:06:00.263458"
+    },
+    {
+      "role": "assistant",
+      "text": "مرحباً! 👋 أنا **X AI Operator Phase 3** — جاهز للمساعدة.\n\nأعمل في **وضعَين**:\n  💬 **وضع المحادثة** — أسئلة برمجة عامة: Python، FastAPI، SQL، الخ\n  🔍 **وضع المشروع** — ملفات، مسارات، إنشاء ميزات، تشخيص أخطاء\n\nما الذي تريد فعله؟",
+      "ts": "2026-06-19T13:06:00.282482"
     }
   ],
   "analysis_cache": {},
@@ -367,7 +367,7 @@
     "errors_found": 57,
     "last_scan": null
   },
-  "updated": "2026-06-19T12:54:58.128240",
+  "updated": "2026-06-19T13:06:00.282485",
   "project": {
     "name": "X Control Center",
     "main_bot": "PrimeDownloader Bot (bot.py)",
@@ -385,7 +385,7 @@
     "total_scans": 3,
     "total_plans": 9,
     "total_questions": 5,
-    "total_chats": 61
+    "total_chats": 67
   },
   "created": "2026-06-19T09:05:02.173299"
 }
