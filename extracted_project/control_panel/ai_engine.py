@@ -1605,6 +1605,20 @@ def detect_intent(msg: str) -> str:
     if any(re.search(p, ml) for p in _WEAKNESS_Q):
         return "weakness"
 
+    # ── Priority 2·55: Security / safety check ───────────────────────────────
+    # "هل المشروع آمن؟" — Arabic آمن (U+0622) ≠ INTENTS pattern أمن (U+0623), must catch here
+    _SECURITY_Q = [
+        r"هل\s+المشروع\s+(?:آمن|مؤمن|محمي|بأمان)",
+        r"(?:مستوى|درجة|مدى)\s+(?:الأمان|الحماية|الأمن)",
+        r"(?:أمان|حماية|أمن)\s+المشروع",
+        r"(?:is|how\s+(?:secure|safe)).{0,15}(?:project|system|app)",
+        r"security\s+(?:check|audit|scan|review|analysis|status)",
+        r"(?:ثغرات|مخاطر|vulnerabilities).{0,20}(?:المشروع|project)",
+        r"هل\s+(?:هناك|يوجد).{0,15}(?:ثغرات|مخاطر|مشاكل\s+أمنية)",
+    ]
+    if any(re.search(p, ml) for p in _SECURITY_Q):
+        return "security"
+
     # ── Priority 2·6: Architecture quality (before scored match steals "بنية") ─
     # "هل بنية المشروع جيدة؟" / "is the project structure good?"
     _ARCH_Q = [
@@ -1631,13 +1645,15 @@ def detect_intent(msg: str) -> str:
     # These catch well-formed questions that score 0 on keyword lists but have
     # clear meaning. Checked AFTER scored match so specific handlers win first.
 
-    # Identity variants: "عرفني بنفسك", "ما اسمك", "هل أنت AI"
+    # Identity variants: "عرفني بنفسك", "ما اسمك", "هل أنت AI", "ما وظيفتك"
     _IDENTITY_SEM = [
         r"عرّفني\s+بنفسك", r"عرفني\s+بنفسك", r"عرّف\s+نفسك", r"عرف\s+نفسك",
         r"ما\s+اسمك", r"ما\s+هو\s+اسمك",
         r"هل\s+أنت\s+(?:ذكاء|ذكاءً)\s+اصطناعي",
         r"هل\s+أنت\s+(?:بوت|روبوت|ai|برنامج|آلة)",
         r"من\s+تكون\b", r"من\s+تكون\s+أنت",
+        r"ما\s+(?:وظيفتك|دورك|مهمتك|هدفك|غرضك|تخصصك)",
+        r"what\s+(?:is\s+your\s+)?(?:role|purpose|function|job|mission)\b",
     ]
     if any(re.search(p, ml) for p in _IDENTITY_SEM):
         return "identity"
@@ -1667,7 +1683,8 @@ def detect_intent(msg: str) -> str:
     # Improvement / best-practice / suggestions
     _IMPROVE_SEM = [
         r"أفضل\s+(?:تطوير|تحسين|ميزة|إضافة).{0,30}(?:للمشروع|المشروع)?",
-        r"(?:كيف|ماذا)\s+(?:أطور|أحسن|أعزز)\s+المشروع",
+        r"(?:كيف|ماذا)\s+(?:أطور|أحسن|أعزز|تطور|يطور|تحسن|يحسن|نطور|نحسن)\s+المشروع",
+        r"كيف\s+(?:تطور|يطور|تحسن|يحسن).{0,20}(?:المشروع|هذا\s+المشروع)",
         r"best\s+(?:improvement|feature|addition|upgrade)\s+(?:for\s+)?(?:the\s+)?project",
         r"(?:what|how).{0,10}(?:improve|enhance|upgrade)\s+(?:the\s+)?project",
         r"ما\s+(?:الذي\s+)?(?:يحسن|يطور)\s+المشروع",
@@ -2927,9 +2944,10 @@ def _r_conversation(msg: str) -> dict:
 
     # ── 3. HF-backed general answer (best-effort) ───────────────────────────
     try:
-        hf = call_hf_analyze(msg)
-        if hf.get("ok") and isinstance(hf.get("analysis"), str) and len(hf["analysis"]) > 30:
-            return {"text": f"💬 {hf['analysis']}",
+        hf = call_hf_assistant(msg)
+        answer = hf.get("response") or hf.get("analysis") or hf.get("message") or ""
+        if hf.get("ok") and isinstance(answer, str) and len(answer) > 30:
+            return {"text": f"💬 {answer}",
                     "data": {"mode": "conversation", "source": "hf"}}
     except Exception:
         pass
@@ -3923,6 +3941,17 @@ def _r_general(msg: str) -> dict:
     ]
     if any(re.search(p, ml) for p in _L1):
         return _r_impact(msg)
+
+    # ── Layer 1·5: Security check ─────────────────────────────────────────────
+    _L1_5 = [
+        r"هل\s+المشروع\s+(?:آمن|مؤمن|محمي|بأمان)",
+        r"(?:مستوى|درجة|مدى)\s+(?:الأمان|الحماية|الأمن)",
+        r"(?:أمان|حماية|أمن)\s+المشروع",
+        r"security\s+(?:check|audit|scan|review|analysis|status)",
+        r"(?:is|how\s+(?:secure|safe)).{0,15}(?:project|system|app)",
+    ]
+    if any(re.search(p, ml) for p in _L1_5):
+        return _r_security()
 
     # ── Layer 2: Project architecture / quality ───────────────────────────────
     # "هل بنية المشروع جيدة؟" / "is the project structure solid?"
