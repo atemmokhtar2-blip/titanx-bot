@@ -54,15 +54,6 @@
       </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="ai-sidebar-section">
-      <div class="ai-sidebar-label">أوامر سريعة</div>
-      <button class="ai-quick-action" onclick="sendQuick('من أنت؟')">🧠 من أنت؟</button>
-      <button class="ai-quick-action" onclick="sendQuick('What can you do?')">⚡ قدراتك</button>
-      <button class="ai-quick-action" onclick="sendQuick('Are you connected to Hugging Face?')">🤖 حالة HF</button>
-      <button class="ai-quick-action" onclick="sendQuick('اختبر نفسك')">🧪 اختبر نفسك</button>
-    </div>
-
     <!-- Navigation -->
     <div class="ai-sidebar-section" style="margin-top:auto">
       <div class="ai-sidebar-label">صفحات الذكاء</div>
@@ -132,13 +123,6 @@
             </svg>
           </button>
         </div>
-      </div>
-      <div class="ai-quick-chips" id="ai-quick-chips">
-        <button class="ai-chip" onclick="sendQuick('اشرح FastAPI')">🚀 FastAPI</button>
-        <button class="ai-chip" onclick="sendQuick('Python vs JavaScript')">⚖️ Python vs JS</button>
-        <button class="ai-chip" onclick="sendQuick('Create notification bot')">🤖 إنشاء بوت</button>
-        <button class="ai-chip" onclick="sendQuick('افحص الأخطاء')">🔍 الأخطاء</button>
-        <button class="ai-chip" onclick="sendQuick('هيكل المشروع')">📁 الهيكل</button>
       </div>
     </div>
 
@@ -217,15 +201,7 @@ var _chatEl = document.getElementById('ai-messages');
 
 // ── Welcome message ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-  var welcome = [
-    '🧠 **X AI Operator Phase 3** — جاهز.',
-    '',
-    '**وضعان للعمل:**',
-    '  💬 **وضع المحادثة** — اشرح Python · FastAPI vs Flask · ما هو REST API؟',
-    '  🔍 **وضع المشروع** — Create notification bot · Fix broken button · Redesign homepage',
-    '',
-    'اكتب رسالتك أو اختر من الأوامر السريعة.'
-  ].join('\n');
+  var welcome = '🧠 **X AI Operator** — جاهز. اكتب رسالتك.';
   document.getElementById('welcome-content').innerHTML = renderMd(welcome);
   loadStatus();
 });
@@ -266,7 +242,6 @@ async function sendMessage() {
 
   _busy = true;
   document.getElementById('ai-send-btn').disabled = true;
-  document.getElementById('ai-quick-chips').style.opacity = '.5';
 
   appendUserMsg(msg);
   showTyping(true);
@@ -289,7 +264,6 @@ async function sendMessage() {
 
   _busy = false;
   document.getElementById('ai-send-btn').disabled = false;
-  document.getElementById('ai-quick-chips').style.opacity = '1';
 
   // Update memory turns counter
   var mt = document.getElementById('mem-turns');
@@ -315,7 +289,6 @@ async function doCreateBackup() {
   }
   _busy = false;
   document.getElementById('ai-send-btn').disabled = false;
-  document.getElementById('ai-quick-chips').style.opacity = '1';
 }
 
 async function doListBackups() {
@@ -337,7 +310,6 @@ async function doListBackups() {
   }
   _busy = false;
   document.getElementById('ai-send-btn').disabled = false;
-  document.getElementById('ai-quick-chips').style.opacity = '1';
 }
 
 function sendQuick(cmd) {

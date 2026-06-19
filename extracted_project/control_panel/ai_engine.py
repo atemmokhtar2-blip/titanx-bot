@@ -1484,12 +1484,27 @@ def detect_intent(msg: str) -> str:
     # Must come BEFORE _P0_CREATE so "لو أضفت بوت" → impact, not create_feature.
     _COND_OVERRIDE = [
         r"^لو\s+(?:أضفت|حذفت|عدلت|غيرت|بنيت|أنشأت|دمجت|أزلت)",
-        r"^إذا\s+(?:أضفت|حذفت|عدلت|غيرت|بنيت|أنشأت|أزلت)",
+        r"^إذا\s+(?:أضفت|حذفت|عدلت|غيرت|بنيت|أنشأت|أزلت|فشلت|انهارت|توقفت|تعطلت)",
         r"(?:لو|إذا).{0,40}ماذا\s+(?:سيتأثر|سيحدث|سيتغير|سيتعطل|ينكسر|سيُكسر)",
-        r"(?:if|suppose).{0,20}(?:add|delete|remove|change|modify).{0,30}(?:what|which).{0,20}(?:affected|breaks?|happens?)",
+        r"(?:if|suppose).{0,20}(?:add|delete|remove|change|modify|fail|crash|goes?\s+down).{0,30}(?:what|which).{0,20}(?:affected|breaks?|happens?)",
+        r"(?:إذا|لو)\s+(?:فشلت|انهارت|توقفت|تعطلت).{0,30}(?:قاعدة|الخادم|البوت|النظام|السيرفر)",
+        r"what\s+happens?\s+if.{0,30}(?:database|server|bot|system).{0,20}(?:fail|crash|go\s+down|stop)",
     ]
     if any(re.search(p, ml) for p in _COND_OVERRIDE):
         return "impact"
+
+    # ── Strategy / owner-perspective questions ────────────────────────────────
+    # "لو كنت مسؤولاً عن TitanX ماذا ستفعل؟" / "if you were in charge, what would you do?"
+    _STRATEGY_P = [
+        r"لو\s+كنت\s+(?:مكان|مسؤولاً|المسؤول|صاحب|المالك)",
+        r"لو\s+كنت\s+أنت.{0,20}(?:ماذا|ما\s+الذي)",
+        r"ماذا\s+(?:ستفعل|كنت\s+ستفعل|تنصح).{0,30}(?:مشروع|TitanX|الأسبوع|السنة)",
+        r"if\s+you\s+(?:were|are).{0,20}(?:in\s+charge|owner|responsible|leading)",
+        r"what\s+would\s+you\s+do.{0,20}(?:with|for|to).{0,20}(?:project|system|TitanX)",
+        r"(?:خطة|استراتيجية|رؤية).{0,20}(?:تطوير|المشروع|الأسبوع|الشهر)",
+    ]
+    if any(re.search(p, ml) for p in _STRATEGY_P):
+        return "strategy"
 
     # ── Priority 0: Action intents (must beat file-finding patterns) ──────────
     # "Create notification bot" → create_feature
@@ -1649,13 +1664,18 @@ def detect_intent(msg: str) -> str:
     if any(re.search(p, ml) for p in _ARCH_SEM):
         return "arch"
 
-    # Improvement / best-practice
+    # Improvement / best-practice / suggestions
     _IMPROVE_SEM = [
         r"أفضل\s+(?:تطوير|تحسين|ميزة|إضافة).{0,30}(?:للمشروع|المشروع)?",
         r"(?:كيف|ماذا)\s+(?:أطور|أحسن|أعزز)\s+المشروع",
         r"best\s+(?:improvement|feature|addition|upgrade)\s+(?:for\s+)?(?:the\s+)?project",
         r"(?:what|how).{0,10}(?:improve|enhance|upgrade)\s+(?:the\s+)?project",
         r"ما\s+(?:الذي\s+)?(?:يحسن|يطور)\s+المشروع",
+        r"اقترح\b.{0,40}(?:تطوير|تحسين|ميزة|إضافة|تغيير)",
+        r"قدّم\s+اقتراح", r"قدم\s+اقتراح",
+        r"\d+\s+تطوير", r"\d+\s+تحسين",
+        r"suggest\b.{0,30}(?:improvement|feature|upgrade|change)",
+        r"recommend\b.{0,30}(?:improvement|feature|next\s+step)",
     ]
     if any(re.search(p, ml) for p in _IMPROVE_SEM):
         return "improve"
@@ -2791,6 +2811,7 @@ def process_chat(msg: str) -> dict:
         "restore":        lambda: _r_restore_info(),
         "self_test":      lambda: _r_self_test(),
         "weakness":       lambda: _r_weakness(msg),
+        "strategy":       lambda: _r_strategy(msg),
         "help":           lambda: _r_help(),
         "general":        lambda: _r_general(msg),
     }
@@ -3369,6 +3390,7 @@ def _r_impact(msg: str) -> dict:
     _DEL_DB   = re.search(r"(?:حذفت|عدلت|غيرت).{0,20}(?:قاعدة\s*البيانات|database|db\.py)", ml)
     _DEL_CSS  = re.search(r"(?:حذفت|عدلت|غيرت).{0,20}(?:style\.css|css)", ml)
     _DEL_BOT  = re.search(r"(?:حذفت|أزلت|عدلت).{0,20}(?:بوت|bot\.py)", ml)
+    _FAIL_DB  = re.search(r"(?:فشلت|انهارت|توقفت|تعطلت|تعطل).{0,25}(?:قاعدة|البيانات|database|db)", ml)
 
     # ── Case 1: Adding a new bot ──────────────────────────────────────────────
     if _ADD_BOT:
@@ -3428,6 +3450,32 @@ def _r_impact(msg: str) -> dict:
                 "  ⚠️ البوتات تبدأ بـ `init_db()` — خطأ فيه = فشل كامل في الـ startup"
             ),
             "data": {"operation": "modify_db", "risk": "critical"},
+        }
+
+    # ── Case 3b: Database FAILURE scenario ────────────────────────────────────
+    if _FAIL_DB:
+        return {
+            "text": (
+                "💥 **تأثير فشل قاعدة البيانات**\n\n"
+                "إذا توقفت قاعدة البيانات في هذا المشروع سيحدث التالي:\n\n"
+                "**🔴 تأثيرات فورية (ثواني):**\n"
+                "  · بوت التلغرام يفشل في استرجاع/حفظ بيانات المستخدم\n"
+                "  · لوحة التحكم لا تستطيع تحميل الإحصائيات أو السجلات\n"
+                "  · أي محاولة `/download` أو `/subscribe` تُرجع خطأً\n\n"
+                "**🟠 تأثيرات على المدى القصير (دقائق):**\n"
+                "  · طابور الرسائل المعلقة يتراكم في Telegram\n"
+                "  · الجلسات النشطة تنتهي بدون حفظ\n"
+                "  · لوحة التحكم تبدأ بإعادة المحاولات وقد تنهار هي أيضاً\n\n"
+                "**🟡 الملفات المتأثرة مباشرة:**\n"
+                "  · `extracted_project/db_utils.py` — جميع عمليات read/write\n"
+                "  · `extracted_project/bot.py` — يستدعي db في كل رسالة\n"
+                "  · `control_panel/routers/` — كل endpoint يقرأ من DB\n\n"
+                "**✅ الحماية الموصى بها:**\n"
+                "  · إضافة `try/except` شامل حول كل استدعاء DB مع fallback\n"
+                "  · تفعيل connection pool مع timeout واضح\n"
+                "  · إضافة health-check endpoint يراقب اتصال DB باستمرار"
+            ),
+            "data": {"impact_type": "database_failure"},
         }
 
     # ── Case 4: CSS change ────────────────────────────────────────────────────
@@ -3812,6 +3860,42 @@ def _r_help() -> dict:
 **🧪 اختبر نفسك:** اكتب "اختبر نفسك" أو "self test"
 """,
         "data": {"capabilities": ["find_file", "plan_modify", "dependency", "root_cause", "arch", "self_test"]},
+    }
+
+
+def _r_strategy(msg: str) -> dict:
+    """
+    Strategy / ownership perspective handler.
+    "لو كنت مسؤولاً عن TitanX لمدة أسبوع ماذا ستفعل؟"
+    Responds as senior engineer + owner thinking about the project's future.
+    """
+    files = _scan_project_files()
+    py_count = sum(1 for f in files if f.endswith(".py"))
+    total    = len(files)
+
+    return {
+        "text": (
+            "🧠 **رؤية استراتيجية — لو كنت مسؤولاً عن هذا المشروع**\n\n"
+            "بناءً على تحليل المشروع الحالي "
+            f"({total} ملف · {py_count} Python):\n\n"
+            "**🚨 الأسبوع الأول — إصلاح الأساس:**\n"
+            "  · مراجعة كل `try/except` فارغة أو تُعيد `pass` — مصدر أخطاء صامتة\n"
+            "  · إضافة logging موحّد (structlog أو logging.getLogger) على كل handler\n"
+            "  · توثيق كل environment variable مطلوب في `.env.example`\n\n"
+            "**⚡ الأسبوع الثاني — تحسين الموثوقية:**\n"
+            "  · إضافة health-check endpoint يراقب DB + Telegram + HF\n"
+            "  · تفعيل connection pool في db_utils مع timeout صريح\n"
+            "  · إضافة rate limiting على endpoints اللوحة\n\n"
+            "**🚀 الأسبوع الثالث — التطوير الحقيقي:**\n"
+            "  · نقل الإعدادات إلى Pydantic Settings بدلاً من dict مبعثرة\n"
+            "  · بناء نظام إشعارات للأدمن عند حدوث أخطاء حرجة\n"
+            "  · إضافة backup تلقائي للـ DB يومياً\n\n"
+            "**📊 قياس النجاح:**\n"
+            "  · صفر أخطاء صامتة في السجلات\n"
+            "  · uptime > 99.5% للبوت + اللوحة\n"
+            "  · وقت استجابة API < 200ms"
+        ),
+        "data": {"strategy_generated": True, "project_files": total},
     }
 
 
