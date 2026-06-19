@@ -1621,10 +1621,38 @@ def run_self_tests(extended: bool = False) -> dict:
 # MEMORY SYSTEM
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def _migrate_memory(data: dict) -> dict:
+    """Migrate old-format memory files to current schema so no KeyError ever occurs."""
+    defaults = _default_memory()
+    # Ensure top-level keys exist
+    for key, val in defaults.items():
+        if key not in data:
+            data[key] = val
+    # Old schema used 'ai_stats' instead of 'stats'
+    if not isinstance(data.get("stats"), dict):
+        old = data.get("ai_stats", {})
+        data["stats"] = {
+            "total_scans":     old.get("total_scans",     0),
+            "total_plans":     old.get("total_plans",     0),
+            "total_questions": old.get("total_questions", 0),
+            "total_chats":     old.get("total_chats",     0),
+        }
+    # Old schema used 'project_name' instead of 'project' dict
+    if not isinstance(data.get("project"), dict):
+        data["project"] = defaults["project"]
+        if "project_name" in data:
+            data["project"]["name"] = data["project_name"]
+    # Ensure stats sub-keys exist
+    for k in ("total_scans", "total_plans", "total_questions", "total_chats"):
+        data["stats"].setdefault(k, 0)
+    return data
+
+
 def load_memory() -> dict:
     if MEMORY_FILE.exists():
         try:
-            return json.loads(MEMORY_FILE.read_text(encoding="utf-8"))
+            raw = json.loads(MEMORY_FILE.read_text(encoding="utf-8"))
+            return _migrate_memory(raw)
         except Exception:
             pass
     data = _default_memory()
@@ -1658,7 +1686,8 @@ def _default_memory() -> dict:
 
 def update_stats(key: str, val: int = 1):
     m = load_memory()
-    m["stats"][key] = m["stats"].get(key, 0) + val
+    stats = m.setdefault("stats", {"total_scans": 0, "total_plans": 0, "total_questions": 0, "total_chats": 0})
+    stats[key] = stats.get(key, 0) + val
     m["updated"] = datetime.now().isoformat()
     save_memory(m)
 
@@ -2083,12 +2112,14 @@ def _r_improve(msg: str) -> dict:
 
 def _r_memory() -> dict:
     m = load_memory()
+    proj  = m.get("project") or {}
+    stats = m.get("stats")   or {}
     lines = ["🧠 **ذاكرة المشروع**\n",
              f"الإصدار: {m.get('version', '3.0')}",
-             f"المشروع: {m['project'].get('name')}",
-             f"إجمالي المحادثات: {m['stats'].get('total_chats', 0)}",
-             f"إجمالي الأسئلة: {m['stats'].get('total_questions', 0)}",
-             f"إجمالي الخطط: {m['stats'].get('total_plans', 0)}",
+             f"المشروع: {proj.get('name', m.get('project_name', 'X Control Center'))}",
+             f"إجمالي المحادثات: {stats.get('total_chats', 0)}",
+             f"إجمالي الأسئلة: {stats.get('total_questions', 0)}",
+             f"إجمالي الخطط: {stats.get('total_plans', 0)}",
              f"آخر تحديث: {m.get('updated', '—')}"]
     return {"text": "\n".join(lines), "data": m}
 

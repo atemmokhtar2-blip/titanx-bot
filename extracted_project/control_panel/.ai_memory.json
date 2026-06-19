@@ -187,6 +187,31 @@
       "role": "ai",
       "text": "📁 **هيكل المشروع** (159 ملف إجمالاً)\n\n**المجلدات الرئيسية:**\n  `control_panel/templates/` — 20 ملف\n  `control_panel/routers/` — 15 ملف\n  `developer_bot/handlers/` — 15 ملف\n  `database/` — 12 ملف\n  `admin_bot/handlers/` — 11 ملف\n  `handlers/` — 10 ملف\n\n**المكونات:**\n  🤖 `bot.py` — البوت الرئيسي (PrimeDownloader)\n  🆘 `support_bot/` — بوت الدعم الفني\n  🖥️ `control_panel/` — لوحة التحكم (FastAPI)\n  🧠 `control_panel/routers/` — مسارات API (11 router)\n  🎨 `control_panel/templates/` — واجهات المستخدم\n\n",
       "ts": "2026-06-19T06:15:31.240332"
+    },
+    {
+      "role": "user",
+      "text": "كيف أعرف سبب عدم عمل زر معين في لوحة التحكم؟\nحلل طريقة البحث عن المشكلة.",
+      "ts": "2026-06-19T09:01:08.186583"
+    },
+    {
+      "role": "user",
+      "text": "stats",
+      "ts": "2026-06-19T09:05:46.315733"
+    },
+    {
+      "role": "assistant",
+      "text": "📊 **إحصائيات المشروع**\n\n📁 إجمالي الملفات: 144\n🎨 القوالب HTML: 20\n⚙️ الـ Routers: 15\n🤖 معالجات البوت: 39\n🗄️ نماذج قاعدة البيانات: 17\n🔧 الخدمات: 4\n🎨 ملفات CSS: 1\n📜 ملفات JS: 1\n🌐 المسارات: 20\n🧠 المفاهيم الدلالية: 56",
+      "ts": "2026-06-19T09:05:46.350534"
+    },
+    {
+      "role": "user",
+      "text": "memory",
+      "ts": "2026-06-19T09:05:46.353930"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **ذاكرة المشروع**\n\nالإصدار: 5.0\nالمشروع: X Control Center\nإجمالي المحادثات: 3\nإجمالي الأسئلة: 0\nإجمالي الخطط: 0\nآخر تحديث: 2026-06-19T09:05:46.356186",
+      "ts": "2026-06-19T09:05:46.359840"
     }
   ],
   "analysis_cache": {},
@@ -196,5 +221,26 @@
     "total_backups": 0,
     "errors_found": 57,
     "last_scan": null
-  }
+  },
+  "updated": "2026-06-19T09:05:46.359843",
+  "project": {
+    "name": "X Control Center",
+    "main_bot": "PrimeDownloader Bot (bot.py)",
+    "support_bot": "Support Bot (support_bot/bot.py)",
+    "panel": "FastAPI control panel — port 5000",
+    "css": "ONE file: control_panel/static/css/style.css",
+    "js": "ONE file: control_panel/static/js/app.js",
+    "templates": "20 HTML files in control_panel/templates/",
+    "databases": [
+      "database/bot.db",
+      "support_bot/database/support.db"
+    ]
+  },
+  "stats": {
+    "total_scans": 0,
+    "total_plans": 0,
+    "total_questions": 0,
+    "total_chats": 3
+  },
+  "created": "2026-06-19T09:05:02.173299"
 }
