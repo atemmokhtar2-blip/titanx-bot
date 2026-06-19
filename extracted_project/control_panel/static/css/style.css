@@ -228,6 +228,20 @@ img { max-width: 100%; }
 .nav-item-danger:hover { color: #ff6b6b !important; }
 .nav-item-danger:hover::before { background: rgba(239,68,68,0.07) !important; }
 
+/* Sub-items — indented children under a parent nav entry */
+.nav-item-sub {
+  padding-right: 32px;
+  font-size: .8rem;
+  color: var(--text3);
+}
+.nav-item-sub .nav-icon { font-size: .88rem; opacity: .8; }
+.nav-item-sub:hover { color: var(--text2); }
+.nav-item-sub.active-sub {
+  color: var(--accent2);
+  background: linear-gradient(90deg, rgba(59,130,246,0.10) 0%, transparent 100%);
+  border-right: 2px solid rgba(59,130,246,0.4);
+}
+
 .nav-icon { font-size: 1.05rem; flex-shrink: 0; width: 22px; text-align: center; transition: var(--trans); }
 .nav-item:hover .nav-icon { transform: scale(1.15); }
 

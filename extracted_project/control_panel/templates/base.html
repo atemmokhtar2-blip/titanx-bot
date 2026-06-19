@@ -83,8 +83,8 @@
           <span class="nav-label">لوحة التحكم</span>
         </a>
         <a href="/system" class="nav-item {% if active_page=='system' %}active{% endif %}">
-          <span class="nav-icon">🖥️</span>
-          <span class="nav-label">حالة النظام</span>
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">صحة النظام</span>
         </a>
         <a href="/bots" class="nav-item {% if active_page=='bots' %}active{% endif %}">
           <span class="nav-icon">🤖</span>
@@ -96,8 +96,20 @@
         <div class="nav-section-label">الذكاء الاصطناعي</div>
         <a href="/ai" class="nav-item {% if active_page=='ai' %}active{% endif %} nav-item-ai">
           <span class="nav-icon">🧠</span>
-          <span class="nav-label">مساحة الذكاء</span>
+          <span class="nav-label">مساحة الذكاء الاصطناعي</span>
           <span class="nav-badge-new">جديد</span>
+        </a>
+        <a href="/ai#section-engineer" class="nav-item nav-item-sub {% if active_page=='ai' %}active-sub{% endif %}">
+          <span class="nav-icon">🤖</span>
+          <span class="nav-label">مهندس الذكاء الاصطناعي</span>
+        </a>
+        <a href="/ai#section-memory" class="nav-item nav-item-sub {% if active_page=='ai' %}active-sub{% endif %}">
+          <span class="nav-icon">🧠</span>
+          <span class="nav-label">ذاكرة المشروع</span>
+        </a>
+        <a href="/ai#section-review" class="nav-item nav-item-sub {% if active_page=='ai' %}active-sub{% endif %}">
+          <span class="nav-icon">📋</span>
+          <span class="nav-label">مراجعة التعديلات</span>
         </a>
       </div>
 
@@ -141,11 +153,15 @@
         </a>
         <a href="/github" class="nav-item {% if active_page=='github' %}active{% endif %}">
           <span class="nav-icon">🐙</span>
-          <span class="nav-label">GitHub</span>
+          <span class="nav-label">GitHub الذكي</span>
         </a>
         <a href="/backups" class="nav-item {% if active_page=='backups' %}active{% endif %}">
           <span class="nav-icon">💾</span>
-          <span class="nav-label">النسخ الاحتياطية</span>
+          <span class="nav-label">مركز النسخ الاحتياطي</span>
+        </a>
+        <a href="/backups#restore-section" class="nav-item nav-item-sub {% if active_page=='backups' %}active-sub{% endif %}">
+          <span class="nav-icon">🔄</span>
+          <span class="nav-label">استرجاع النسخ</span>
         </a>
       </div>
 
