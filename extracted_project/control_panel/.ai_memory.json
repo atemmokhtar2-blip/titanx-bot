@@ -110,46 +110,6 @@
   "chat_history": [
     {
       "role": "user",
-      "text": "لخص مكونات المشروع الرئيسية وعلاقة كل جزء بالآخر.",
-      "ts": "2026-06-19T13:41:08.008071"
-    },
-    {
-      "role": "assistant",
-      "text": "🔗 **تحليل التبعيات**\n\n📄 **Template:** `control_panel/templates/dashboard.html`\n  ↳ يرث من: `control_panel/templates/base.html`\n⚙️ **Router:** `control_panel/routers/dashboard.py`\n🎨 **CSS:** `control_panel/static/css/style.css`\n📜 **JS:** `control_panel/static/js/app.js`\n  🔌 API: `/api/stats`\n  🔌 API: `/api/activity`\n  🔌 API: `/api/chart`",
-      "ts": "2026-06-19T13:41:08.011215"
-    },
-    {
-      "role": "user",
-      "text": "ما أفضل طريقة لإضافة بوت جديد بدون التأثير على البوتات الحالية؟",
-      "ts": "2026-06-19T13:41:23.473275"
-    },
-    {
-      "role": "assistant",
-      "text": "💡 **اقتراحات التحسين**\n\nللتحسين يجب تعديل:\n• `control_panel/templates/bots.html` — HTML structure\n• `control_panel/static/css/style.css` — Styling\n• `control_panel/static/js/app.js` — Interactivity",
-      "ts": "2026-06-19T13:41:23.492049"
-    },
-    {
-      "role": "user",
-      "text": "لو توقفت لوحة التحكم عن العمل فجأة، كيف ستبحث عن سبب المشكلة؟",
-      "ts": "2026-06-19T13:41:44.930692"
-    },
-    {
-      "role": "assistant",
-      "text": "⚠️ **2 أخطاء في السجلات:**\n\n• `errors.log`: [2026-06-19 13:34:22] [ERROR] [errors] [HEARTBEAT] Write failed: [Errno 2] No such file or directory\n• `errors.log`: Traceback (most recent call last):",
-      "ts": "2026-06-19T13:41:44.934704"
-    },
-    {
-      "role": "user",
-      "text": "ما أكبر نقطة ضعف تراها حالياً في مشروع TitanX؟",
-      "ts": "2026-06-19T13:42:07.747117"
-    },
-    {
-      "role": "assistant",
-      "text": "🧠 **X AI Operator** · X Control Center\n\nلم أستطع تحديد نوع طلبك بدقة كافية.\n\n**أعد الصياغة بإحدى هذه الطرق:**\n  • **سؤال تقني** — \"اشرح FastAPI\" · \"الفرق بين Python و JavaScript\"\n  • **تحليل تأثير** — \"لو عدلت style.css ماذا سيحدث؟\"\n  • **إنشاء ميزة** — \"كيف أضيف بوت إشعارات؟\"\n  • **تقييم المشروع** — \"هل بنية المشروع جيدة؟\"\n  • **إصلاح مشكلة** — \"إصلاح خطأ في صفحة الإعدادات\"",
-      "ts": "2026-06-19T13:42:07.750974"
-    },
-    {
-      "role": "user",
       "text": "لو أضفت بوت جديد ماذا سيتأثر؟",
       "ts": "2026-06-19T13:44:35.635223"
     },
@@ -357,6 +317,46 @@
       "role": "assistant",
       "text": "🧠 **X AI Operator** · X Control Center\n\nلم أستطع تحديد نوع طلبك بدقة كافية.\n\n**أعد الصياغة بإحدى هذه الطرق:**\n  • **سؤال تقني** — \"اشرح FastAPI\" · \"الفرق بين Python و JavaScript\"\n  • **تحليل تأثير** — \"لو عدلت style.css ماذا سيحدث؟\"\n  • **إنشاء ميزة** — \"كيف أضيف بوت إشعارات؟\"\n  • **تقييم المشروع** — \"هل بنية المشروع جيدة؟\"\n  • **إصلاح مشكلة** — \"إصلاح خطأ في صفحة الإعدادات\"",
       "ts": "2026-06-19T13:55:08.028294"
+    },
+    {
+      "role": "user",
+      "text": "لو كنت مسؤولاً عن TitanX لمدة أسبوع ماذا ستفعل؟",
+      "ts": "2026-06-19T14:16:52.190026"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **رؤية استراتيجية — لو كنت مسؤولاً عن هذا المشروع**\n\nبناءً على تحليل المشروع الحالي (144 ملف · 119 Python):\n\n**🚨 الأسبوع الأول — إصلاح الأساس:**\n  · مراجعة كل `try/except` فارغة أو تُعيد `pass` — مصدر أخطاء صامتة\n  · إضافة logging موحّد (structlog أو logging.getLogger) على كل handler\n  · توثيق كل environment variable مطلوب في `.env.example`\n\n**⚡ الأسبوع الثاني — تحسين الموثوقية:**\n  · إضافة health-check endpoint يراقب DB + Telegram + HF\n  · تفعيل connection pool في db_utils مع timeout صريح\n  ·",
+      "ts": "2026-06-19T14:16:52.236957"
+    },
+    {
+      "role": "user",
+      "text": "ما أكبر نقطة ضعف بالمشروع؟",
+      "ts": "2026-06-19T14:16:52.245612"
+    },
+    {
+      "role": "assistant",
+      "text": "🔍 **تحليل نقاط الضعف الرئيسية في المشروع**\n\n**1. نقطة فشل واحدة — `config.py`**\n   🟠 الخطر: HIGH — 12 راوتر يستوردون config مباشرة — أي خطأ فيه يوقف اللوحة كلها. لا يوجد fallback.\n\n**2. لا يوجد نظام اختبار تلقائي (Unit Tests)**\n   🟠 الخطر: HIGH — أي تعديل على الكود قد يكسر ميزة موجودة دون أي تحذير. يجب إضافة pytest.\n\n**3. مخاوف أمنية — 8 نمط مكتشف**\n   🟡 الخطر: MEDIUM — مثال: النمط `eval(` في `control_panel/ai_engine.py`\n\n**4. ارتباط مباشر بقاعدة البيانات — لا يوجد Migration System**\n   🟠 الخطر:",
+      "ts": "2026-06-19T14:16:52.879761"
+    },
+    {
+      "role": "user",
+      "text": "ما أفضل تطوير للمشروع؟",
+      "ts": "2026-06-19T14:16:52.882688"
+    },
+    {
+      "role": "assistant",
+      "text": "💡 **أفضل تطويرات للمشروع — بالأولوية**\n\n**2. إضافة Unit Tests بـ pytest**\n   🟠 التأثير: HIGH | الجهد: MEDIUM\n   يحمي التعديلات المستقبلية ويكتشف الأخطاء فور حدوثها.\n\n**3. معالجة 8 ملاحظة أمنية**\n   🟡 التأثير: MEDIUM | الجهد: LOW\n   مثال: `control_panel/ai_engine.py` — النمط `eval(`\n\n**3. إضافة نظام Database Migration (Alembic)**\n   🟠 التأثير: HIGH | الجهد: MEDIUM\n   يجعل تغييرات Schema آمنة وقابلة للتراجع.\n\n**4. إضافة Caching للـ API endpoints الثقيلة**\n   🟡 التأثير: MEDIUM | الجهد: LOW\n   تحليل",
+      "ts": "2026-06-19T14:16:53.466656"
+    },
+    {
+      "role": "user",
+      "text": "إذا فشلت قاعدة البيانات ماذا يحدث؟",
+      "ts": "2026-06-19T14:16:53.470467"
+    },
+    {
+      "role": "assistant",
+      "text": "💥 **تأثير فشل قاعدة البيانات**\n\nإذا توقفت قاعدة البيانات في هذا المشروع سيحدث التالي:\n\n**🔴 تأثيرات فورية (ثواني):**\n  · بوت التلغرام يفشل في استرجاع/حفظ بيانات المستخدم\n  · لوحة التحكم لا تستطيع تحميل الإحصائيات أو السجلات\n  · أي محاولة `/download` أو `/subscribe` تُرجع خطأً\n\n**🟠 تأثيرات على المدى القصير (دقائق):**\n  · طابور الرسائل المعلقة يتراكم في Telegram\n  · الجلسات النشطة تنتهي بدون حفظ\n  · لوحة التحكم تبدأ بإعادة المحاولات وقد تنهار هي أيضاً\n\n**🟡 الملفات المتأثرة مباشرة:**\n  · `extracted_",
+      "ts": "2026-06-19T14:16:53.476647"
     }
   ],
   "analysis_cache": {},
@@ -367,7 +367,7 @@
     "errors_found": 57,
     "last_scan": null
   },
-  "updated": "2026-06-19T13:55:08.028296",
+  "updated": "2026-06-19T14:16:53.476649",
   "project": {
     "name": "X Control Center",
     "main_bot": "PrimeDownloader Bot (bot.py)",
@@ -382,10 +382,10 @@
     ]
   },
   "stats": {
-    "total_scans": 9,
+    "total_scans": 11,
     "total_plans": 12,
     "total_questions": 6,
-    "total_chats": 122
+    "total_chats": 126
   },
   "created": "2026-06-19T09:05:02.173299"
 }

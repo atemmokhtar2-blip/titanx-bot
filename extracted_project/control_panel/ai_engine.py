@@ -2637,6 +2637,11 @@ def walk_project() -> list:
     return sorted(files)
 
 
+def _scan_project_files() -> list:
+    """Return a flat list of all project file paths for structural analysis."""
+    return walk_project()
+
+
 def analyze_structure() -> dict:
     files = walk_project()
     by_ext: dict = {}
@@ -2922,7 +2927,7 @@ def _r_conversation(msg: str) -> dict:
 
     # ── 3. HF-backed general answer (best-effort) ───────────────────────────
     try:
-        hf = call_hf_analyze(code=msg, question=msg)
+        hf = call_hf_analyze(msg)
         if hf.get("ok") and isinstance(hf.get("analysis"), str) and len(hf["analysis"]) > 30:
             return {"text": f"💬 {hf['analysis']}",
                     "data": {"mode": "conversation", "source": "hf"}}
@@ -3979,7 +3984,7 @@ def _r_general(msg: str) -> dict:
 
     # ── Layer 7: Hugging Face API ─────────────────────────────────────────────
     try:
-        hf = call_hf_analyze(code=msg, question=msg)
+        hf = call_hf_analyze(msg)
         if hf.get("ok") and isinstance(hf.get("analysis"), str) and len(hf["analysis"]) > 30:
             return {"text": f"💬 {hf['analysis']}", "data": {"mode": "general_hf", "source": "hf"}}
     except Exception:
