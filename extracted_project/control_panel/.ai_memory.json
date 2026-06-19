@@ -110,16 +110,6 @@
   "chat_history": [
     {
       "role": "user",
-      "text": "أظهر تدفق البيانات من Telegram إلى الرد النهائي",
-      "ts": "2026-06-19T18:02:32.381520"
-    },
-    {
-      "role": "assistant",
-      "text": "📊 **تدفق البيانات الكامل في مشروع X**\n\n## 🤖 مسار بوت PrimeDownloader (Telegram → رد)\n\n  1️⃣  رسالة Telegram → python-telegram-bot (webhook/polling) → bot.py (Application)\n  2️⃣  bot.py → يطابق نوع الرسالة → handler المناسب في handlers/\n  3️⃣  handler → middlewares/auth.py (التحقق من تسجيل المستخدم)\n  4️⃣  auth.py → middlewares/rate_limiter.py (حد التحميل: RATE_LIMIT_SECONDS)\n  5️⃣  rate_limiter → middlewares/subscription_gate.py (التحقق من الاشتراك)\n  6️⃣  subscription_gate → services/ (download",
-      "ts": "2026-06-19T18:02:32.381520"
-    },
-    {
-      "role": "user",
       "text": "من أنت",
       "ts": "2026-06-19T18:03:32.844134"
     },
@@ -357,6 +347,16 @@
       "role": "assistant",
       "text": "📊 **تدفق البيانات الكامل في مشروع X**\n\n## 🤖 مسار بوت PrimeDownloader (Telegram → رد)\n\n  1️⃣  رسالة Telegram → python-telegram-bot (webhook/polling) → bot.py (Application)\n  2️⃣  bot.py → يطابق نوع الرسالة → handler المناسب في handlers/\n  3️⃣  handler → middlewares/auth.py (التحقق من تسجيل المستخدم)\n  4️⃣  auth.py → middlewares/rate_limiter.py (حد التحميل: RATE_LIMIT_SECONDS)\n  5️⃣  rate_limiter → middlewares/subscription_gate.py (التحقق من الاشتراك)\n  6️⃣  subscription_gate → services/ (download",
       "ts": "2026-06-19T18:03:37.495606"
+    },
+    {
+      "role": "user",
+      "text": "ما الملفات التي تعتمد على config.py؟",
+      "ts": "2026-06-19T19:13:13.940839"
+    },
+    {
+      "role": "assistant",
+      "text": "🔗 **سلسلة التبعيات: `control_panel/config.py`** — قراءة مباشرة من الكود\n\n🔴 **مستوى الخطر إذا حُذف:** CRITICAL\n📥 **المستوردون المباشرون (17 ملف):**\n  ↳ `control_panel/app.py`\n  ↳ `control_panel/auth.py`\n  ↳ `control_panel/db_utils.py`\n  ↳ `control_panel/routers/ai_workspace.py`\n  ↳ `control_panel/routers/backups.py`\n  ↳ `control_panel/routers/bots.py`\n  ↳ `control_panel/routers/broadcast.py`\n  ↳ `control_panel/routers/dashboard.py`\n  ↳ `control_panel/routers/db_manager.py`\n  ↳ `control_panel/rout",
+      "ts": "2026-06-19T19:13:13.940839"
     }
   ],
   "analysis_cache": {},
@@ -367,7 +367,7 @@
     "errors_found": 57,
     "last_scan": null
   },
-  "updated": "2026-06-19T18:03:37.495606",
+  "updated": "2026-06-19T19:13:13.940839",
   "project": {
     "name": "X Control Center",
     "main_bot": "PrimeDownloader Bot (bot.py)",
@@ -385,7 +385,7 @@
     "total_scans": 71,
     "total_plans": 14,
     "total_questions": 8,
-    "total_chats": 361
+    "total_chats": 362
   },
   "created": "2026-06-19T09:05:02.173299",
   "decisions": [],

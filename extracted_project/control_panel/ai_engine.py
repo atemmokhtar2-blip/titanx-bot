@@ -431,6 +431,15 @@ class FutureExecutionArchitecture:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# AGENT FOUNDATION ENFORCEMENT — Active Chain Cache
+# Stores the most recent AgentReasoningChain result so any handler can read
+# pre-computed scan evidence without receiving it as a parameter.
+# Reset at start of every process_chat() call.
+# ═══════════════════════════════════════════════════════════════════════════════
+_ACTIVE_CHAIN: dict = {}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # PROJECT BRAIN — Phase 3 Core: Living Cached Project Model
 # Built once from the real filesystem. Refreshed every 5 minutes.
 # Knows modules, routers, templates, bots, DB, APIs, risks, tech-debt.
@@ -3302,6 +3311,22 @@ def detect_intent(msg: str) -> str:
     if any(re.search(p, ml) for p in _STRATEGY_P):
         return "strategy"
 
+    # ── Runtime Graph — Rule 5: Startup/Runtime/Failure chains ───────────────
+    _RUNTIME_P = [
+        r"(?:رسم|أظهر|اعرض)\s+(?:بيان\s+)?التشغيل",
+        r"(?:runtime|startup|execution)\s+(?:graph|chain|diagram|map|flow)",
+        r"(?:سلسلة|مخطط)\s+(?:التشغيل|البدء|الفشل|الإقلاع)",
+        r"(?:failure|fault)\s+chain",
+        r"(?:startup|boot)\s+(?:chain|sequence|order|flow)",
+        r"كيف\s+(?:يبدأ|يعمل|يُقلع|يُشغَّل)\s+(?:المشروع|النظام|التطبيق|الخادم)",
+        r"how\s+does\s+(?:the\s+)?(?:project|system|app|server)\s+(?:start|boot|launch|run)",
+        r"(?:ما|what).{0,20}(?:ترتيب|order|sequence)\s+(?:التشغيل|البدء|الإقلاع|startup)",
+        r"execution\s+flow",
+        r"تسلسل\s+(?:التشغيل|البدء|الإقلاع)",
+    ]
+    if any(re.search(p, ml) for p in _RUNTIME_P):
+        return "runtime_graph"
+
     # ── Priority 0: Action intents (must beat file-finding patterns) ──────────
     # "Create notification bot" → create_feature
     _P0_CREATE = [
@@ -4835,16 +4860,20 @@ def full_analysis() -> dict:
 
 def process_chat(msg: str) -> dict:
     """
-    AGENT FOUNDATION ENFORCEMENT — Reasoning-First Pipeline.
+    AGENT FOUNDATION ENFORCEMENT — 16-Rule Reasoning-First Pipeline.
 
     Mandate execution order:
     1. Check pending plan approval/rejection  (AgentPlanningGate)
     2. Detect intent
     3. Record to session memory
-    4. For project intents: run AgentReasoningChain (7-step analysis)
-    5. Dispatch to handler
-    6. Record response + persist turn
+    4. For project intents: run AgentReasoningChain (7-step) → store in _ACTIVE_CHAIN
+    5. Dispatch to handler (handler reads _ACTIVE_CHAIN for pre-computed evidence)
+    6. Scan-usage verification: inject evidence footer if handler used live data
+    7. Record response + persist turn
     """
+    global _ACTIVE_CHAIN
+    _ACTIVE_CHAIN = {}  # Rule 3: reset chain cache on every new request
+
     # ── AGENT GATE 1: pending plan approval / rejection ──────────────────────
     if AgentPlanningGate.has_pending():
         if AgentPlanningGate.is_approval(msg):
@@ -4864,20 +4893,29 @@ def process_chat(msg: str) -> dict:
     AIMemoryLayer.record("user", msg, intent)
 
     # ── AGENT GATE 2: 7-step reasoning chain for all project intents ─────────
+    # Rule 1 (Scan-First) + Rule 4 (Dependency Graph) + Rule 5 (Runtime Graph)
+    # Chain result stored in _ACTIVE_CHAIN so handlers can read pre-built evidence
+    # without needing a parameter change — eliminates the chain injection gap.
     _PROJECT_INTENTS = {
         "find_file", "plan_modify", "dependency", "who_depends", "data_flow",
         "reuse_systems", "impact", "root_cause", "arch", "security", "analyze",
         "improve", "weakness", "strategy", "scale", "tech_debt", "redesign",
         "errors", "create_feature", "ui_redesign", "debug_fix", "new_page",
-        "routes", "structure",
+        "routes", "structure", "runtime_graph",
     }
     if intent in _PROJECT_INTENTS:
         try:
-            _chain = AgentReasoningChain.execute(msg, intent)
+            _ACTIVE_CHAIN = AgentReasoningChain.execute(msg, intent)
             AIMemoryLayer.record(
                 "assistant",
-                f"[reasoning: {', '.join(_chain.get('steps_done', [])[:4])}]",
+                f"[reasoning: {', '.join(_ACTIVE_CHAIN.get('steps_done', [])[:4])}]",
                 "reasoning",
+            )
+            _ai_log.debug(
+                "AgentReasoningChain injected: steps=%s files=%d risk=%s",
+                _ACTIVE_CHAIN.get("steps_done", []),
+                len(_ACTIVE_CHAIN.get("search", {}).get("files", [])),
+                _ACTIVE_CHAIN.get("impact", {}).get("risk", "LOW"),
             )
         except Exception as _re:
             _ai_log.debug("AgentReasoningChain (non-fatal): %s", _re)
@@ -4919,6 +4957,7 @@ def process_chat(msg: str) -> dict:
         "self_test":      lambda: _r_self_test(),
         "weakness":       lambda: _r_weakness(msg),
         "strategy":       lambda: _r_strategy(msg),
+        "runtime_graph":  lambda: _r_runtime_graph(msg),
         "scale":          lambda: _r_scale(msg),
         "tech_debt":      lambda: _r_tech_debt(),
         "redesign":       lambda: _r_redesign(),
@@ -4929,6 +4968,35 @@ def process_chat(msg: str) -> dict:
     fn   = handlers.get(intent, handlers["general"])
     resp = fn()
     resp["intent"] = intent
+
+    # ── Rule 3: Scan-Usage Verification ──────────────────────────────────────
+    # After handler returns, check if it used live scan evidence.
+    # If the chain found files and the response doesn't reference them, append
+    # a compact evidence footer so no answer ever floats free of project data.
+    if intent in _PROJECT_INTENTS and _ACTIVE_CHAIN:
+        chain_files = _ACTIVE_CHAIN.get("search", {}).get("files", [])
+        chain_risk  = _ACTIVE_CHAIN.get("impact", {}).get("risk", "")
+        resp_text_lower = resp.get("text", "").lower()
+        evidence_used = any(
+            Path(f).name.lower() in resp_text_lower for f in chain_files
+        )
+        if chain_files and not evidence_used:
+            footer_lines = [
+                "\n\n─────────────────────────────────────",
+                "📁 **أدلة الفحص المباشر (Scan Evidence):**",
+            ]
+            for f in chain_files[:5]:
+                footer_lines.append(f"  • `{f}`")
+            if chain_risk and chain_risk != "LOW":
+                footer_lines.append(f"⚠️ مستوى المخاطرة: **{chain_risk}**")
+            resp["text"] = resp.get("text", "") + "\n".join(footer_lines)
+            resp.setdefault("data", {})["scan_evidence_injected"] = True
+        # Always attach chain metadata to the data payload for the frontend
+        resp.setdefault("data", {})["chain"] = {
+            "steps_done":    _ACTIVE_CHAIN.get("steps_done", []),
+            "files_scanned": len(chain_files),
+            "risk":          chain_risk,
+        }
 
     # Phase 3: Record assistant response + decision to session memory
     resp_text = resp.get("text", "")
@@ -5070,97 +5138,109 @@ def _r_conversation(msg: str) -> dict:
 
 def _r_identity() -> dict:
     """'Who are you?' — rich identity response, never a file list."""
-    mem = load_memory()
+    mem  = load_memory()
     proj = mem.get("project", {})
-    name  = proj.get("name", "X Control Center")
-    ver   = proj.get("version", "v5.0")
+    name = proj.get("name", "X Control Center")
+    ver  = proj.get("version", "v5.0")
     p3 = {
         "memory":   AIMemoryLayer.status(),
         "planner":  AIPlanner.status(),
         "engineer": AIEngineerCore.status(),
         "impact":   ProjectImpactAnalysis.status(),
     }
+    dep_st  = ProjectDependencyGraph.status()
+    brain   = ProjectBrain.get()
+    totals  = brain.get("totals", {})
     return {
-        "text": f"""🧠 **أنا X AI Operator — المرحلة 3**
+        "text": f"""🧠 **أنا TitanX Engineering Agent — Agent Foundation v16**
 
 **ما أنا؟**
-محرك ذكاء اصطناعي متخصص مدمج في **{name} {ver}**.
-لا أبحث في الملفات لأي سؤال — أفكر أولاً، أفهم السياق، ثم أجيب.
+وكيل هندسي متخصص مدمج في **{name} {ver}**.
+أعمل بـ 16 قاعدة صارمة: الفحص أولاً، الأدلة قبل الإجابة، الموافقة قبل التنفيذ، التحقق بعده.
 
-**وضعان للعمل:**
-  💬 **وضع المحادثة** — أسئلة تقنية عامة: Python، FastAPI، SQL، مقارنات
-  🔍 **وضع المشروع** — ملفات، مسارات، إنشاء ميزات، تشخيص أخطاء
+**بروتوكول التفكير (7 خطوات إلزامية لكل طلب مشروع):**
+  1️⃣ Understand — استخراج الكيانات وتصنيف النية
+  2️⃣ Search — فحص حي للملفات ذات الصلة
+  3️⃣ Context — تحديد أدوار الملفات وفئاتها
+  4️⃣ Deps — رسم بيان التبعيات من AST graph
+  5️⃣ Impact — تقييم مستوى المخاطرة والملفات المتأثرة
+  6️⃣ Plan — خطة تنفيذ بالملفات الحقيقية (عند الحاجة)
+  7️⃣ Answer — رد مدعوم بأدلة الفحص المباشر
 
-**مكوناتي (المرحلة 3):**
-  🧠 **Reasoning Engine** — أصنّف كل رسالة قبل أي بحث
-  💾 **AI Memory Layer** — أتذكر سياق المحادثة ({p3['memory']['turns']} دورة)
-  📋 **AI Planner** — أخطط قبل التنفيذ مع تحليل المخاطر
-  ⚙️ **Engineer Core** — أفهم طلبات التعديل دلالياً
-  🔬 **Impact Analysis** — أحلل تأثير أي تغيير مسبقاً
+**أدواتي الهندسية:**
+  🔍 **Dep Graph** — {dep_st['files_scanned']} ملف ممسوح · {dep_st['total_deps']} علاقة تبعية حية
+  🧠 **Project Brain** — {totals.get('files', 0)} ملف · {totals.get('routers', 0)} راوتر · {totals.get('handlers', 0)} handler
+  💾 **AI Memory** — {p3['memory']['turns']} دورة محادثة محفوظة
+  🔬 **Impact Analysis** — تحليل transitive تلقائي لكل ملف
+  ⏸️ **Planning Gate** — لا تنفيذ بدون موافقة صريحة
   🤖 **Hugging Face** — متصل بـ `x-ai-core` Space
 
-**المشروع الذي أعمل عليه:**
+**المشروع:**
   • بوت Telegram رئيسي — `bot.py` (PrimeDownloader)
   • بوت دعم فني — `support_bot/bot.py`
   • لوحة تحكم FastAPI — المنفذ 5000
 
-اسألني: **"What can you do?"** لقائمة القدرات الكاملة.""",
-        "data": {"identity": "X AI Operator", "phase": 3,
-                 "hf_connected": hf_status().get("connected", False), "phase3": p3},
+اسألني: **"ما قدراتك؟"** أو **"رسم بيان التشغيل"** للبدء.""",
+        "data": {
+            "identity":      "TitanX Engineering Agent",
+            "phase":         "Agent Foundation v16",
+            "hf_connected":  hf_status().get("connected", False),
+            "dep_graph":     dep_st,
+            "project_totals": totals,
+            "phase3":        p3,
+        },
     }
 
 
 def _r_capabilities() -> dict:
-    """'What can you do?' — full capability listing with Phase 3 modes."""
+    """'What can you do?' — full capability listing with Agent Foundation v16 modes."""
+    dep_st = ProjectDependencyGraph.status()
     return {
-        "text": """⚡ **قدرات X AI Operator — المرحلة 3**
+        "text": f"""⚡ **قدرات TitanX Engineering Agent — Agent Foundation v16**
 
-**💬 وضع المحادثة العامة (جديد في المرحلة 3):**
-  • "Explain FastAPI" → شرح كامل بالاستخدامات والمزايا
-  • "Python vs JavaScript" → مقارنة مفصّلة
-  • "What is REST API?" → تعريف وأمثلة
-  • "How do Telegram Bots work?" → شرح المفهوم
-  • "Hello" / "مرحبا" → محادثة طبيعية
+**🔍 الهندسة والتحليل (Scan-First):**
+  • "ما الملفات التي تعتمد على config.py؟" → رسم بيان التبعيات الحي
+  • "ماذا يحدث لو حذفت db_utils.py؟" → تأثير transitive كامل
+  • "رسم بيان التشغيل" → Startup + Runtime + Failure chains
+  • "سلسلة تدفق البيانات من Telegram إلى الرد" → data-flow map
 
-**🔍 وضع المشروع — معرفة الملفات:**
-  • "What file controls the dashboard?" → الملف الدقيق
-  • "Where is the login page?" → المسار الكامل
-  • "What CSS controls the colors?" → ملف CSS
-
-**🚀 تخطيط الميزات الجديدة:**
-  • "Create notification bot" → خطة + ملفات + خطوات
-  • "Build new page for statistics" → scaffold كامل
-
-**🎨 إعادة التصميم:**
-  • "Redesign homepage" → الملفات + خطوات التنفيذ
-  • "Revamp sidebar UI" → خطة التعديل الكاملة
+**🚀 تخطيط الميزات (Approval-Gated):**
+  • "أضف بوت إشعارات" → scan أولاً + خطة بالملفات الحقيقية + انتظار موافقتك
+  • "ابنِ صفحة إحصائيات" → scaffold كامل محمي بـ Planning Gate
 
 **🔧 التشخيص والإصلاح:**
-  • "Fix broken button" → تشخيص + فحص سجلات
-  • "Fix error in auth" → root-cause analysis
+  • "شخّص خطأ في auth" → root-cause + الملفات المتأثرة + خطة الإصلاح
+  • "أكبر نقطة ضعف في المشروع" → تقييم كامل بالأولويات
 
-**🏗️ تحليل المعمارية:**
-  • "How does the bot work?"
-  • "What depends on auth.py?"
-  • "What breaks if I change style.css?"
+**🏗️ الهندسة المعمارية:**
+  • "أعد تصميم بنية المشروع" → خطة هيكلية بالتفصيل
+  • "التقنيات الديون التقنية" → قائمة مرتبة بالأولوية
+  • "كيف يتحمل 100,000 مستخدم؟" → خطة توسعة
 
-**🤖 Hugging Face (متصل ✅):**
-  • "Are you connected to Hugging Face?" → حالة الاتصال الحية
-  • تحليل وتخطيط عبر نموذج `x-ai-core` الخارجي
+**💬 المحادثة التقنية العامة:**
+  • "ما الفرق بين FastAPI و Flask؟" → مقارنة مفصّلة
+  • "اشرح async/await" → شرح مع أمثلة من المشروع
 
-**🧠 المرحلة 3 — نشطة:**
-  • Reasoning Engine · AI Memory · AI Planner · Engineer Core · Impact Analysis
+**📊 حالة النظام الحالية:**
+  • {dep_st['files_scanned']} ملف ممسوح · {dep_st['total_deps']} علاقة تبعية في الرسم البياني
+  • بروتوكول 7 خطوات يعمل على كل طلب مشروع
 
-**🧪 اختبار ذاتي:**
-  • "اختبر نفسك" → تشغيل الاختبارات والتحقق من النتائج""",
+**🧪 التحقق الذاتي:**
+  • "اختبر نفسك" → {dep_st['files_scanned']} ملف + جميع مراحل الاختبار""",
         "data": {
+            "agent":   "TitanX Engineering Agent",
+            "version": "Agent Foundation v16",
             "intents": [
                 "identity", "capabilities", "hf_query",
                 "find_file", "create_feature", "ui_redesign",
                 "debug_fix", "new_page", "plan_modify",
-                "dependency", "root_cause", "impact", "arch",
-                "errors", "analyze", "security", "status", "self_test",
-            ]
+                "dependency", "who_depends", "data_flow", "reuse_systems",
+                "root_cause", "impact", "arch", "runtime_graph",
+                "errors", "analyze", "security", "weakness",
+                "strategy", "scale", "tech_debt", "redesign",
+                "status", "self_test",
+            ],
+            "dep_graph": dep_st,
         },
     }
 
@@ -5894,6 +5974,90 @@ def _r_strategy(msg: str) -> dict:
             "  · وقت استجابة API < 200ms"
         ),
         "data": {"strategy_generated": True, "project_files": total},
+    }
+
+
+def _r_runtime_graph(msg: str) -> dict:
+    """
+    Rule 5 — Runtime Graph: Startup Chain + Runtime Chain + Failure Chain.
+    Shows the live execution chains derived from the actual project structure.
+    Triggered by: 'رسم بيان التشغيل' / 'runtime graph' / 'startup chain' / 'failure chain'.
+    """
+    brain  = ProjectBrain.get()
+    totals = brain.get("totals", {})
+    dep_st = ProjectDependencyGraph.status()
+    files  = walk_project()
+    py_files = [f for f in files if f.endswith(".py")]
+
+    # Detect bots, routers, handlers, services from the live index
+    idx          = ProjectIndex.get()
+    bots         = idx.get("bots", [])
+    routers      = idx.get("routers", [])
+    handlers_lst = idx.get("handlers", [])
+    services_lst = idx.get("services", [])
+    db_files     = idx.get("database", [])
+
+    # Build startup chain from reality
+    startup_links = []
+    if any("config" in f.get("name","") for f in idx.get("config",[])):
+        startup_links.append("config.py → loads env vars + DB path + tokens")
+    startup_links.append(f"app.py → creates FastAPI app, mounts {len(routers)} routers")
+    if db_files:
+        startup_links.append(f"{db_files[0]['file']} → init_db() creates tables")
+    startup_links.append("ai_engine.py → ProjectDependencyGraph.startup_recover() pre-builds AST graph")
+    startup_links.append("uvicorn → binds port 5000, starts event loop")
+    for b in bots[:2]:
+        startup_links.append(f"{b['file']} → run_polling() starts Telegram bot ({b['type']})")
+
+    # Runtime chain
+    runtime_links = [
+        "User → Telegram API → python-telegram-bot (polling / webhook)",
+        f"MessageHandler → {handlers_lst[0]['file'] if handlers_lst else 'handlers/*.py'} → dispatches by command/text",
+        f"Handler → {services_lst[0]['file'] if services_lst else 'services/*.py'} → business logic",
+        f"Service → {db_files[0]['file'] if db_files else 'database/*.py'} → SQLite read/write",
+        "Parallel: HTTP /api/* → FastAPI router → control panel response",
+        "Parallel: /ai/api/chat → ai_workspace.py → ai_engine.process_chat() → 7-step chain → response",
+    ]
+
+    # Failure chain (SPOFs from ProjectBrain.RISKS)
+    risks = ProjectBrain.RISKS
+    failure_links = []
+    for r in risks[:4]:
+        failure_links.append(f"❌ {r['title']} [{r['severity']}] — {r['detail'][:80]}")
+
+    lines = [
+        "🔄 **رسم بيان التشغيل — TitanX Engineering Agent**\n",
+        f"📊 **بيانات حية:** {totals.get('files',0)} ملف · {dep_st['files_scanned']} ممسوح · {dep_st['total_deps']} علاقة\n",
+        "**🚀 سلسلة البدء (Startup Chain):**",
+    ]
+    for i, s in enumerate(startup_links, 1):
+        lines.append(f"  {i}. {s}")
+
+    lines.append("\n**⚡ سلسلة التشغيل (Runtime Chain):**")
+    for i, s in enumerate(runtime_links, 1):
+        lines.append(f"  {i}. {s}")
+
+    lines.append("\n**🚨 سلسلة الفشل (Failure Chain — SPOFs):**")
+    if failure_links:
+        for s in failure_links:
+            lines.append(f"  {s}")
+    else:
+        lines.append("  لا نقاط فشل فردية واضحة — المشروع مستقر")
+
+    lines.append(
+        f"\n💡 **خلاصة:** {len(bots)} بوت · {len(routers)} راوتر · "
+        f"{len(handlers_lst)} handler · {len(services_lst)} service · {len(db_files)} قاعدة بيانات"
+    )
+
+    return {
+        "text": "\n".join(lines),
+        "data": {
+            "startup_chain":  startup_links,
+            "runtime_chain":  runtime_links,
+            "failure_chain":  failure_links,
+            "totals":         totals,
+            "dep_graph":      dep_st,
+        },
     }
 
 
