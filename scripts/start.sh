@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Put .pythonlibs first so installed packages shadow the older Nix-store versions
+# Force uv site-packages first to shadow conflicting Nix-store packages
 export PYTHONPATH=/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages:$PYTHONPATH
 
-# Start Control Panel only — bots are managed by their own workflows
-exec python3 /home/runner/workspace/extracted_project/control_panel/server.py
+exec /home/runner/workspace/.pythonlibs/bin/python3 /home/runner/workspace/extracted_project/control_panel/server.py
