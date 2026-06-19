@@ -1319,6 +1319,332 @@ class ProjectSelfAudit:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# PROJECT DEPENDENCY GRAPH — Live AST-based import analysis
+# Answers: "What breaks if I delete X?" / "What depends on Y?"
+# Parses all .py files; 5-min TTL cache.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class ProjectDependencyGraph:
+    """
+    Live Python import dependency graph built by AST-parsing all .py files.
+
+    forward_graph:  file → [files it imports]
+    reverse_graph:  file → [files that import it]
+
+    Key methods:
+    - what_depends_on(file)         → direct importers
+    - what_breaks_if_deleted(file)  → transitive dependents (BFS)
+    - full_impact_report(file)      → combined live + static analysis
+    """
+    _cache: dict = {}
+    _ts:    float = 0.0
+    _TTL:   float = 300.0   # 5-minute cache
+
+    # ── Import resolver ────────────────────────────────────────────────────────
+    @classmethod
+    def _resolve(cls, importing_file: str, module: str, level: int) -> str | None:
+        """
+        Convert (importing_file, module, level) → relative file path.
+        e.g. ('control_panel/routers/foo.py', 'auth', 2) → 'control_panel/auth.py'
+        """
+        parts        = importing_file.replace("\\", "/").split("/")
+        pkg_parts    = parts[:-1]                                    # directory of importing file
+        # Go up (level-1) packages
+        base         = pkg_parts[:max(0, len(pkg_parts) - (level - 1))] if level > 0 else []
+        if level == 0:
+            # Absolute import: handlers.start → handlers/start.py
+            candidate = module.replace(".", "/") + ".py"
+        else:
+            # Relative import
+            seg_parts = (base + module.split(".")) if module else base
+            candidate = "/".join(seg_parts) + ".py"
+        return candidate if candidate else None
+
+    # ── Core builder ──────────────────────────────────────────────────────────
+    @classmethod
+    def _build(cls) -> dict:
+        files    = walk_project()
+        py_files = [f for f in files if f.endswith(".py")]
+
+        forward:  dict[str, list[str]] = {}   # file → files it imports
+        reverse:  dict[str, list[str]] = {f: [] for f in py_files}  # file → importers
+
+        for rel in py_files:
+            fp = EXTRACTED_DIR / rel
+            try:
+                tree = ast.parse(fp.read_text(encoding="utf-8", errors="ignore"))
+            except Exception:
+                forward[rel] = []
+                continue
+
+            imported = []
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        cand = alias.name.replace(".", "/") + ".py"
+                        if (EXTRACTED_DIR / cand).exists():
+                            imported.append(cand)
+                elif isinstance(node, ast.ImportFrom):
+                    module = node.module or ""
+                    level  = node.level or 0
+                    cand   = cls._resolve(rel, module, level)
+                    if cand and (EXTRACTED_DIR / cand).exists():
+                        imported.append(cand)
+
+            forward[rel] = list(dict.fromkeys(imported))   # deduplicated
+            for dep in forward[rel]:
+                if dep not in reverse:
+                    reverse[dep] = []
+                if rel not in reverse[dep]:
+                    reverse[dep].append(rel)
+
+        return {
+            "forward":       forward,
+            "reverse":       reverse,
+            "files_scanned": len(py_files),
+            "built_at":      datetime.now().isoformat(),
+        }
+
+    @classmethod
+    def get(cls) -> dict:
+        if time.time() - cls._ts < cls._TTL and cls._cache:
+            return cls._cache
+        try:
+            cls._cache = cls._build()
+            cls._ts    = time.time()
+        except Exception as e:
+            _ai_log.warning("ProjectDependencyGraph build error: %s", e)
+            if not cls._cache:
+                cls._cache = {"forward": {}, "reverse": {}, "files_scanned": 0,
+                              "built_at": datetime.now().isoformat()}
+        return cls._cache
+
+    # ── Public query API ───────────────────────────────────────────────────────
+    @classmethod
+    def _resolve_name(cls, rel_path: str) -> str:
+        """Try to match a short name ('auth.py') to a full relative path."""
+        graph = cls.get()
+        reverse = graph.get("reverse", {})
+        normalized = rel_path.replace("\\", "/")
+        if normalized in reverse:
+            return normalized
+        # fuzzy by filename
+        name = Path(normalized).name
+        for key in reverse:
+            if Path(key).name == name:
+                return key
+        # fuzzy by stem  
+        stem = Path(normalized).stem
+        for key in reverse:
+            if Path(key).stem == stem:
+                return key
+        return normalized
+
+    @classmethod
+    def what_depends_on(cls, rel_path: str) -> list[str]:
+        """Files that directly import `rel_path`."""
+        key     = cls._resolve_name(rel_path)
+        reverse = cls.get().get("reverse", {})
+        return sorted(reverse.get(key, []))
+
+    @classmethod
+    def what_breaks_if_deleted(cls, rel_path: str) -> list[str]:
+        """Transitive dependents — BFS on reverse graph from rel_path."""
+        reverse  = cls.get().get("reverse", {})
+        key      = cls._resolve_name(rel_path)
+        visited  = set()
+        queue    = list(reverse.get(key, []))
+        while queue:
+            node = queue.pop(0)
+            if node in visited:
+                continue
+            visited.add(node)
+            for dep in reverse.get(node, []):
+                if dep not in visited:
+                    queue.append(dep)
+        return sorted(visited)
+
+    @classmethod
+    def full_impact_report(cls, rel_path: str) -> dict:
+        """Complete impact analysis: live import graph + static knowledge."""
+        key              = cls._resolve_name(rel_path)
+        direct_importers = cls.what_depends_on(key)
+        transitive_all   = cls.what_breaks_if_deleted(key)
+        static           = analyze_file_impact(rel_path)      # existing static knowledge
+
+        n = len(direct_importers)
+        if n >= 10 or static.get("risk") == "critical":
+            risk = "CRITICAL"
+        elif n >= 5 or static.get("risk") == "high":
+            risk = "HIGH"
+        elif n >= 2 or static.get("risk") == "medium":
+            risk = "MEDIUM"
+        elif n >= 1:
+            risk = "LOW"
+        else:
+            risk = "NONE"
+
+        return {
+            "file":                key,
+            "direct_importers":    direct_importers,
+            "transitive_impact":   transitive_all,
+            "static_knowledge":    static.get("affects", []),
+            "risk":                risk,
+            "total_files_at_risk": len(transitive_all),
+        }
+
+    @classmethod
+    def status(cls) -> dict:
+        g = cls.get()
+        return {
+            "active":        True,
+            "files_scanned": g.get("files_scanned", 0),
+            "total_deps":    sum(len(v) for v in g.get("forward", {}).values()),
+            "age_seconds":   int(time.time() - cls._ts),
+            "ttl_seconds":   int(cls._TTL),
+        }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROJECT INDEX — Structured auto-updating component catalog
+# Categories: routers, templates, apis, bots, database, config, ai, handlers, services
+# 5-min TTL; auto-rebuilds when called after TTL expires.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class ProjectIndex:
+    """
+    Structured catalog of all 144 project files, categorized by role.
+    Never hardcoded — rebuilt from live filesystem every 5 minutes.
+
+    Usage:
+        idx = ProjectIndex.get()
+        idx["routers"]   → list of {file, name, routes, templates}
+        idx["templates"] → list of {file, name, base}
+        idx["bots"]      → list of {file, type}
+        ...
+    """
+    _cache: dict = {}
+    _ts:    float = 0.0
+    _TTL:   float = 300.0
+
+    @classmethod
+    def _build(cls) -> dict:
+        files   = walk_project()
+        dep_map = build_dependency_map()
+
+        idx: dict = {
+            "routers":   [],
+            "templates": [],
+            "apis":      [],
+            "bots":      [],
+            "database":  [],
+            "config":    [],
+            "ai_files":  [],
+            "handlers":  [],
+            "services":  [],
+            "static":    [],
+            "other":     [],
+            "total_files": len(files),
+            "built_at":    datetime.now().isoformat(),
+        }
+
+        for rel in files:
+            fp    = EXTRACTED_DIR / rel
+            fname = Path(rel).name
+            stem  = Path(rel).stem
+
+            # Bots
+            if fname == "bot.py" or (rel.endswith("/bot.py")):
+                btype = "main_bot" if rel == "bot.py" else "support_bot" if "support_bot" in rel else "bot"
+                idx["bots"].append({"file": rel, "type": btype})
+
+            # Routers
+            elif "/routers/" in rel and rel.endswith(".py"):
+                rts = [r for r, v in dep_map.items()
+                       if Path(v.get("file", "")).name == fname]
+                tpls = list({t for r, v in dep_map.items()
+                             if Path(v.get("file","")).name == fname
+                             for t in v.get("templates", [])})
+                idx["routers"].append({
+                    "file": rel, "name": stem,
+                    "routes": rts[:8], "templates": tpls,
+                })
+
+            # Templates
+            elif rel.endswith(".html"):
+                try:
+                    content = fp.read_text(errors="ignore")
+                    base    = "base.html" if "extends" in content else "standalone"
+                except Exception:
+                    base = "unknown"
+                idx["templates"].append({"file": rel, "name": stem, "base": base})
+
+            # Database
+            elif "/database/" in rel and rel.endswith(".py"):
+                idx["database"].append({"file": rel, "name": stem})
+
+            # Config
+            elif fname in ("settings.py", "config.py") or "config" in stem.lower():
+                idx["config"].append({"file": rel, "name": stem})
+
+            # AI files
+            elif "ai_engine" in stem or "ai_workspace" in stem:
+                idx["ai_files"].append({"file": rel, "name": stem})
+
+            # Handlers
+            elif "/handlers/" in rel and rel.endswith(".py"):
+                idx["handlers"].append({"file": rel, "name": stem})
+
+            # Services
+            elif "/services/" in rel and rel.endswith(".py"):
+                idx["services"].append({"file": rel, "name": stem})
+
+            # Static
+            elif "/static/" in rel:
+                idx["static"].append({"file": rel, "ext": Path(rel).suffix})
+
+            # Other
+            elif rel.endswith(".py"):
+                idx["other"].append({"file": rel, "name": stem})
+
+        # API list from dependency map
+        idx["apis"] = [
+            {"route": r, "file": v["file"], "templates": v["templates"]}
+            for r, v in list(dep_map.items())[:60]
+        ]
+
+        return idx
+
+    @classmethod
+    def get(cls) -> dict:
+        if time.time() - cls._ts < cls._TTL and cls._cache:
+            return cls._cache
+        try:
+            cls._cache = cls._build()
+            cls._ts    = time.time()
+        except Exception as e:
+            _ai_log.warning("ProjectIndex build error: %s", e)
+            if not cls._cache:
+                cls._cache = {"error": str(e), "total_files": 0,
+                              "built_at": datetime.now().isoformat()}
+        return cls._cache
+
+    @classmethod
+    def summary(cls) -> str:
+        i = cls.get()
+        return (
+            f"Routers: {len(i.get('routers',[]))} · "
+            f"Templates: {len(i.get('templates',[]))} · "
+            f"APIs: {len(i.get('apis',[]))} · "
+            f"Bots: {len(i.get('bots',[]))} · "
+            f"Handlers: {len(i.get('handlers',[]))} · "
+            f"Services: {len(i.get('services',[]))} · "
+            f"DB: {len(i.get('database',[]))} · "
+            f"Total: {i.get('total_files', 0)} files"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CONVERSATION KNOWLEDGE BASE
 # Used by _r_conversation() — general tech knowledge, no project file access
 # ═══════════════════════════════════════════════════════════════════════════════
