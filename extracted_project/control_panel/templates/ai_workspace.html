@@ -1,26 +1,12 @@
 {% extends "base.html" %}
 {% block title %}X AI — مركز الذكاء الاصطناعي{% endblock %}
-{% block page_title %}🧠 X AI Operator{% endblock %}
+{% block page_title %}🧠 TitanX Engineering Agent{% endblock %}
 
 {% block content %}
 <div class="ai-chat-wrap">
 
   <!-- Sidebar -->
   <aside class="ai-chat-sidebar">
-
-    <button class="ai-new-chat-btn" onclick="newChat()">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      محادثة جديدة
-    </button>
-
-    <!-- AI Identity Card -->
-    <div class="ai-identity-card">
-      <div class="ai-identity-avatar">🧠</div>
-      <div class="ai-identity-info">
-        <div class="ai-identity-name">X AI Operator</div>
-        <div class="ai-identity-phase">المرحلة 3 — نشط</div>
-      </div>
-    </div>
 
     <!-- Connection Status -->
     <div class="ai-conn-block">
@@ -41,27 +27,6 @@
       </div>
     </div>
 
-    <!-- Phase 3 Status -->
-    <div class="ai-sidebar-section">
-      <div class="ai-sidebar-label">المرحلة 3</div>
-      <div class="ai-p3-grid">
-        <div class="ai-p3-badge" title="Reasoning Engine">🧠 Reasoning</div>
-        <div class="ai-p3-badge" title="AI Memory Layer">💾 Memory</div>
-        <div class="ai-p3-badge" title="AI Planner">📋 Planner</div>
-        <div class="ai-p3-badge" title="Engineer Core">⚙️ Engineer</div>
-        <div class="ai-p3-badge" title="Impact Analysis">🔬 Impact</div>
-        <div class="ai-p3-badge ai-p3-dim" title="Auto-Execute — infrastructure ready, not activated">🚀 Auto*</div>
-      </div>
-    </div>
-
-    <!-- Navigation -->
-    <div class="ai-sidebar-section" style="margin-top:auto">
-      <div class="ai-sidebar-label">صفحات الذكاء</div>
-      <a href="/ai/engineer" class="ai-nav-link">🤖 مهندس الذكاء</a>
-      <a href="/ai/memory"   class="ai-nav-link">🧠 ذاكرة المشروع</a>
-      <a href="/ai/review"   class="ai-nav-link">📋 مراجعة التعديلات</a>
-    </div>
-
   </aside>
 
   <!-- Main Chat -->
@@ -75,11 +40,15 @@
           🧠
         </div>
         <div>
-          <div class="ai-chat-title">X AI Operator <span class="ai-phase-tag">P3</span></div>
+          <div class="ai-chat-title">TitanX Engineering Agent <span class="ai-phase-tag">P3</span></div>
           <div class="ai-chat-sub">محادثة عامة · معرفة مشروع · تخطيط · تشخيص</div>
         </div>
       </div>
       <div class="ai-chat-header-right">
+        <button class="ai-new-chat-btn" onclick="newChat()" style="margin-bottom:0">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          محادثة جديدة
+        </button>
         <div class="ai-status-dot"></div>
         <span style="font-size:.75rem;color:var(--green)">جاهز</span>
         <button class="ai-icon-btn" onclick="clearChat()" title="مسح المحادثة">🗑️</button>
@@ -201,7 +170,7 @@ var _chatEl = document.getElementById('ai-messages');
 
 // ── Welcome message ───────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-  var welcome = '🧠 **X AI Operator** — جاهز. اكتب رسالتك.';
+  var welcome = '🧠 **TitanX Engineering Agent** — جاهز. اكتب رسالتك.';
   document.getElementById('welcome-content').innerHTML = renderMd(welcome);
   loadStatus();
 });

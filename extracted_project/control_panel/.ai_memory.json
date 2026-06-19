@@ -110,16 +110,6 @@
   "chat_history": [
     {
       "role": "user",
-      "text": "من أنت",
-      "ts": "2026-06-19T18:03:32.844134"
-    },
-    {
-      "role": "assistant",
-      "text": "🧠 **أنا X AI Operator — المرحلة 3**\n\n**ما أنا؟**\nمحرك ذكاء اصطناعي متخصص مدمج في **X Control Center v5.0**.\nلا أبحث في الملفات لأي سؤال — أفكر أولاً، أفهم السياق، ثم أجيب.\n\n**وضعان للعمل:**\n  💬 **وضع المحادثة** — أسئلة تقنية عامة: Python، FastAPI، SQL، مقارنات\n  🔍 **وضع المشروع** — ملفات، مسارات، إنشاء ميزات، تشخيص أخطاء\n\n**مكوناتي (المرحلة 3):**\n  🧠 **Reasoning Engine** — أصنّف كل رسالة قبل أي بحث\n  💾 **AI Memory Layer** — أتذكر سياق المحادثة (1 دورة)\n  📋 **AI Planner** — أخطط قبل التنفيذ مع تح",
-      "ts": "2026-06-19T18:03:32.844134"
-    },
-    {
-      "role": "user",
       "text": "ما وظيفتك",
       "ts": "2026-06-19T18:03:33.120541"
     },
@@ -357,6 +347,16 @@
       "role": "assistant",
       "text": "🔗 **سلسلة التبعيات: `control_panel/config.py`** — قراءة مباشرة من الكود\n\n🔴 **مستوى الخطر إذا حُذف:** CRITICAL\n📥 **المستوردون المباشرون (17 ملف):**\n  ↳ `control_panel/app.py`\n  ↳ `control_panel/auth.py`\n  ↳ `control_panel/db_utils.py`\n  ↳ `control_panel/routers/ai_workspace.py`\n  ↳ `control_panel/routers/backups.py`\n  ↳ `control_panel/routers/bots.py`\n  ↳ `control_panel/routers/broadcast.py`\n  ↳ `control_panel/routers/dashboard.py`\n  ↳ `control_panel/routers/db_manager.py`\n  ↳ `control_panel/rout",
       "ts": "2026-06-19T19:13:13.940839"
+    },
+    {
+      "role": "user",
+      "text": "احذف زر إدارة لوحة المفاتيح من البوت الرئيسي\n\nحلل أولاً\n\nولا تنفذ",
+      "ts": "2026-06-19T19:14:43.006879"
+    },
+    {
+      "role": "assistant",
+      "text": "🔬 **تحليل المشروع الكامل**\n\n📁 إجمالي الملفات: 145\n🌐 المسارات المعروفة: 20\n🧠 المفاهيم الدلالية: 68\n🎨 القوالب: 20\n⚙️ الـ Routers: 15\n🤖 المعالجات: 39\n🗄️ نماذج DB: 17\n\n⚠️ 4 أخطاء في السجلات\n🔧 10 مشاكل في الكود\n\n─────────────────────────────────────\n📁 **أدلة الفحص المباشر (Scan Evidence):**\n  • `control_panel/templates/dashboard.html`\n  • `control_panel/routers/dashboard.py`\n⚠️ مستوى المخاطرة: **MEDIUM**",
+      "ts": "2026-06-19T19:14:43.006879"
     }
   ],
   "analysis_cache": {},
@@ -367,7 +367,7 @@
     "errors_found": 57,
     "last_scan": null
   },
-  "updated": "2026-06-19T19:13:13.940839",
+  "updated": "2026-06-19T19:14:43.006879",
   "project": {
     "name": "X Control Center",
     "main_bot": "PrimeDownloader Bot (bot.py)",
@@ -382,10 +382,10 @@
     ]
   },
   "stats": {
-    "total_scans": 71,
+    "total_scans": 72,
     "total_plans": 14,
     "total_questions": 8,
-    "total_chats": 362
+    "total_chats": 363
   },
   "created": "2026-06-19T09:05:02.173299",
   "decisions": [],

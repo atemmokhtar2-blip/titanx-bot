@@ -44,11 +44,6 @@
   <div class="loading-text" id="loading-text">جاري التحميل...</div>
 </div>
 
-<!-- FIXED BACK BUTTON -->
-<button class="fixed-back-btn" id="fixed-back-btn" aria-label="رجوع">
-  ← رجوع
-</button>
-
 <div class="layout">
 
   <!-- MOBILE OVERLAY -->
@@ -98,18 +93,6 @@
           <span class="nav-icon">🧠</span>
           <span class="nav-label">مساحة الذكاء الاصطناعي</span>
           <span class="nav-badge-new">جديد</span>
-        </a>
-        <a href="/ai/engineer" class="nav-item nav-item-sub {% if active_page=='ai_engineer' %}active-sub{% endif %}">
-          <span class="nav-icon">🤖</span>
-          <span class="nav-label">مهندس الذكاء الاصطناعي</span>
-        </a>
-        <a href="/ai/memory" class="nav-item nav-item-sub {% if active_page=='ai_memory' %}active-sub{% endif %}">
-          <span class="nav-icon">🧠</span>
-          <span class="nav-label">ذاكرة المشروع</span>
-        </a>
-        <a href="/ai/review" class="nav-item nav-item-sub {% if active_page=='ai_review' %}active-sub{% endif %}">
-          <span class="nav-icon">📋</span>
-          <span class="nav-label">مراجعة التعديلات</span>
         </a>
       </div>
 
@@ -209,6 +192,19 @@
         </div>
         <div class="header-clock" id="header-clock" style="display:none">--:--</div>
         <span class="live-badge">مباشر</span>
+        <div class="header-nav-dropdown" id="header-nav-dropdown">
+          <button class="header-icon-btn header-nav-btn" onclick="toggleHeaderNav()" title="التنقل السريع" aria-label="التنقل السريع">🗂️</button>
+          <div class="header-nav-menu" id="header-nav-menu" style="display:none">
+            <a href="/" class="header-nav-item">📊 لوحة التحكم</a>
+            <a href="/bots" class="header-nav-item">🤖 البوتات</a>
+            <a href="/ai" class="header-nav-item">🧠 الذكاء الاصطناعي</a>
+            <a href="/users" class="header-nav-item">👥 المستخدمون</a>
+            <a href="/logs" class="header-nav-item">📋 السجلات</a>
+            <a href="/github" class="header-nav-item">🐙 GitHub</a>
+            <a href="/backups" class="header-nav-item">💾 النسخ الاحتياطية</a>
+            <a href="/system" class="header-nav-item">📊 صحة النظام</a>
+          </div>
+        </div>
         <button class="header-icon-btn" id="theme-btn" onclick="toggleTheme()" title="تبديل الوضع">☀️</button>
         <div class="header-avatar" title="المالك">👑</div>
       </div>
@@ -268,6 +264,26 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="/static/js/app.js?v={{ VER }}"></script>
+<script>
+(function() {
+  var _navOpen = false;
+  window.toggleHeaderNav = function() {
+    var menu = document.getElementById('header-nav-menu');
+    if (!menu) return;
+    _navOpen = !_navOpen;
+    menu.style.display = _navOpen ? 'block' : 'none';
+  };
+  document.addEventListener('click', function(e) {
+    if (!_navOpen) return;
+    var dd = document.getElementById('header-nav-dropdown');
+    if (dd && !dd.contains(e.target)) {
+      _navOpen = false;
+      var menu = document.getElementById('header-nav-menu');
+      if (menu) menu.style.display = 'none';
+    }
+  });
+})();
+</script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
