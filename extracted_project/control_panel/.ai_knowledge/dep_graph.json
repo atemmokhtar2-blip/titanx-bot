@@ -1,0 +1,810 @@
+{
+  "built_at": "2026-06-19T18:02:09.085218",
+  "files_scanned": 119,
+  "forward": {
+    "admin_bot/__init__.py": [],
+    "admin_bot/bot.py": [
+      "config/settings.py",
+      "utils/logger.py"
+    ],
+    "admin_bot/config/__init__.py": [],
+    "admin_bot/config/settings.py": [],
+    "admin_bot/database/__init__.py": [],
+    "admin_bot/database/db.py": [
+      "config/settings.py"
+    ],
+    "admin_bot/handlers/__init__.py": [],
+    "admin_bot/handlers/auth.py": [
+      "config/settings.py"
+    ],
+    "admin_bot/handlers/broadcast.py": [
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "admin_bot/handlers/dashboard.py": [
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "admin_bot/handlers/downloads.py": [
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "admin_bot/handlers/security.py": [
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "admin_bot/handlers/settings_h.py": [
+      "database/db.py",
+      "config/settings.py",
+      "utils/logger.py"
+    ],
+    "admin_bot/handlers/stats.py": [
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "admin_bot/handlers/support.py": [
+      "database/db.py",
+      "config/settings.py"
+    ],
+    "admin_bot/handlers/users.py": [
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "admin_bot/handlers/vodafone_cash.py": [
+      "database/db.py"
+    ],
+    "admin_bot/locales.py": [],
+    "admin_bot/utils/__init__.py": [],
+    "admin_bot/utils/logger.py": [],
+    "bot.py": [
+      "config/settings.py",
+      "database/db.py",
+      "utils/logger.py",
+      "handlers/start.py",
+      "handlers/download.py",
+      "handlers/profile.py",
+      "handlers/feedback.py",
+      "handlers/favorites.py",
+      "handlers/video_tools.py",
+      "handlers/video_studio.py",
+      "handlers/logo.py",
+      "handlers/admin.py",
+      "workers/cleanup.py",
+      "workers/heartbeat.py",
+      "workers/crash_monitor.py",
+      "middlewares/auth.py",
+      "database/reports.py",
+      "database/users.py"
+    ],
+    "config/__init__.py": [
+      "config/settings.py"
+    ],
+    "config/settings.py": [],
+    "control_panel/__init__.py": [],
+    "control_panel/ai_engine.py": [],
+    "control_panel/app.py": [
+      "control_panel/config.py",
+      "control_panel/auth.py"
+    ],
+    "control_panel/auth.py": [
+      "control_panel/config.py"
+    ],
+    "control_panel/config.py": [],
+    "control_panel/db_utils.py": [
+      "control_panel/config.py"
+    ],
+    "control_panel/routers/__init__.py": [],
+    "control_panel/routers/ai_workspace.py": [
+      "control_panel/auth.py",
+      "control_panel/config.py",
+      "control_panel/ai_engine.py"
+    ],
+    "control_panel/routers/backups.py": [
+      "control_panel/auth.py",
+      "control_panel/config.py"
+    ],
+    "control_panel/routers/bots.py": [
+      "control_panel/auth.py",
+      "control_panel/config.py"
+    ],
+    "control_panel/routers/broadcast.py": [
+      "control_panel/auth.py",
+      "control_panel/db_utils.py",
+      "control_panel/config.py"
+    ],
+    "control_panel/routers/dashboard.py": [
+      "control_panel/auth.py",
+      "control_panel/db_utils.py",
+      "control_panel/config.py"
+    ],
+    "control_panel/routers/db_manager.py": [
+      "control_panel/auth.py",
+      "control_panel/db_utils.py",
+      "control_panel/config.py"
+    ],
+    "control_panel/routers/files.py": [
+      "control_panel/auth.py",
+      "control_panel/config.py"
+    ],
+    "control_panel/routers/github_router.py": [
+      "control_panel/auth.py",
+      "control_panel/config.py"
+    ],
+    "control_panel/routers/logs_router.py": [
+      "control_panel/auth.py",
+      "control_panel/config.py"
+    ],
+    "control_panel/routers/replit_manager.py": [
+      "control_panel/auth.py",
+      "control_panel/config.py"
+    ],
+    "control_panel/routers/search.py": [
+      "control_panel/auth.py",
+      "control_panel/config.py"
+    ],
+    "control_panel/routers/system.py": [
+      "control_panel/auth.py",
+      "control_panel/config.py"
+    ],
+    "control_panel/routers/updates.py": [
+      "control_panel/auth.py",
+      "control_panel/config.py"
+    ],
+    "control_panel/routers/users.py": [
+      "control_panel/auth.py",
+      "control_panel/db_utils.py",
+      "control_panel/config.py"
+    ],
+    "control_panel/server.py": [
+      "control_panel/app.py"
+    ],
+    "database/__init__.py": [],
+    "database/achievements.py": [
+      "database/db.py",
+      "config/settings.py"
+    ],
+    "database/activity.py": [
+      "database/db.py"
+    ],
+    "database/cache.py": [
+      "database/db.py"
+    ],
+    "database/db.py": [
+      "config/settings.py"
+    ],
+    "database/downloads.py": [
+      "database/db.py"
+    ],
+    "database/favorites.py": [
+      "database/db.py"
+    ],
+    "database/referrals.py": [
+      "database/db.py"
+    ],
+    "database/reports.py": [
+      "database/db.py"
+    ],
+    "database/users.py": [
+      "database/db.py",
+      "config/settings.py"
+    ],
+    "developer_bot/bot.py": [
+      "config/settings.py",
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "developer_bot/config/__init__.py": [],
+    "developer_bot/config/settings.py": [],
+    "developer_bot/database/__init__.py": [],
+    "developer_bot/database/db.py": [
+      "config/settings.py"
+    ],
+    "developer_bot/handlers/__init__.py": [],
+    "developer_bot/handlers/ai_assistant.py": [
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "developer_bot/handlers/auth.py": [
+      "config/settings.py",
+      "utils/logger.py"
+    ],
+    "developer_bot/handlers/backups.py": [
+      "database/db.py",
+      "utils/logger.py",
+      "config/settings.py"
+    ],
+    "developer_bot/handlers/dashboard.py": [
+      "database/db.py"
+    ],
+    "developer_bot/handlers/emergency.py": [
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "developer_bot/handlers/errors.py": [
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "developer_bot/handlers/file_manager.py": [
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "developer_bot/handlers/health_check.py": [
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "developer_bot/handlers/monitor.py": [
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "developer_bot/handlers/search.py": [
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "developer_bot/handlers/security_h.py": [
+      "database/db.py"
+    ],
+    "developer_bot/handlers/services.py": [
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "developer_bot/handlers/settings_h.py": [
+      "database/db.py",
+      "config/settings.py"
+    ],
+    "developer_bot/handlers/updates.py": [
+      "database/db.py",
+      "utils/logger.py",
+      "config/settings.py"
+    ],
+    "developer_bot/utils/__init__.py": [],
+    "developer_bot/utils/logger.py": [],
+    "handlers/__init__.py": [],
+    "handlers/admin.py": [
+      "database/users.py",
+      "database/downloads.py",
+      "database/cache.py",
+      "database/reports.py",
+      "database/db.py",
+      "middlewares/auth.py",
+      "config/settings.py",
+      "utils/logger.py",
+      "utils/maintenance.py",
+      "database/activity.py",
+      "workers/heartbeat.py"
+    ],
+    "handlers/download.py": [
+      "database/users.py",
+      "database/downloads.py",
+      "database/cache.py",
+      "database/achievements.py",
+      "database/favorites.py",
+      "services/downloader.py",
+      "services/subscription.py",
+      "middlewares/rate_limiter.py",
+      "middlewares/auth.py",
+      "config/settings.py",
+      "utils/helpers.py",
+      "utils/maintenance.py",
+      "handlers/start.py",
+      "database/referrals.py"
+    ],
+    "handlers/favorites.py": [
+      "database/users.py",
+      "database/favorites.py",
+      "middlewares/subscription_gate.py",
+      "utils/helpers.py",
+      "services/subscription.py"
+    ],
+    "handlers/feedback.py": [
+      "database/users.py",
+      "database/reports.py",
+      "middlewares/subscription_gate.py",
+      "config/settings.py",
+      "services/subscription.py",
+      "handlers/start.py"
+    ],
+    "handlers/logo.py": [
+      "database/users.py",
+      "database/db.py",
+      "utils/logger.py"
+    ],
+    "handlers/profile.py": [
+      "database/users.py",
+      "database/achievements.py",
+      "middlewares/subscription_gate.py",
+      "middlewares/auth.py",
+      "config/settings.py",
+      "utils/helpers.py",
+      "database/db.py",
+      "database/downloads.py",
+      "services/subscription.py",
+      "database/referrals.py",
+      "database/favorites.py"
+    ],
+    "handlers/start.py": [
+      "database/users.py",
+      "database/referrals.py",
+      "services/subscription.py",
+      "middlewares/auth.py",
+      "config/settings.py",
+      "utils/helpers.py"
+    ],
+    "handlers/video_studio.py": [
+      "database/users.py",
+      "utils/ffmpeg_check.py",
+      "utils/logger.py",
+      "handlers/logo.py"
+    ],
+    "handlers/video_tools.py": [
+      "database/users.py",
+      "utils/ffmpeg_check.py",
+      "utils/logger.py"
+    ],
+    "locales/__init__.py": [],
+    "locales/ar.py": [],
+    "locales/en.py": [],
+    "middlewares/__init__.py": [],
+    "middlewares/auth.py": [
+      "database/users.py",
+      "config/settings.py"
+    ],
+    "middlewares/rate_limiter.py": [
+      "config/settings.py"
+    ],
+    "middlewares/subscription_gate.py": [
+      "database/users.py",
+      "services/subscription.py",
+      "utils/maintenance.py",
+      "middlewares/auth.py",
+      "handlers/start.py"
+    ],
+    "services/__init__.py": [],
+    "services/downloader.py": [
+      "config/settings.py",
+      "utils/helpers.py",
+      "utils/logger.py",
+      "utils/ffmpeg_check.py"
+    ],
+    "services/subscription.py": [
+      "config/settings.py",
+      "utils/logger.py"
+    ],
+    "setup.py": [],
+    "support_bot/__init__.py": [],
+    "support_bot/bot.py": [
+      "config/settings.py",
+      "database/db.py",
+      "utils/logger.py",
+      "handlers/admin.py"
+    ],
+    "support_bot/config/__init__.py": [],
+    "support_bot/config/settings.py": [],
+    "support_bot/database/__init__.py": [],
+    "support_bot/database/db.py": [
+      "config/settings.py"
+    ],
+    "support_bot/database/tickets.py": [
+      "support_bot/database/db.py"
+    ],
+    "support_bot/handlers/__init__.py": [],
+    "support_bot/handlers/admin.py": [
+      "config/settings.py",
+      "utils/logger.py"
+    ],
+    "support_bot/handlers/user.py": [
+      "database/db.py",
+      "config/settings.py",
+      "utils/logger.py",
+      "database/users.py"
+    ],
+    "support_bot/utils/__init__.py": [],
+    "support_bot/utils/logger.py": [
+      "config/settings.py"
+    ],
+    "utils/__init__.py": [],
+    "utils/ffmpeg_check.py": [],
+    "utils/helpers.py": [
+      "config/settings.py"
+    ],
+    "utils/logger.py": [
+      "config/settings.py"
+    ],
+    "utils/maintenance.py": [
+      "database/db.py"
+    ],
+    "workers/__init__.py": [],
+    "workers/cleanup.py": [
+      "config/settings.py",
+      "database/cache.py"
+    ],
+    "workers/crash_monitor.py": [
+      "utils/logger.py"
+    ],
+    "workers/heartbeat.py": [
+      "utils/logger.py",
+      "database/users.py",
+      "database/downloads.py",
+      "database/cache.py"
+    ]
+  },
+  "reverse": {
+    "admin_bot/__init__.py": [],
+    "admin_bot/bot.py": [],
+    "admin_bot/config/__init__.py": [],
+    "admin_bot/config/settings.py": [],
+    "admin_bot/database/__init__.py": [],
+    "admin_bot/database/db.py": [],
+    "admin_bot/handlers/__init__.py": [],
+    "admin_bot/handlers/auth.py": [],
+    "admin_bot/handlers/broadcast.py": [],
+    "admin_bot/handlers/dashboard.py": [],
+    "admin_bot/handlers/downloads.py": [],
+    "admin_bot/handlers/security.py": [],
+    "admin_bot/handlers/settings_h.py": [],
+    "admin_bot/handlers/stats.py": [],
+    "admin_bot/handlers/support.py": [],
+    "admin_bot/handlers/users.py": [],
+    "admin_bot/handlers/vodafone_cash.py": [],
+    "admin_bot/locales.py": [],
+    "admin_bot/utils/__init__.py": [],
+    "admin_bot/utils/logger.py": [],
+    "bot.py": [],
+    "config/__init__.py": [],
+    "config/settings.py": [
+      "admin_bot/bot.py",
+      "admin_bot/database/db.py",
+      "admin_bot/handlers/auth.py",
+      "admin_bot/handlers/settings_h.py",
+      "admin_bot/handlers/support.py",
+      "bot.py",
+      "config/__init__.py",
+      "database/achievements.py",
+      "database/db.py",
+      "database/users.py",
+      "developer_bot/bot.py",
+      "developer_bot/database/db.py",
+      "developer_bot/handlers/auth.py",
+      "developer_bot/handlers/backups.py",
+      "developer_bot/handlers/settings_h.py",
+      "developer_bot/handlers/updates.py",
+      "handlers/admin.py",
+      "handlers/download.py",
+      "handlers/feedback.py",
+      "handlers/profile.py",
+      "handlers/start.py",
+      "middlewares/auth.py",
+      "middlewares/rate_limiter.py",
+      "services/downloader.py",
+      "services/subscription.py",
+      "support_bot/bot.py",
+      "support_bot/database/db.py",
+      "support_bot/handlers/admin.py",
+      "support_bot/handlers/user.py",
+      "support_bot/utils/logger.py",
+      "utils/helpers.py",
+      "utils/logger.py",
+      "workers/cleanup.py"
+    ],
+    "control_panel/__init__.py": [],
+    "control_panel/ai_engine.py": [
+      "control_panel/routers/ai_workspace.py"
+    ],
+    "control_panel/app.py": [
+      "control_panel/server.py"
+    ],
+    "control_panel/auth.py": [
+      "control_panel/app.py",
+      "control_panel/routers/ai_workspace.py",
+      "control_panel/routers/backups.py",
+      "control_panel/routers/bots.py",
+      "control_panel/routers/broadcast.py",
+      "control_panel/routers/dashboard.py",
+      "control_panel/routers/db_manager.py",
+      "control_panel/routers/files.py",
+      "control_panel/routers/github_router.py",
+      "control_panel/routers/logs_router.py",
+      "control_panel/routers/replit_manager.py",
+      "control_panel/routers/search.py",
+      "control_panel/routers/system.py",
+      "control_panel/routers/updates.py",
+      "control_panel/routers/users.py"
+    ],
+    "control_panel/config.py": [
+      "control_panel/app.py",
+      "control_panel/auth.py",
+      "control_panel/db_utils.py",
+      "control_panel/routers/ai_workspace.py",
+      "control_panel/routers/backups.py",
+      "control_panel/routers/bots.py",
+      "control_panel/routers/broadcast.py",
+      "control_panel/routers/dashboard.py",
+      "control_panel/routers/db_manager.py",
+      "control_panel/routers/files.py",
+      "control_panel/routers/github_router.py",
+      "control_panel/routers/logs_router.py",
+      "control_panel/routers/replit_manager.py",
+      "control_panel/routers/search.py",
+      "control_panel/routers/system.py",
+      "control_panel/routers/updates.py",
+      "control_panel/routers/users.py"
+    ],
+    "control_panel/db_utils.py": [
+      "control_panel/routers/broadcast.py",
+      "control_panel/routers/dashboard.py",
+      "control_panel/routers/db_manager.py",
+      "control_panel/routers/users.py"
+    ],
+    "control_panel/routers/__init__.py": [],
+    "control_panel/routers/ai_workspace.py": [],
+    "control_panel/routers/backups.py": [],
+    "control_panel/routers/bots.py": [],
+    "control_panel/routers/broadcast.py": [],
+    "control_panel/routers/dashboard.py": [],
+    "control_panel/routers/db_manager.py": [],
+    "control_panel/routers/files.py": [],
+    "control_panel/routers/github_router.py": [],
+    "control_panel/routers/logs_router.py": [],
+    "control_panel/routers/replit_manager.py": [],
+    "control_panel/routers/search.py": [],
+    "control_panel/routers/system.py": [],
+    "control_panel/routers/updates.py": [],
+    "control_panel/routers/users.py": [],
+    "control_panel/server.py": [],
+    "database/__init__.py": [],
+    "database/achievements.py": [
+      "handlers/download.py",
+      "handlers/profile.py"
+    ],
+    "database/activity.py": [
+      "handlers/admin.py"
+    ],
+    "database/cache.py": [
+      "handlers/admin.py",
+      "handlers/download.py",
+      "workers/cleanup.py",
+      "workers/heartbeat.py"
+    ],
+    "database/db.py": [
+      "admin_bot/handlers/broadcast.py",
+      "admin_bot/handlers/dashboard.py",
+      "admin_bot/handlers/downloads.py",
+      "admin_bot/handlers/security.py",
+      "admin_bot/handlers/settings_h.py",
+      "admin_bot/handlers/stats.py",
+      "admin_bot/handlers/support.py",
+      "admin_bot/handlers/users.py",
+      "admin_bot/handlers/vodafone_cash.py",
+      "bot.py",
+      "database/achievements.py",
+      "database/activity.py",
+      "database/cache.py",
+      "database/downloads.py",
+      "database/favorites.py",
+      "database/referrals.py",
+      "database/reports.py",
+      "database/users.py",
+      "developer_bot/bot.py",
+      "developer_bot/handlers/ai_assistant.py",
+      "developer_bot/handlers/backups.py",
+      "developer_bot/handlers/dashboard.py",
+      "developer_bot/handlers/emergency.py",
+      "developer_bot/handlers/errors.py",
+      "developer_bot/handlers/file_manager.py",
+      "developer_bot/handlers/health_check.py",
+      "developer_bot/handlers/monitor.py",
+      "developer_bot/handlers/search.py",
+      "developer_bot/handlers/security_h.py",
+      "developer_bot/handlers/services.py",
+      "developer_bot/handlers/settings_h.py",
+      "developer_bot/handlers/updates.py",
+      "handlers/admin.py",
+      "handlers/logo.py",
+      "handlers/profile.py",
+      "support_bot/bot.py",
+      "support_bot/handlers/user.py",
+      "utils/maintenance.py"
+    ],
+    "database/downloads.py": [
+      "handlers/admin.py",
+      "handlers/download.py",
+      "handlers/profile.py",
+      "workers/heartbeat.py"
+    ],
+    "database/favorites.py": [
+      "handlers/download.py",
+      "handlers/favorites.py",
+      "handlers/profile.py"
+    ],
+    "database/referrals.py": [
+      "handlers/download.py",
+      "handlers/profile.py",
+      "handlers/start.py"
+    ],
+    "database/reports.py": [
+      "bot.py",
+      "handlers/admin.py",
+      "handlers/feedback.py"
+    ],
+    "database/users.py": [
+      "bot.py",
+      "handlers/admin.py",
+      "handlers/download.py",
+      "handlers/favorites.py",
+      "handlers/feedback.py",
+      "handlers/logo.py",
+      "handlers/profile.py",
+      "handlers/start.py",
+      "handlers/video_studio.py",
+      "handlers/video_tools.py",
+      "middlewares/auth.py",
+      "middlewares/subscription_gate.py",
+      "support_bot/handlers/user.py",
+      "workers/heartbeat.py"
+    ],
+    "developer_bot/bot.py": [],
+    "developer_bot/config/__init__.py": [],
+    "developer_bot/config/settings.py": [],
+    "developer_bot/database/__init__.py": [],
+    "developer_bot/database/db.py": [],
+    "developer_bot/handlers/__init__.py": [],
+    "developer_bot/handlers/ai_assistant.py": [],
+    "developer_bot/handlers/auth.py": [],
+    "developer_bot/handlers/backups.py": [],
+    "developer_bot/handlers/dashboard.py": [],
+    "developer_bot/handlers/emergency.py": [],
+    "developer_bot/handlers/errors.py": [],
+    "developer_bot/handlers/file_manager.py": [],
+    "developer_bot/handlers/health_check.py": [],
+    "developer_bot/handlers/monitor.py": [],
+    "developer_bot/handlers/search.py": [],
+    "developer_bot/handlers/security_h.py": [],
+    "developer_bot/handlers/services.py": [],
+    "developer_bot/handlers/settings_h.py": [],
+    "developer_bot/handlers/updates.py": [],
+    "developer_bot/utils/__init__.py": [],
+    "developer_bot/utils/logger.py": [],
+    "handlers/__init__.py": [],
+    "handlers/admin.py": [
+      "bot.py",
+      "support_bot/bot.py"
+    ],
+    "handlers/download.py": [
+      "bot.py"
+    ],
+    "handlers/favorites.py": [
+      "bot.py"
+    ],
+    "handlers/feedback.py": [
+      "bot.py"
+    ],
+    "handlers/logo.py": [
+      "bot.py",
+      "handlers/video_studio.py"
+    ],
+    "handlers/profile.py": [
+      "bot.py"
+    ],
+    "handlers/start.py": [
+      "bot.py",
+      "handlers/download.py",
+      "handlers/feedback.py",
+      "middlewares/subscription_gate.py"
+    ],
+    "handlers/video_studio.py": [
+      "bot.py"
+    ],
+    "handlers/video_tools.py": [
+      "bot.py"
+    ],
+    "locales/__init__.py": [],
+    "locales/ar.py": [],
+    "locales/en.py": [],
+    "middlewares/__init__.py": [],
+    "middlewares/auth.py": [
+      "bot.py",
+      "handlers/admin.py",
+      "handlers/download.py",
+      "handlers/profile.py",
+      "handlers/start.py",
+      "middlewares/subscription_gate.py"
+    ],
+    "middlewares/rate_limiter.py": [
+      "handlers/download.py"
+    ],
+    "middlewares/subscription_gate.py": [
+      "handlers/favorites.py",
+      "handlers/feedback.py",
+      "handlers/profile.py"
+    ],
+    "services/__init__.py": [],
+    "services/downloader.py": [
+      "handlers/download.py"
+    ],
+    "services/subscription.py": [
+      "handlers/download.py",
+      "handlers/favorites.py",
+      "handlers/feedback.py",
+      "handlers/profile.py",
+      "handlers/start.py",
+      "middlewares/subscription_gate.py"
+    ],
+    "setup.py": [],
+    "support_bot/__init__.py": [],
+    "support_bot/bot.py": [],
+    "support_bot/config/__init__.py": [],
+    "support_bot/config/settings.py": [],
+    "support_bot/database/__init__.py": [],
+    "support_bot/database/db.py": [
+      "support_bot/database/tickets.py"
+    ],
+    "support_bot/database/tickets.py": [],
+    "support_bot/handlers/__init__.py": [],
+    "support_bot/handlers/admin.py": [],
+    "support_bot/handlers/user.py": [],
+    "support_bot/utils/__init__.py": [],
+    "support_bot/utils/logger.py": [],
+    "utils/__init__.py": [],
+    "utils/ffmpeg_check.py": [
+      "handlers/video_studio.py",
+      "handlers/video_tools.py",
+      "services/downloader.py"
+    ],
+    "utils/helpers.py": [
+      "handlers/download.py",
+      "handlers/favorites.py",
+      "handlers/profile.py",
+      "handlers/start.py",
+      "services/downloader.py"
+    ],
+    "utils/logger.py": [
+      "admin_bot/bot.py",
+      "admin_bot/handlers/broadcast.py",
+      "admin_bot/handlers/dashboard.py",
+      "admin_bot/handlers/downloads.py",
+      "admin_bot/handlers/security.py",
+      "admin_bot/handlers/settings_h.py",
+      "admin_bot/handlers/stats.py",
+      "admin_bot/handlers/users.py",
+      "bot.py",
+      "developer_bot/bot.py",
+      "developer_bot/handlers/ai_assistant.py",
+      "developer_bot/handlers/auth.py",
+      "developer_bot/handlers/backups.py",
+      "developer_bot/handlers/emergency.py",
+      "developer_bot/handlers/errors.py",
+      "developer_bot/handlers/file_manager.py",
+      "developer_bot/handlers/health_check.py",
+      "developer_bot/handlers/monitor.py",
+      "developer_bot/handlers/search.py",
+      "developer_bot/handlers/services.py",
+      "developer_bot/handlers/updates.py",
+      "handlers/admin.py",
+      "handlers/logo.py",
+      "handlers/video_studio.py",
+      "handlers/video_tools.py",
+      "services/downloader.py",
+      "services/subscription.py",
+      "support_bot/bot.py",
+      "support_bot/handlers/admin.py",
+      "support_bot/handlers/user.py",
+      "workers/crash_monitor.py",
+      "workers/heartbeat.py"
+    ],
+    "utils/maintenance.py": [
+      "handlers/admin.py",
+      "handlers/download.py",
+      "middlewares/subscription_gate.py"
+    ],
+    "workers/__init__.py": [],
+    "workers/cleanup.py": [
+      "bot.py"
+    ],
+    "workers/crash_monitor.py": [
+      "bot.py"
+    ],
+    "workers/heartbeat.py": [
+      "bot.py",
+      "handlers/admin.py"
+    ]
+  }
+}

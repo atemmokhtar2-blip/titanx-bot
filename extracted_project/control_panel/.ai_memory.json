@@ -110,253 +110,253 @@
   "chat_history": [
     {
       "role": "user",
-      "text": "ما الفرق بين FastAPI و Flask",
-      "ts": "2026-06-19T17:21:27.731978"
+      "text": "أظهر تدفق البيانات من Telegram إلى الرد النهائي",
+      "ts": "2026-06-19T18:02:32.381520"
     },
     {
       "role": "assistant",
-      "text": "⚖️ **FastAPI مقابل Flask**\n\n| الجانب |  |\n**الأداء:** `fastapi` — ⭐⭐⭐⭐⭐ Async-native | `flask` — ⭐⭐⭐ Sync (Flask 2+ async)\n**التوثيق التلقائي:** `fastapi` — ⭐⭐⭐⭐⭐ OpenAPI مدمج | `flask` — ❌ يحتاج Flask-RestX\n**Type Validation:** `fastapi` — ⭐⭐⭐⭐⭐ Pydantic | `flask` — ⭐ يدوي\n**سهولة التعلم:** `fastapi` — ⭐⭐⭐ يحتاج async | `flask` — ⭐⭐⭐⭐⭐ بسيط جداً\n**الإنتاج:** `fastapi` — الأنسب للـ APIs الحديثة | `flask` — مناسب للمشاريع الصغيرة\n\n✅ **الخلاصة:** FastAPI للمشاريع الجديدة — Flask للنماذج السريعة\n\n📍",
-      "ts": "2026-06-19T17:21:27.731978"
-    },
-    {
-      "role": "user",
-      "text": "اشرح معمارية المشروع",
-      "ts": "2026-06-19T17:21:27.735653"
-    },
-    {
-      "role": "assistant",
-      "text": "🏗️ **معمارية: PROJECT**\n\nX Control Center — نظام بوت Telegram مع لوحة تحكم FastAPI\n\n**components:**\n  • PrimeDownloader Bot (bot.py) — بوت التحميل الرئيسي\n  • Support Bot (support_bot/bot.py) — بوت الدعم الفني\n  • Control Panel (control_panel/app.py) — لوحة تحكم FastAPI على بورت 5000\n  • Database (database/) — SQLite (bot.db) + Support (support.db)\n  • AI Engine (control_panel/ai_engine.py) — نظام الذكاء الاصطناعي",
-      "ts": "2026-06-19T17:21:27.735653"
-    },
-    {
-      "role": "user",
-      "text": "ما أفضل تطوير للمشروع؟",
-      "ts": "2026-06-19T17:21:28.441814"
-    },
-    {
-      "role": "assistant",
-      "text": "💡 **أفضل تطويرات للمشروع — بالأولوية**\n\n**1. إصلاح 8 خطأ في السجلات**\n   🟠 التأثير: HIGH | الجهد: LOW\n   خطأ مثال: `errors.log` — [2026-06-19 16:48:12] [CRITICAL] [errors] BOT CRASH: TimedOut: Timed o\n\n**2. إضافة Unit Tests بـ pytest**\n   🟠 التأثير: HIGH | الجهد: MEDIUM\n   يحمي التعديلات المستقبلية ويكتشف الأخطاء فور حدوثها.\n\n**3. معالجة 8 ملاحظة أمنية**\n   🟡 التأثير: MEDIUM | الجهد: LOW\n   مثال: `control_panel/ai_engine.py` — النمط `eval(`\n\n**4. إضافة نظام Database Migration (Alembic)**\n   🟠 ال",
-      "ts": "2026-06-19T17:21:28.441814"
-    },
-    {
-      "role": "user",
-      "text": "كيف يتحمل المشروع 100,000 مستخدم؟",
-      "ts": "2026-06-19T17:21:28.474303"
-    },
-    {
-      "role": "assistant",
-      "text": "🚀 **خطة التوسع إلى 100,000 مستخدم — تحليل ProjectBrain**\n\n📊 **الوضع الحالي:** 144 ملف — SQLite + uvicorn single-process\n\n⚡ **الطاقة الحالية:** ~500–2,000 مستخدم متزامن (SQLite + uvicorn single)\n\n**Phase A — Foundation (0→10k)**\n   🟡 الخطر: MEDIUM | الجهد: 3–5 أيام\n   • نقل DB إلى PostgreSQL (Render.com أو Railway.app)\n   • تفعيل uvicorn --workers 2\n   • تفعيل webhook mode في bot.py\n   • إضافة health-check endpoint يراقب DB + Telegram\n\n**Phase B — Performance (10k→50k)**\n   🟡 الخطر: MEDIUM | الجه",
-      "ts": "2026-06-19T17:21:28.474303"
-    },
-    {
-      "role": "user",
-      "text": "ما هي الديون التقنية في المشروع؟",
-      "ts": "2026-06-19T17:21:28.866754"
-    },
-    {
-      "role": "assistant",
-      "text": "🔧 **الديون التقنية في المشروع — تقييم ProjectBrain**\n\n**TD-001 — ai_engine.py — 4000+ سطر ملف واحد يجمع 7 مسؤوليات**\n   🔴 التأثير: HIGH | ⚙️⚙️⚙️ الجهد: HIGH\n   📋 Reasoning + handlers + memory + backup + analysis — يجب تقسيمه لوحدات.\n   📁 الفئة: Architecture\n\n**TD-002 — لا يوجد Alembic — schema يُعدَّل يدوياً**\n   🔴 التأثير: HIGH | ⚙️⚙️ الجهد: MEDIUM\n   📋 أي ALTER TABLE يدوي. لا version control لقاعدة البيانات.\n   📁 الفئة: Database\n\n**TD-003 — غياب كامل لـ Unit/Integration Tests**\n   🔴 التأثير: H",
-      "ts": "2026-06-19T17:21:28.866754"
-    },
-    {
-      "role": "user",
-      "text": "كيف ستعيد تصميم TitanX من الصفر؟",
-      "ts": "2026-06-19T17:21:28.871275"
-    },
-    {
-      "role": "assistant",
-      "text": "🏛️ **رؤية إعادة التصميم — لو بنيت X Control Center من الصفر**\n\n📊 **الوضع الحالي:** 144 ملف · 119 Python · SQLite · uvicorn single\n\n**📐 البنية المثالية (Ideal Architecture):**\n\n```\nx-control-center/\n├── bots/\n│   ├── main/          # PrimeDownloader — handlers, services, commands\n│   └── support/       # Support Bot — tickets, escalation\n├── api/               # FastAPI — routers, schemas, middleware\n│   ├── routers/       # One router per domain (users, stats, ai, files)\n│   ├── schemas/       #",
-      "ts": "2026-06-19T17:21:28.871275"
-    },
-    {
-      "role": "user",
-      "text": "ما أكبر 5 مخاطر في المشروع؟",
-      "ts": "2026-06-19T17:21:29.017078"
-    },
-    {
-      "role": "assistant",
-      "text": "🔐 **8 ملاحظات أمنية:**\n\n• `control_panel/ai_engine.py` — النمط: `eval(`\n• `control_panel/ai_engine.py` — النمط: `exec(`\n• `control_panel/ai_engine.py` — النمط: `subprocess.call(`\n• `control_panel/ai_engine.py` — النمط: `os.system(`\n• `control_panel/ai_engine.py` — النمط: `pickle.load`\n• `control_panel/ai_engine.py` — النمط: `yaml.load(`\n• `control_panel/ai_engine.py` — النمط: `__import__`\n• `control_panel/routers/ai_workspace.py` — النمط: `os.system(`",
-      "ts": "2026-06-19T17:21:29.017078"
-    },
-    {
-      "role": "user",
-      "text": "ما الذي يحتاج إعادة كتابة في المشروع؟",
-      "ts": "2026-06-19T17:21:29.295370"
-    },
-    {
-      "role": "assistant",
-      "text": "🧠 **X AI Operator** · X Control Center\n\nلم أستطع تحديد نوع طلبك بدقة كافية.\n\n**أعد الصياغة بإحدى هذه الطرق:**\n  • **سؤال تقني** — \"اشرح FastAPI\" · \"الفرق بين Python و JavaScript\"\n  • **تحليل تأثير** — \"لو عدلت style.css ماذا سيحدث؟\"\n  • **إنشاء ميزة** — \"كيف أضيف بوت إشعارات؟\"\n  • **تقييم المشروع** — \"هل بنية المشروع جيدة؟\"\n  • **إصلاح مشكلة** — \"إصلاح خطأ في صفحة الإعدادات\"",
-      "ts": "2026-06-19T17:21:29.295370"
+      "text": "📊 **تدفق البيانات الكامل في مشروع X**\n\n## 🤖 مسار بوت PrimeDownloader (Telegram → رد)\n\n  1️⃣  رسالة Telegram → python-telegram-bot (webhook/polling) → bot.py (Application)\n  2️⃣  bot.py → يطابق نوع الرسالة → handler المناسب في handlers/\n  3️⃣  handler → middlewares/auth.py (التحقق من تسجيل المستخدم)\n  4️⃣  auth.py → middlewares/rate_limiter.py (حد التحميل: RATE_LIMIT_SECONDS)\n  5️⃣  rate_limiter → middlewares/subscription_gate.py (التحقق من الاشتراك)\n  6️⃣  subscription_gate → services/ (download",
+      "ts": "2026-06-19T18:02:32.381520"
     },
     {
       "role": "user",
       "text": "من أنت",
-      "ts": "2026-06-19T17:23:31.245783"
+      "ts": "2026-06-19T18:03:32.844134"
     },
     {
       "role": "assistant",
-      "text": "🧠 **أنا X AI Operator — المرحلة 3**\n\n**ما أنا؟**\nمحرك ذكاء اصطناعي متخصص مدمج في **X Control Center v5.0**.\nلا أبحث في الملفات لأي سؤال — أفكر أولاً، أفهم السياق، ثم أجيب.\n\n**وضعان للعمل:**\n  💬 **وضع المحادثة** — أسئلة تقنية عامة: Python، FastAPI، SQL، مقارنات\n  🔍 **وضع المشروع** — ملفات، مسارات، إنشاء ميزات، تشخيص أخطاء\n\n**مكوناتي (المرحلة 3):**\n  🧠 **Reasoning Engine** — أصنّف كل رسالة قبل أي بحث\n  💾 **AI Memory Layer** — أتذكر سياق المحادثة (2 دورة)\n  📋 **AI Planner** — أخطط قبل التنفيذ مع تح",
-      "ts": "2026-06-19T17:23:31.245783"
+      "text": "🧠 **أنا X AI Operator — المرحلة 3**\n\n**ما أنا؟**\nمحرك ذكاء اصطناعي متخصص مدمج في **X Control Center v5.0**.\nلا أبحث في الملفات لأي سؤال — أفكر أولاً، أفهم السياق، ثم أجيب.\n\n**وضعان للعمل:**\n  💬 **وضع المحادثة** — أسئلة تقنية عامة: Python، FastAPI، SQL، مقارنات\n  🔍 **وضع المشروع** — ملفات، مسارات، إنشاء ميزات، تشخيص أخطاء\n\n**مكوناتي (المرحلة 3):**\n  🧠 **Reasoning Engine** — أصنّف كل رسالة قبل أي بحث\n  💾 **AI Memory Layer** — أتذكر سياق المحادثة (1 دورة)\n  📋 **AI Planner** — أخطط قبل التنفيذ مع تح",
+      "ts": "2026-06-19T18:03:32.844134"
     },
     {
       "role": "user",
       "text": "ما وظيفتك",
-      "ts": "2026-06-19T17:23:31.521509"
+      "ts": "2026-06-19T18:03:33.120541"
     },
     {
       "role": "assistant",
-      "text": "🧠 **أنا X AI Operator — المرحلة 3**\n\n**ما أنا؟**\nمحرك ذكاء اصطناعي متخصص مدمج في **X Control Center v5.0**.\nلا أبحث في الملفات لأي سؤال — أفكر أولاً، أفهم السياق، ثم أجيب.\n\n**وضعان للعمل:**\n  💬 **وضع المحادثة** — أسئلة تقنية عامة: Python، FastAPI، SQL، مقارنات\n  🔍 **وضع المشروع** — ملفات، مسارات، إنشاء ميزات، تشخيص أخطاء\n\n**مكوناتي (المرحلة 3):**\n  🧠 **Reasoning Engine** — أصنّف كل رسالة قبل أي بحث\n  💾 **AI Memory Layer** — أتذكر سياق المحادثة (4 دورة)\n  📋 **AI Planner** — أخطط قبل التنفيذ مع تح",
-      "ts": "2026-06-19T17:23:31.521509"
+      "text": "🧠 **أنا X AI Operator — المرحلة 3**\n\n**ما أنا؟**\nمحرك ذكاء اصطناعي متخصص مدمج في **X Control Center v5.0**.\nلا أبحث في الملفات لأي سؤال — أفكر أولاً، أفهم السياق، ثم أجيب.\n\n**وضعان للعمل:**\n  💬 **وضع المحادثة** — أسئلة تقنية عامة: Python، FastAPI، SQL، مقارنات\n  🔍 **وضع المشروع** — ملفات، مسارات، إنشاء ميزات، تشخيص أخطاء\n\n**مكوناتي (المرحلة 3):**\n  🧠 **Reasoning Engine** — أصنّف كل رسالة قبل أي بحث\n  💾 **AI Memory Layer** — أتذكر سياق المحادثة (3 دورة)\n  📋 **AI Planner** — أخطط قبل التنفيذ مع تح",
+      "ts": "2026-06-19T18:03:33.120541"
     },
     {
       "role": "user",
       "text": "هل المشروع آمن؟",
-      "ts": "2026-06-19T17:23:31.746138"
+      "ts": "2026-06-19T18:03:33.248286"
     },
     {
       "role": "assistant",
       "text": "🔐 **8 ملاحظات أمنية:**\n\n• `control_panel/ai_engine.py` — النمط: `eval(`\n• `control_panel/ai_engine.py` — النمط: `exec(`\n• `control_panel/ai_engine.py` — النمط: `subprocess.call(`\n• `control_panel/ai_engine.py` — النمط: `os.system(`\n• `control_panel/ai_engine.py` — النمط: `pickle.load`\n• `control_panel/ai_engine.py` — النمط: `yaml.load(`\n• `control_panel/ai_engine.py` — النمط: `__import__`\n• `control_panel/routers/ai_workspace.py` — النمط: `os.system(`",
-      "ts": "2026-06-19T17:23:31.746138"
+      "ts": "2026-06-19T18:03:33.248286"
     },
     {
       "role": "user",
       "text": "ما أكبر نقطة ضعف بالمشروع؟",
-      "ts": "2026-06-19T17:23:32.450181"
+      "ts": "2026-06-19T18:03:33.974901"
     },
     {
       "role": "assistant",
-      "text": "🔍 **تحليل نقاط الضعف الرئيسية في المشروع**\n\n**1. نقطة فشل واحدة — `config.py`**\n   🟠 الخطر: HIGH — 12 راوتر يستوردون config مباشرة — أي خطأ فيه يوقف اللوحة كلها. لا يوجد fallback.\n\n**2. لا يوجد نظام اختبار تلقائي (Unit Tests)**\n   🟠 الخطر: HIGH — أي تعديل على الكود قد يكسر ميزة موجودة دون أي تحذير. يجب إضافة pytest.\n\n**3. مخاوف أمنية — 8 نمط مكتشف**\n   🟡 الخطر: MEDIUM — مثال: النمط `eval(` في `control_panel/ai_engine.py`\n\n**4. أخطاء في السجلات — 8 خطأ نشط**\n   🟡 الخطر: MEDIUM — `errors.log`: [20",
-      "ts": "2026-06-19T17:23:32.450181"
+      "text": "🔍 **تحليل نقاط الضعف الرئيسية في المشروع**\n\n**1. نقطة فشل واحدة — `config/settings.py`**\n   🔴 الخطر: CRITICAL — 33 ملف يستورد config/settings.py مباشرة — أي خطأ syntax فيه يوقف البوتات واللوحة كلها. لا يوجد fallback.\n\n**2. لا يوجد نظام اختبار تلقائي (Unit Tests)**\n   🟠 الخطر: HIGH — أي تعديل على الكود قد يكسر ميزة موجودة دون أي تحذير. يجب إضافة pytest.\n\n**3. مخاوف أمنية — 8 نمط مكتشف**\n   🟡 الخطر: MEDIUM — مثال: النمط `eval(` في `control_panel/ai_engine.py`\n\n**4. أخطاء في السجلات — 8 خطأ نشط**\n ",
+      "ts": "2026-06-19T18:03:33.974901"
     },
     {
       "role": "user",
       "text": "كيف تطور المشروع",
-      "ts": "2026-06-19T17:23:33.192431"
+      "ts": "2026-06-19T18:03:34.557545"
     },
     {
       "role": "assistant",
       "text": "💡 **أفضل تطويرات للمشروع — بالأولوية**\n\n**1. إصلاح 8 خطأ في السجلات**\n   🟠 التأثير: HIGH | الجهد: LOW\n   خطأ مثال: `errors.log` — [2026-06-19 16:48:12] [CRITICAL] [errors] BOT CRASH: TimedOut: Timed o\n\n**2. إضافة Unit Tests بـ pytest**\n   🟠 التأثير: HIGH | الجهد: MEDIUM\n   يحمي التعديلات المستقبلية ويكتشف الأخطاء فور حدوثها.\n\n**3. معالجة 8 ملاحظة أمنية**\n   🟡 التأثير: MEDIUM | الجهد: LOW\n   مثال: `control_panel/ai_engine.py` — النمط `eval(`\n\n**4. إضافة نظام Database Migration (Alembic)**\n   🟠 ال",
-      "ts": "2026-06-19T17:23:33.192431"
+      "ts": "2026-06-19T18:03:34.557545"
     },
     {
       "role": "user",
       "text": "لو أضفت بوت جديد ماذا سيتأثر؟",
-      "ts": "2026-06-19T17:23:33.196721"
+      "ts": "2026-06-19T18:03:34.562586"
     },
     {
       "role": "assistant",
-      "text": "💥 **تحليل تأثير: إضافة بوت جديد**\n\n🚨 **مستوى الخطر:** HIGH — تعديلات متعددة في البنية الأساسية\n\n**الملفات المتأثرة:**\n  🔴 `scripts/start.sh` — يجب إضافة أمر تشغيل البوت الجديد\n  🔴 `config/settings.py` — TOKEN جديد + ADMIN_IDS\n  🔠 `control_panel/app.py` — راوتر مراقبة اختياري\n  🟠 `control_panel/templates/base.html` — رابط في الشريط الجانبي\n\n**المخاطر:**\n  • تعارض البوتات على نفس الـ webhook إذا شاركوا TOKEN\n  • كل بوت يحتاج workflow مستقل في Replit\n  • قاعدة البيانات المشتركة قد تسبب تعارضات في ا",
-      "ts": "2026-06-19T17:23:33.196721"
+      "text": "💥 **تحليل التأثير الكامل: `control_panel/routers/bots.py`** — من قراءة مباشرة للكود\n\n⚪ **مستوى الخطر:** NONE\n📥 **يستورده مباشرة:** 0 ملف",
+      "ts": "2026-06-19T18:03:34.562586"
     },
     {
       "role": "user",
       "text": "خطة تطوير المشروع",
-      "ts": "2026-06-19T17:23:33.199721"
+      "ts": "2026-06-19T18:03:34.565405"
     },
     {
       "role": "assistant",
-      "text": "🧠 **رؤية استراتيجية — لو كنت مسؤولاً عن هذا المشروع**\n\nبناءً على تحليل المشروع الحالي (144 ملف · 119 Python):\n\n**🚨 الأسبوع الأول — إصلاح الأساس:**\n  · مراجعة كل `try/except` فارغة أو تُعيد `pass` — مصدر أخطاء صامتة\n  · إضافة logging موحّد (structlog أو logging.getLogger) على كل handler\n  · توثيق كل environment variable مطلوب في `.env.example`\n\n**⚡ الأسبوع الثاني — تحسين الموثوقية:**\n  · إضافة health-check endpoint يراقب DB + Telegram + HF\n  · تفعيل connection pool في db_utils مع timeout صريح\n  ·",
-      "ts": "2026-06-19T17:23:33.199721"
+      "text": "🧠 **رؤية استراتيجية — لو كنت مسؤولاً عن هذا المشروع**\n\nبناءً على تحليل المشروع الحالي (145 ملف · 119 Python):\n\n**🚨 الأسبوع الأول — إصلاح الأساس:**\n  · مراجعة كل `try/except` فارغة أو تُعيد `pass` — مصدر أخطاء صامتة\n  · إضافة logging موحّد (structlog أو logging.getLogger) على كل handler\n  · توثيق كل environment variable مطلوب في `.env.example`\n\n**⚡ الأسبوع الثاني — تحسين الموثوقية:**\n  · إضافة health-check endpoint يراقب DB + Telegram + HF\n  · تفعيل connection pool في db_utils مع timeout صريح\n  ·",
+      "ts": "2026-06-19T18:03:34.565405"
     },
     {
       "role": "user",
       "text": "هل بنية المشروع جيدة؟",
-      "ts": "2026-06-19T17:23:33.203001"
+      "ts": "2026-06-19T18:03:34.568618"
     },
     {
       "role": "assistant",
       "text": "🏗️ **معمارية: PROJECT**\n\nX Control Center — نظام بوت Telegram مع لوحة تحكم FastAPI\n\n**components:**\n  • PrimeDownloader Bot (bot.py) — بوت التحميل الرئيسي\n  • Support Bot (support_bot/bot.py) — بوت الدعم الفني\n  • Control Panel (control_panel/app.py) — لوحة تحكم FastAPI على بورت 5000\n  • Database (database/) — SQLite (bot.db) + Support (support.db)\n  • AI Engine (control_panel/ai_engine.py) — نظام الذكاء الاصطناعي",
-      "ts": "2026-06-19T17:23:33.203001"
+      "ts": "2026-06-19T18:03:34.568618"
     },
     {
       "role": "user",
       "text": "حلل المشروع",
-      "ts": "2026-06-19T17:23:33.765605"
+      "ts": "2026-06-19T18:03:34.979900"
     },
     {
       "role": "assistant",
-      "text": "🔬 **تحليل المشروع الكامل**\n\n📁 إجمالي الملفات: 144\n🌐 المسارات المعروفة: 20\n🧠 المفاهيم الدلالية: 68\n🎨 القوالب: 20\n⚙️ الـ Routers: 15\n🤖 المعالجات: 39\n🗄️ نماذج DB: 17\n\n⚠️ 8 أخطاء في السجلات\n🔧 10 مشاكل في الكود",
-      "ts": "2026-06-19T17:23:33.765605"
+      "text": "🔬 **تحليل المشروع الكامل**\n\n📁 إجمالي الملفات: 145\n🌐 المسارات المعروفة: 20\n🧠 المفاهيم الدلالية: 68\n🎨 القوالب: 20\n⚙️ الـ Routers: 15\n🤖 المعالجات: 39\n🗄️ نماذج DB: 17\n\n⚠️ 8 أخطاء في السجلات\n🔧 10 مشاكل في الكود",
+      "ts": "2026-06-19T18:03:34.979900"
     },
     {
       "role": "user",
       "text": "ما الفرق بين FastAPI و Flask",
-      "ts": "2026-06-19T17:23:33.768801"
+      "ts": "2026-06-19T18:03:34.982756"
     },
     {
       "role": "assistant",
       "text": "⚖️ **FastAPI مقابل Flask**\n\n| الجانب |  |\n**الأداء:** `fastapi` — ⭐⭐⭐⭐⭐ Async-native | `flask` — ⭐⭐⭐ Sync (Flask 2+ async)\n**التوثيق التلقائي:** `fastapi` — ⭐⭐⭐⭐⭐ OpenAPI مدمج | `flask` — ❌ يحتاج Flask-RestX\n**Type Validation:** `fastapi` — ⭐⭐⭐⭐⭐ Pydantic | `flask` — ⭐ يدوي\n**سهولة التعلم:** `fastapi` — ⭐⭐⭐ يحتاج async | `flask` — ⭐⭐⭐⭐⭐ بسيط جداً\n**الإنتاج:** `fastapi` — الأنسب للـ APIs الحديثة | `flask` — مناسب للمشاريع الصغيرة\n\n✅ **الخلاصة:** FastAPI للمشاريع الجديدة — Flask للنماذج السريعة\n\n📍",
-      "ts": "2026-06-19T17:23:33.768801"
+      "ts": "2026-06-19T18:03:34.982756"
     },
     {
       "role": "user",
       "text": "اشرح معمارية المشروع",
-      "ts": "2026-06-19T17:23:33.772791"
+      "ts": "2026-06-19T18:03:34.986198"
     },
     {
       "role": "assistant",
       "text": "🏗️ **معمارية: PROJECT**\n\nX Control Center — نظام بوت Telegram مع لوحة تحكم FastAPI\n\n**components:**\n  • PrimeDownloader Bot (bot.py) — بوت التحميل الرئيسي\n  • Support Bot (support_bot/bot.py) — بوت الدعم الفني\n  • Control Panel (control_panel/app.py) — لوحة تحكم FastAPI على بورت 5000\n  • Database (database/) — SQLite (bot.db) + Support (support.db)\n  • AI Engine (control_panel/ai_engine.py) — نظام الذكاء الاصطناعي",
-      "ts": "2026-06-19T17:23:33.772791"
+      "ts": "2026-06-19T18:03:34.986198"
     },
     {
       "role": "user",
       "text": "ما أفضل تطوير للمشروع؟",
-      "ts": "2026-06-19T17:23:34.442520"
+      "ts": "2026-06-19T18:03:35.531297"
     },
     {
       "role": "assistant",
       "text": "💡 **أفضل تطويرات للمشروع — بالأولوية**\n\n**1. إصلاح 8 خطأ في السجلات**\n   🟠 التأثير: HIGH | الجهد: LOW\n   خطأ مثال: `errors.log` — [2026-06-19 16:48:12] [CRITICAL] [errors] BOT CRASH: TimedOut: Timed o\n\n**2. إضافة Unit Tests بـ pytest**\n   🟠 التأثير: HIGH | الجهد: MEDIUM\n   يحمي التعديلات المستقبلية ويكتشف الأخطاء فور حدوثها.\n\n**3. معالجة 8 ملاحظة أمنية**\n   🟡 التأثير: MEDIUM | الجهد: LOW\n   مثال: `control_panel/ai_engine.py` — النمط `eval(`\n\n**4. إضافة نظام Database Migration (Alembic)**\n   🟠 ال",
-      "ts": "2026-06-19T17:23:34.442520"
+      "ts": "2026-06-19T18:03:35.531297"
     },
     {
       "role": "user",
       "text": "كيف يتحمل المشروع 100,000 مستخدم؟",
-      "ts": "2026-06-19T17:23:34.446452"
+      "ts": "2026-06-19T18:03:35.541650"
     },
     {
       "role": "assistant",
-      "text": "🚀 **خطة التوسع إلى 100,000 مستخدم — تحليل ProjectBrain**\n\n📊 **الوضع الحالي:** 144 ملف — SQLite + uvicorn single-process\n\n⚡ **الطاقة الحالية:** ~500–2,000 مستخدم متزامن (SQLite + uvicorn single)\n\n**Phase A — Foundation (0→10k)**\n   🟡 الخطر: MEDIUM | الجهد: 3–5 أيام\n   • نقل DB إلى PostgreSQL (Render.com أو Railway.app)\n   • تفعيل uvicorn --workers 2\n   • تفعيل webhook mode في bot.py\n   • إضافة health-check endpoint يراقب DB + Telegram\n\n**Phase B — Performance (10k→50k)**\n   🟡 الخطر: MEDIUM | الجه",
-      "ts": "2026-06-19T17:23:34.446452"
+      "text": "🚀 **خطة التوسع إلى 100,000 مستخدم — تحليل ProjectBrain**\n\n📊 **الوضع الحالي:** 145 ملف — SQLite + uvicorn single-process\n\n⚡ **الطاقة الحالية:** ~500–2,000 مستخدم متزامن (SQLite + uvicorn single)\n\n**Phase A — Foundation (0→10k)**\n   🟡 الخطر: MEDIUM | الجهد: 3–5 أيام\n   • نقل DB إلى PostgreSQL (Render.com أو Railway.app)\n   • تفعيل uvicorn --workers 2\n   • تفعيل webhook mode في bot.py\n   • إضافة health-check endpoint يراقب DB + Telegram\n\n**Phase B — Performance (10k→50k)**\n   🟡 الخطر: MEDIUM | الجه",
+      "ts": "2026-06-19T18:03:35.541650"
     },
     {
       "role": "user",
       "text": "ما هي الديون التقنية في المشروع؟",
-      "ts": "2026-06-19T17:23:34.808260"
+      "ts": "2026-06-19T18:03:35.877115"
     },
     {
       "role": "assistant",
       "text": "🔧 **الديون التقنية في المشروع — تقييم ProjectBrain**\n\n**TD-001 — ai_engine.py — 4000+ سطر ملف واحد يجمع 7 مسؤوليات**\n   🔴 التأثير: HIGH | ⚙️⚙️⚙️ الجهد: HIGH\n   📋 Reasoning + handlers + memory + backup + analysis — يجب تقسيمه لوحدات.\n   📁 الفئة: Architecture\n\n**TD-002 — لا يوجد Alembic — schema يُعدَّل يدوياً**\n   🔴 التأثير: HIGH | ⚙️⚙️ الجهد: MEDIUM\n   📋 أي ALTER TABLE يدوي. لا version control لقاعدة البيانات.\n   📁 الفئة: Database\n\n**TD-003 — غياب كامل لـ Unit/Integration Tests**\n   🔴 التأثير: H",
-      "ts": "2026-06-19T17:23:34.808260"
+      "ts": "2026-06-19T18:03:35.877115"
     },
     {
       "role": "user",
       "text": "كيف ستعيد تصميم TitanX من الصفر؟",
-      "ts": "2026-06-19T17:23:34.811218"
+      "ts": "2026-06-19T18:03:35.881538"
     },
     {
       "role": "assistant",
-      "text": "🏛️ **رؤية إعادة التصميم — لو بنيت X Control Center من الصفر**\n\n📊 **الوضع الحالي:** 144 ملف · 119 Python · SQLite · uvicorn single\n\n**📐 البنية المثالية (Ideal Architecture):**\n\n```\nx-control-center/\n├── bots/\n│   ├── main/          # PrimeDownloader — handlers, services, commands\n│   └── support/       # Support Bot — tickets, escalation\n├── api/               # FastAPI — routers, schemas, middleware\n│   ├── routers/       # One router per domain (users, stats, ai, files)\n│   ├── schemas/       #",
-      "ts": "2026-06-19T17:23:34.811218"
+      "text": "🏛️ **رؤية إعادة التصميم — لو بنيت X Control Center من الصفر**\n\n📊 **الوضع الحالي:** 145 ملف · 119 Python · SQLite · uvicorn single\n\n**📐 البنية المثالية (Ideal Architecture):**\n\n```\nx-control-center/\n├── bots/\n│   ├── main/          # PrimeDownloader — handlers, services, commands\n│   └── support/       # Support Bot — tickets, escalation\n├── api/               # FastAPI — routers, schemas, middleware\n│   ├── routers/       # One router per domain (users, stats, ai, files)\n│   ├── schemas/       #",
+      "ts": "2026-06-19T18:03:35.881538"
     },
     {
       "role": "user",
       "text": "ما أكبر 5 مخاطر في المشروع؟",
-      "ts": "2026-06-19T17:23:35.472578"
+      "ts": "2026-06-19T18:03:36.396742"
     },
     {
       "role": "assistant",
-      "text": "🔍 **تحليل نقاط الضعف الرئيسية في المشروع**\n\n**1. نقطة فشل واحدة — `config.py`**\n   🟠 الخطر: HIGH — 12 راوتر يستوردون config مباشرة — أي خطأ فيه يوقف اللوحة كلها. لا يوجد fallback.\n\n**2. لا يوجد نظام اختبار تلقائي (Unit Tests)**\n   🟠 الخطر: HIGH — أي تعديل على الكود قد يكسر ميزة موجودة دون أي تحذير. يجب إضافة pytest.\n\n**3. مخاوف أمنية — 8 نمط مكتشف**\n   🟡 الخطر: MEDIUM — مثال: النمط `eval(` في `control_panel/ai_engine.py`\n\n**4. أخطاء في السجلات — 8 خطأ نشط**\n   🟡 الخطر: MEDIUM — `errors.log`: [20",
-      "ts": "2026-06-19T17:23:35.472578"
+      "text": "🔍 **تحليل نقاط الضعف الرئيسية في المشروع**\n\n**1. نقطة فشل واحدة — `config/settings.py`**\n   🔴 الخطر: CRITICAL — 33 ملف يستورد config/settings.py مباشرة — أي خطأ syntax فيه يوقف البوتات واللوحة كلها. لا يوجد fallback.\n\n**2. لا يوجد نظام اختبار تلقائي (Unit Tests)**\n   🟠 الخطر: HIGH — أي تعديل على الكود قد يكسر ميزة موجودة دون أي تحذير. يجب إضافة pytest.\n\n**3. مخاوف أمنية — 8 نمط مكتشف**\n   🟡 الخطر: MEDIUM — مثال: النمط `eval(` في `control_panel/ai_engine.py`\n\n**4. أخطاء في السجلات — 8 خطأ نشط**\n ",
+      "ts": "2026-06-19T18:03:36.396742"
     },
     {
       "role": "user",
       "text": "ما الذي يحتاج إعادة كتابة في المشروع؟",
-      "ts": "2026-06-19T17:23:35.834254"
+      "ts": "2026-06-19T18:03:36.657970"
     },
     {
       "role": "assistant",
       "text": "🔧 **الديون التقنية في المشروع — تقييم ProjectBrain**\n\n**TD-001 — ai_engine.py — 4000+ سطر ملف واحد يجمع 7 مسؤوليات**\n   🔴 التأثير: HIGH | ⚙️⚙️⚙️ الجهد: HIGH\n   📋 Reasoning + handlers + memory + backup + analysis — يجب تقسيمه لوحدات.\n   📁 الفئة: Architecture\n\n**TD-002 — لا يوجد Alembic — schema يُعدَّل يدوياً**\n   🔴 التأثير: HIGH | ⚙️⚙️ الجهد: MEDIUM\n   📋 أي ALTER TABLE يدوي. لا version control لقاعدة البيانات.\n   📁 الفئة: Database\n\n**TD-003 — غياب كامل لـ Unit/Integration Tests**\n   🔴 التأثير: H",
-      "ts": "2026-06-19T17:23:35.834254"
+      "ts": "2026-06-19T18:03:36.657970"
+    },
+    {
+      "role": "user",
+      "text": "من أنت؟",
+      "ts": "2026-06-19T18:03:36.924859"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **أنا X AI Operator — المرحلة 3**\n\n**ما أنا؟**\nمحرك ذكاء اصطناعي متخصص مدمج في **X Control Center v5.0**.\nلا أبحث في الملفات لأي سؤال — أفكر أولاً، أفهم السياق، ثم أجيب.\n\n**وضعان للعمل:**\n  💬 **وضع المحادثة** — أسئلة تقنية عامة: Python، FastAPI، SQL، مقارنات\n  🔍 **وضع المشروع** — ملفات، مسارات، إنشاء ميزات، تشخيص أخطاء\n\n**مكوناتي (المرحلة 3):**\n  🧠 **Reasoning Engine** — أصنّف كل رسالة قبل أي بحث\n  💾 **AI Memory Layer** — أتذكر سياق المحادثة (24 دورة)\n  📋 **AI Planner** — أخطط قبل التنفيذ مع ت",
+      "ts": "2026-06-19T18:03:36.924859"
+    },
+    {
+      "role": "user",
+      "text": "ما الملفات التي تعتمد على config/settings.py؟",
+      "ts": "2026-06-19T18:03:36.932391"
+    },
+    {
+      "role": "assistant",
+      "text": "🔗 **سلسلة التبعيات: `config/settings.py`** — قراءة مباشرة من الكود\n\n🔴 **مستوى الخطر إذا حُذف:** CRITICAL\n📥 **المستوردون المباشرون (33 ملف):**\n  ↳ `admin_bot/bot.py`\n  ↳ `admin_bot/database/db.py`\n  ↳ `admin_bot/handlers/auth.py`\n  ↳ `admin_bot/handlers/settings_h.py`\n  ↳ `admin_bot/handlers/support.py`\n  ↳ `bot.py`\n  ↳ `config/__init__.py`\n  ↳ `database/achievements.py`\n  ↳ `database/db.py`\n  ↳ `database/users.py`\n  ↳ `developer_bot/bot.py`\n  ↳ `developer_bot/database/db.py`\n  ↳ `developer_bot/h",
+      "ts": "2026-06-19T18:03:36.932391"
+    },
+    {
+      "role": "user",
+      "text": "ماذا يحدث لو حذفت config/settings.py؟",
+      "ts": "2026-06-19T18:03:36.940594"
+    },
+    {
+      "role": "assistant",
+      "text": "💥 **تحليل التأثير الكامل: `config/settings.py`** — من قراءة مباشرة للكود\n\n🔴 **مستوى الخطر:** CRITICAL\n📥 **يستورده مباشرة:** 33 ملف\n  ↳ `admin_bot/bot.py`\n  ↳ `admin_bot/database/db.py`\n  ↳ `admin_bot/handlers/auth.py`\n  ↳ `admin_bot/handlers/settings_h.py`\n  ↳ `admin_bot/handlers/support.py`\n  ↳ `bot.py`\n  ↳ `config/__init__.py`\n  ↳ `database/achievements.py`\n  ↳ `database/db.py`\n  ↳ `database/users.py`\n  ↳ `developer_bot/bot.py`\n  ↳ `developer_bot/database/db.py`\n  ... و 21 آخرون\n\n💣 **التأثير ا",
+      "ts": "2026-06-19T18:03:36.940594"
+    },
+    {
+      "role": "user",
+      "text": "ما أكبر نقطة ضعف في المشروع؟",
+      "ts": "2026-06-19T18:03:37.483515"
+    },
+    {
+      "role": "assistant",
+      "text": "🔍 **تحليل نقاط الضعف الرئيسية في المشروع**\n\n**1. نقطة فشل واحدة — `config/settings.py`**\n   🔴 الخطر: CRITICAL — 33 ملف يستورد config/settings.py مباشرة — أي خطأ syntax فيه يوقف البوتات واللوحة كلها. لا يوجد fallback.\n\n**2. لا يوجد نظام اختبار تلقائي (Unit Tests)**\n   🟠 الخطر: HIGH — أي تعديل على الكود قد يكسر ميزة موجودة دون أي تحذير. يجب إضافة pytest.\n\n**3. مخاوف أمنية — 8 نمط مكتشف**\n   🟡 الخطر: MEDIUM — مثال: النمط `eval(` في `control_panel/ai_engine.py`\n\n**4. أخطاء في السجلات — 8 خطأ نشط**\n ",
+      "ts": "2026-06-19T18:03:37.483515"
+    },
+    {
+      "role": "user",
+      "text": "لو أنشأت بوت إشعارات ما الأنظمة التي يمكن إعادة استخدامها",
+      "ts": "2026-06-19T18:03:37.488590"
+    },
+    {
+      "role": "assistant",
+      "text": "♻️ **الأنظمة القابلة للإعادة الاستخدام في مشروع X**\n\n\n♻️ **`config/settings.py`** — إعدادات المشروع\n  → TOKEN الجديد + ADMIN_IDS يُضافان هنا. لا تعدّل القيم الموجودة.\n  🔴 الخطر: CRITICAL\n\n♻️ **`database/db.py + database/users.py`** — قاعدة البيانات + إدارة المستخدمين\n  → init_db() + get_user() + create_user() جاهزة للاستخدام المباشر\n  🟠 الخطر: HIGH — لا تعدّل schema موجودة، أضف جداول جديدة فقط\n\n♻️ **`utils/logger.py`** — نظام السجلات الموحّد\n  → setup_logger('new_bot') → Logger جاهز بدون أي تعدي",
+      "ts": "2026-06-19T18:03:37.488590"
+    },
+    {
+      "role": "user",
+      "text": "سلسلة التبعيات لـ ai_engine.py",
+      "ts": "2026-06-19T18:03:37.491290"
+    },
+    {
+      "role": "assistant",
+      "text": "🔗 **سلسلة التبعيات: `control_panel/ai_engine.py`** — قراءة مباشرة من الكود\n\n🟢 **مستوى الخطر إذا حُذف:** LOW\n📥 **المستوردون المباشرون (1 ملف):**\n  ↳ `control_panel/routers/ai_workspace.py`\n\n💥 **التأثير الإجمالي عند الحذف (1 ملف):**\n  ⚠️ `control_panel/routers/ai_workspace.py`\n\n**🔗 عمق التبعية (أول 3 مستوردين):**\n  `control_panel/routers/ai_workspace.py`\n\n🚨 **تحذير:** حذف `control_panel/ai_engine.py` سيوقف 1 ملف عن العمل.",
+      "ts": "2026-06-19T18:03:37.491290"
+    },
+    {
+      "role": "user",
+      "text": "أظهر تدفق البيانات من Telegram إلى الرد النهائي",
+      "ts": "2026-06-19T18:03:37.495606"
+    },
+    {
+      "role": "assistant",
+      "text": "📊 **تدفق البيانات الكامل في مشروع X**\n\n## 🤖 مسار بوت PrimeDownloader (Telegram → رد)\n\n  1️⃣  رسالة Telegram → python-telegram-bot (webhook/polling) → bot.py (Application)\n  2️⃣  bot.py → يطابق نوع الرسالة → handler المناسب في handlers/\n  3️⃣  handler → middlewares/auth.py (التحقق من تسجيل المستخدم)\n  4️⃣  auth.py → middlewares/rate_limiter.py (حد التحميل: RATE_LIMIT_SECONDS)\n  5️⃣  rate_limiter → middlewares/subscription_gate.py (التحقق من الاشتراك)\n  6️⃣  subscription_gate → services/ (download",
+      "ts": "2026-06-19T18:03:37.495606"
     }
   ],
   "analysis_cache": {},
@@ -367,7 +367,7 @@
     "errors_found": 57,
     "last_scan": null
   },
-  "updated": "2026-06-19T17:23:35.834254",
+  "updated": "2026-06-19T18:03:37.495606",
   "project": {
     "name": "X Control Center",
     "main_bot": "PrimeDownloader Bot (bot.py)",
@@ -382,10 +382,10 @@
     ]
   },
   "stats": {
-    "total_scans": 58,
+    "total_scans": 71,
     "total_plans": 14,
     "total_questions": 8,
-    "total_chats": 306
+    "total_chats": 361
   },
   "created": "2026-06-19T09:05:02.173299",
   "decisions": [],

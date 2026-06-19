@@ -1536,6 +1536,59 @@ class ProjectDependencyGraph:
             "total_files_at_risk": len(transitive_all),
         }
 
+    # ── Disk persistence ──────────────────────────────────────────────────────
+    _PERSIST_FILE: "Path" = Path(__file__).parent / ".ai_knowledge" / "dep_graph.json"
+
+    @classmethod
+    def save(cls) -> bool:
+        """Persist dep graph to disk so next startup skips the cold AST build."""
+        try:
+            cls._PERSIST_FILE.parent.mkdir(exist_ok=True)
+            data = cls.get()
+            cls._PERSIST_FILE.write_text(
+                json.dumps({
+                    "built_at":      data.get("built_at", ""),
+                    "files_scanned": data.get("files_scanned", 0),
+                    "forward":       data.get("forward", {}),
+                    "reverse":       data.get("reverse", {}),
+                }, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            return True
+        except Exception as _e:
+            _ai_log.warning("ProjectDependencyGraph.save(): %s", _e)
+            return False
+
+    @classmethod
+    def load(cls) -> bool:
+        """Load persisted dep graph from disk if fresh (< 1 hour old)."""
+        try:
+            if not cls._PERSIST_FILE.exists():
+                return False
+            raw = json.loads(cls._PERSIST_FILE.read_text(encoding="utf-8"))
+            age = (datetime.now() - datetime.fromisoformat(
+                raw.get("built_at", "2000-01-01T00:00:00")
+            )).total_seconds()
+            if age > 3600:
+                return False
+            cls._cache = raw
+            cls._ts    = time.time()
+            return True
+        except Exception as _e:
+            _ai_log.warning("ProjectDependencyGraph.load(): %s", _e)
+            return False
+
+    @classmethod
+    def startup_recover(cls) -> None:
+        """Called once at module load. Load from disk or rebuild + save."""
+        if cls.load():
+            _ai_log.info("DepGraph: loaded from disk (%d files)", cls._cache.get("files_scanned", 0))
+            return
+        _ai_log.info("DepGraph: cold-building AST graph …")
+        cls.get()
+        cls.save()
+        _ai_log.info("DepGraph: built + saved (%d files)", cls._cache.get("files_scanned", 0))
+
     @classmethod
     def status(cls) -> dict:
         g = cls.get()
@@ -1545,7 +1598,255 @@ class ProjectDependencyGraph:
             "total_deps":    sum(len(v) for v in g.get("forward", {}).values()),
             "age_seconds":   int(time.time() - cls._ts),
             "ttl_seconds":   int(cls._TTL),
+            "persist_file":  str(cls._PERSIST_FILE),
         }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AGENT FOUNDATION — REASONING CHAIN + PLANNING GATE
+# Mandate: Think → Analyze → Plan → Approve → Execute → Verify
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class AgentReasoningChain:
+    """
+    Mandatory 7-step reasoning enforcer for all project-related responses.
+
+    Step 1: Understand — extract entities, classify intent
+    Step 2: Search    — live project search for relevant files
+    Step 3: Context   — file roles and categories
+    Step 4: Deps      — import callers/callees from live AST graph
+    Step 5: Impact    — risk level, transitive affected files
+    Step 6: Plan      — execution steps (implementation requests only)
+    Step 7: Answer    — project-evidence-backed response (executed by handler)
+
+    AgentReasoningChain.execute() runs steps 1-6 and returns the full chain
+    dict so the handler (step 7) has pre-computed evidence to draw on.
+    """
+
+    @classmethod
+    def execute(cls, msg: str, intent: str) -> dict:
+        und    = cls._step1_understand(msg)
+        search = cls._step2_search(msg, und)
+        ctx    = cls._step3_context(search)
+        deps   = cls._step4_deps(search.get("files", []))
+        impact = cls._step5_impact(search.get("files", []))
+        plan   = None
+        if intent in ("create_feature", "ui_redesign", "debug_fix", "new_page", "plan_modify"):
+            plan = cls._step6_plan(und, deps, impact)
+        return {
+            "msg": msg, "intent": intent,
+            "understanding": und, "search": search,
+            "context": ctx, "deps": deps, "impact": impact, "plan": plan,
+            "steps_done": [
+                f"Understand({und.get('operation','query')})",
+                f"Search({len(search.get('files',[]))} files)",
+                f"Context({','.join(ctx.get('categories',[])) or 'none'})",
+                f"Deps(in={len(deps.get('callers',[]))}/out={len(deps.get('callees',[]))})",
+                f"Impact({impact.get('risk','LOW')}/{impact.get('total_affected',0)} files)",
+                f"Plan({'yes' if plan else 'skip'})",
+            ],
+        }
+
+    @classmethod
+    def _step1_understand(cls, msg: str) -> dict:
+        ml_norm = _normalize_ar(msg.lower())
+        target  = None
+        for alias, concept in _ALIASES.items():
+            if alias in ml_norm or alias in msg.lower():
+                target = concept
+                break
+        pia = ProjectIntelligenceAgent._understand(msg)
+        return {
+            "target_concept": target,
+            "operation":      pia.get("operation", "query"),
+            "req_type":       pia.get("req_type", "general"),
+            "entities":       pia.get("entities", {}),
+            "name_hint":      pia.get("name_hint"),
+        }
+
+    @classmethod
+    def _step2_search(cls, msg: str, und: dict) -> dict:
+        concept     = und.get("target_concept")
+        files_found: list = []
+        if concept and concept in _SEMANTIC_MAP:
+            files_found = [e[0] for e in _SEMANTIC_MAP[concept] if isinstance(e, (list, tuple))]
+        if not files_found:
+            files_found = [p for p, _, _ in _find_concept(msg)]
+        return {"files": files_found[:8], "concept": concept,
+                "search_method": "semantic" if concept else "keyword"}
+
+    @classmethod
+    def _step3_context(cls, search: dict) -> dict:
+        roles: dict = {}
+        cats:  set  = set()
+        for f in search.get("files", []):
+            r = ("router"   if "router"   in f else
+                 "handler"  if "handler"  in f else
+                 "database" if ("database" in f or f.endswith("db.py")) else
+                 "template" if f.endswith(".html") else
+                 "service"  if "service"  in f else
+                 "config"   if ("config" in f or "settings" in f) else "module")
+            roles[f] = r
+            cats.add(r)
+        return {"file_roles": roles, "categories": list(cats)}
+
+    @classmethod
+    def _step4_deps(cls, files: list) -> dict:
+        if not files:
+            return {"callers": [], "callees": [], "critical": False}
+        g         = ProjectDependencyGraph.get()
+        forward   = g.get("forward", {})
+        callers:  list = []
+        callees:  list = []
+        for f in files[:4]:
+            callers.extend(ProjectDependencyGraph.what_depends_on(f))
+            key = ProjectDependencyGraph._resolve_name(f)
+            callees.extend(forward.get(key, []))
+        callers = list(dict.fromkeys(callers))[:20]
+        callees = list(dict.fromkeys(callees))[:20]
+        return {"callers": callers, "callees": callees, "critical": len(callers) >= 5}
+
+    @classmethod
+    def _step5_impact(cls, files: list) -> dict:
+        if not files:
+            return {"risk": "LOW", "total_affected": 0, "reports": []}
+        ro = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "NONE": 0}
+        reports = []
+        max_r   = "LOW"
+        total   = 0
+        for f in files[:3]:
+            r = ProjectDependencyGraph.full_impact_report(f)
+            reports.append(r)
+            total += r.get("total_files_at_risk", 0)
+            if ro.get(r.get("risk", "LOW"), 0) > ro.get(max_r, 0):
+                max_r = r["risk"]
+        return {"risk": max_r, "total_affected": total, "reports": reports}
+
+    @classmethod
+    def _step6_plan(cls, und: dict, deps: dict, impact: dict) -> dict:
+        return {
+            "steps": [
+                "1. مراجعة الملفات المتأثرة المذكورة أعلاه",
+                "2. أخذ نسخة احتياطية عبر `/backups`",
+                "3. تطبيق التغييرات بالترتيب المحدد",
+                "4. اختبار كل ملف بعد التعديل",
+                "5. مراجعة `/logs` للتحقق من غياب الأخطاء",
+            ],
+            "requires_approval": True,
+            "risk":              impact.get("risk", "MEDIUM"),
+            "affected_count":    impact.get("total_affected", 0),
+        }
+
+
+class AgentPlanningGate:
+    """
+    Approval gate for ALL implementation requests.
+
+    MANDATE: Never execute file-changing operations without explicit user approval.
+
+    Flow:
+      submit(msg)         → runs 5-step ProjectIntelligenceAgent → returns plan
+                            sets _pending + adds ⏸️ approval prompt to response
+      is_approval(msg)    → True if user said موافق/approve/yes etc.
+      is_rejection(msg)   → True if user said إلغاء/cancel/no etc.
+      execute_approved()  → user confirmed → run verification checklist → return report
+      cancel()            → clear pending plan
+
+    NEVER executes without explicit approval from the user.
+    """
+    _pending:     "dict | None" = None
+    _pending_msg: str           = ""
+
+    _APPROVE = re.compile(
+        r"^(?:موافق|approve|نعم|yes|تمام|اوكي|ok|okay|proceed|نفذ|تنفيذ|"
+        r"go\s*ahead|ابدأ|ابدا|صح|correct|بالتأكيد|تأكيد|confirm)$",
+        re.IGNORECASE,
+    )
+    _REJECT = re.compile(
+        r"^(?:إلغاء|الغاء|cancel|لا|no|stop|وقف|أوقف|اوقف|لأ|"
+        r"لا\s*شكراً|لا\s*شكرا|not\s*now|ألغِ)$",
+        re.IGNORECASE,
+    )
+
+    @classmethod
+    def submit(cls, msg: str) -> dict:
+        """Analyze request, produce plan, and await explicit approval."""
+        update_stats("total_plans")
+        result = ProjectIntelligenceAgent.run(msg)
+
+        cls._pending     = result
+        cls._pending_msg = msg
+
+        text  = result.get("text", "")
+        text += (
+            "\n\n" + "─" * 52 + "\n"
+            "⏸️ **بانتظار موافقتك قبل أي تنفيذ**\n\n"
+            "هل تريد المتابعة بهذه الخطة؟\n"
+            "  ✅ للموافقة: اكتب **`موافق`** أو **`approve`** أو **`نعم`**\n"
+            "  ❌ للإلغاء:  اكتب **`إلغاء`** أو **`cancel`** أو **`لا`**\n\n"
+            "💡 *لن يُنفَّذ أي تغيير حتى تصدر موافقتك الصريحة.*"
+        )
+        result["text"] = text
+        result.setdefault("data", {})
+        result["data"]["approval_pending"] = True
+        return result
+
+    @classmethod
+    def is_approval(cls, msg: str) -> bool:
+        return bool(cls._APPROVE.match(msg.strip())) and cls._pending is not None
+
+    @classmethod
+    def is_rejection(cls, msg: str) -> bool:
+        return bool(cls._REJECT.match(msg.strip())) and cls._pending is not None
+
+    @classmethod
+    def execute_approved(cls) -> dict:
+        """User confirmed → return verification checklist + mark as executed."""
+        if not cls._pending:
+            return {"text": "⚠️ لا توجد خطة معلقة للتنفيذ.", "data": {}}
+        plan = cls._pending
+        msg  = cls._pending_msg
+        cls._pending     = None
+        cls._pending_msg = ""
+
+        dep_st = ProjectDependencyGraph.status()
+        AIMemoryLayer.record_decision(
+            f"Plan approved: {msg[:80]}",
+            f"{dep_st['files_scanned']} files in dep graph",
+        )
+        return {
+            "text": (
+                "✅ **تمت الموافقة — الخطة مفعّلة**\n\n"
+                f"📋 **الطلب:** `{msg[:100]}`\n\n"
+                "**📌 قائمة التحقق بعد التنفيذ (Verification Checklist):**\n"
+                "  1️⃣ راجع كل ملف متأثر يدوياً بعد التعديل\n"
+                "  2️⃣ افتح `/logs` في لوحة التحكم — تحقق من غياب الأخطاء\n"
+                "  3️⃣ إذا عدّلت handler بوت → أعِد تشغيل workflow البوت\n"
+                "  4️⃣ إذا عدّلت router لوحة → أعِد تشغيل TitanX Control Panel\n"
+                "  5️⃣ إذا عدّلت database/db.py → تحقق من init_db() تعمل بدون خطأ\n"
+                "  6️⃣ خذ نسخة احتياطية من `/backups` بعد التحقق\n\n"
+                f"🔍 **حالة التبعيات:** {dep_st['files_scanned']} ملف ممسوح — "
+                f"{dep_st['total_deps']} علاقة نشطة"
+            ),
+            "data": {
+                "approved_plan":         plan.get("data", {}),
+                "dep_status":            dep_st,
+                "verification_required": True,
+            },
+        }
+
+    @classmethod
+    def cancel(cls) -> dict:
+        cls._pending     = None
+        cls._pending_msg = ""
+        return {
+            "text": "❌ **تم إلغاء الخطة.**\n\nيمكنك طرح أي طلب جديد في أي وقت.",
+            "data": {"cancelled": True},
+        }
+
+    @classmethod
+    def has_pending(cls) -> bool:
+        return cls._pending is not None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2366,6 +2667,45 @@ _ARCH_MAP: dict = {
         "inheritance": "19 pages extend base.html — only access.html is standalone",
         "theme": "JS toggleTheme() stores 'titanx_theme' in localStorage — dark/light",
     },
+    "data_flow": {
+        "description": "مسارات البيانات الكاملة في مشروع X — من الطلب إلى الرد",
+        "telegram_to_response": [
+            "1️⃣  رسالة Telegram → python-telegram-bot (webhook/polling) → bot.py (Application)",
+            "2️⃣  bot.py → يطابق نوع الرسالة → handler المناسب في handlers/",
+            "3️⃣  handler → middlewares/auth.py (التحقق من تسجيل المستخدم)",
+            "4️⃣  auth.py → middlewares/rate_limiter.py (حد التحميل: RATE_LIMIT_SECONDS)",
+            "5️⃣  rate_limiter → middlewares/subscription_gate.py (التحقق من الاشتراك)",
+            "6️⃣  subscription_gate → services/ (downloader.py أو subscription.py)",
+            "7️⃣  service → database/ (users.py، downloads.py، cache.py، achievements.py)",
+            "8️⃣  database → SQLite (database/bot.db) → نتيجة العملية",
+            "9️⃣  handler → send_message/send_document → رد Telegram للمستخدم",
+        ],
+        "panel_request_to_response": [
+            "1️⃣  HTTP Request → uvicorn → control_panel/app.py (FastAPI)",
+            "2️⃣  app.py → Starlette session middleware",
+            "3️⃣  middleware → control_panel/auth.py (token + password verification)",
+            "4️⃣  auth.py → router المناسب في control_panel/routers/",
+            "5️⃣  router → control_panel/db_utils.py (SQLite queries)",
+            "6️⃣  router → Jinja2Templates.TemplateResponse(template, context)",
+            "7️⃣  template (extends base.html) → rendered HTML → HTTP Response",
+        ],
+        "ai_message_flow": [
+            "1️⃣  POST /ai/api/chat {msg} → control_panel/routers/ai_workspace.py",
+            "2️⃣  ai_workspace.py → ai_engine.process_chat(msg)",
+            "3️⃣  process_chat → AgentPlanningGate.has_pending() (هل توجد خطة بانتظار الموافقة؟)",
+            "4️⃣  process_chat → detect_intent() → تصنيف النية",
+            "5️⃣  intent → AgentReasoningChain.execute() (7 خطوات: فهم→بحث→سياق→تبعيات→تأثير→خطة→رد)",
+            "6️⃣  AgentReasoningChain → ProjectDependencyGraph + ProjectBrain + search_project_files()",
+            "7️⃣  handler function (_r_*) → formatted response dict",
+            "8️⃣  response → JSON → API endpoint → ai_workspace.html → المستخدم",
+        ],
+        "critical_config_flow": [
+            "config/settings.py ← يستورده مباشرة: bot.py، database/db.py، utils/logger.py، services/*، middlewares/*، support_bot/*، developer_bot/*",
+            "database/db.py ← يستورده مباشرة: database/*.py، handlers/admin.py، developer_bot/handlers/*",
+            "control_panel/config.py ← يستورده: جميع 12 router في control_panel/routers/",
+            "⚠️ أي خطأ في config/settings.py ينتشر لكل المكونات أعلاه — نقطة فشل مركزية",
+        ],
+    },
 }
 
 # ─── Semantic Map (concept → files) ───────────────────────────────────────────
@@ -2749,6 +3089,27 @@ INTENTS: dict = {
     "impact":      [r"what breaks", r"what happens if", r"impact of", r"if i change",
                     r"ماذا يحدث لو", r"ماذا يكسر", r"تأثير التغيير"],
     "self_test":   [r"self.?test", r"test yourself", r"اختبر نفسك", r"self check", r"run tests?"],
+    # ── Agent Foundation intents ───────────────────────────────────────────────
+    "who_depends": [
+        r"ما\s+(?:الملفات|الكود).{0,30}(?:تعتمد|يعتمد|تستورد|يستورد)\s+عل",
+        r"what\s+files?.{0,15}(?:depend|import|use).{0,15}on",
+        r"who\s+(?:depends|imports|uses)\s+on",
+        r"من\s+(?:يستورد|يستخدم|يعتمد)\s+على",
+        r"سلسلة\s+(?:التبعيات|تبعيات)",
+        r"dependency\s+chain",
+    ],
+    "data_flow":   [
+        r"data\s+flow", r"تدفق\s+البيانات",
+        r"flow\s+from.{0,30}(?:user|telegram|تليغرام|المستخدم)",
+        r"مسار\s+(?:الطلب|الرسالة|البيانات)",
+        r"path\s+of\s+(?:data|message|request)",
+    ],
+    "reuse_systems": [
+        r"(?:reusable|إعادة\s+استخدام|يمكن\s+إعادة)",
+        r"existing\s+systems?\s+(?:reuse|reused|leverage)",
+        r"ماذا\s+(?:يمكن|أستطيع).{0,20}(?:إعادة\s+استخدام|الاستفادة\s+منه)",
+        r"what.{0,20}(?:can\s+be\s+reused|already\s+exists).{0,20}(?:for|in)\s+(?:new|this)",
+    ],
     # Conversational / meta intents
     "identity":      [r"who are you", r"what are you", r"من أنت", r"ما أنت", r"عرّف نفسك",
                       r"introduce yourself", r"about yourself", r"tell me about you",
@@ -2860,6 +3221,17 @@ def detect_intent(msg: str) -> str:
     ]
     if any(re.search(p, ml) for p in _HF_P):
         return "hf_query"
+
+    # ── Priority -0·6: Early reuse check — before conditional override ──────────
+    # "لو أنشأت بوت X ما الأنظمة التي يمكن إعادة استخدامها" must map to
+    # reuse_systems, not impact — check reuse BEFORE the cond-opener patterns.
+    _EARLY_REUSE_P = [
+        r"يمكن\s+إعادة\s+استخدام",          # matches استخدامها, استخدامهم …
+        r"ما\s+(?:الأنظمة|الخدمات|المكونات).{0,40}(?:يمكن|أستطيع|أستطيع|can|reuse)",
+        r"(?:what|which).{0,30}(?:systems?|components?|services?|code).{0,30}(?:reuse|reused|leverage|existing)",
+    ]
+    if any(re.search(p, ml) for p in _EARLY_REUSE_P):
+        return "reuse_systems"
 
     # ── Priority -0·5: Conditional override — "لو X ماذا سيتأثر؟" ─────────────
     # The conditional opener ("لو"/"إذا") signals reasoning, not action.
@@ -2973,6 +3345,41 @@ def detect_intent(msg: str) -> str:
     ]
     if any(re.search(p, ml) for p in _P0_NEW_PAGE):
         return "new_page"
+
+    # ── Agent Foundation intents (priority before file-awareness) ───────────────
+    _WHO_DEPENDS = [
+        r"ما\s+(?:الملفات|الكود).{0,30}(?:تعتمد|يعتمد|تستورد|يستورد)\s+عل",
+        r"what\s+files?.{0,15}(?:depend|import|use).{0,10}on\s+[\w/]+",
+        r"who\s+(?:depends|imports|uses)\s+(?:on\s+)?[\w/]+",
+        r"من\s+(?:يستورد|يستخدم|يعتمد\s+على)\s+[\w/]+",
+        r"سلسلة\s+(?:التبعيات|تبعيات)",
+        r"dependency\s+chain\s+for",
+        r"ماذا\s+(?:يستورد|يعتمد\s+على)\s+[\w/]+",
+    ]
+    if any(re.search(p, ml) for p in _WHO_DEPENDS):
+        return "who_depends"
+
+    _DATA_FLOW_P = [
+        r"data\s+flow",
+        r"تدفق\s+البيانات",
+        r"flow\s+from.{0,30}(?:user|telegram|تليغرام|المستخدم)",
+        r"(?:from|من)\s+(?:telegram|تليغرام|المستخدم|user).{0,30}(?:to|إلى)\s+(?:response|الرد)",
+        r"(?:how|كيف).{0,20}(?:message|رسالة|request|طلب).{0,20}(?:flow|يصل|يمر|travels?)",
+        r"مسار\s+(?:الطلب|الرسالة|البيانات)",
+        r"path\s+of\s+(?:data|message|request)",
+    ]
+    if any(re.search(p, ml) for p in _DATA_FLOW_P):
+        return "data_flow"
+
+    _REUSE_P = [
+        r"(?:reusable|يمكن\s+إعادة\s+استخدام)",
+        r"existing\s+(?:systems?|components?|code).{0,20}(?:reuse|reused|leverage|use)",
+        r"ماذا\s+(?:يمكن|أستطيع).{0,20}(?:إعادة\s+استخدام|الاستفادة\s+منه)",
+        r"what.{0,20}(?:can\s+be\s+reused|existing\s+systems?).{0,30}(?:for|in)\s+(?:new|this|bot|notification)",
+        r"ما\s+الأنظمة\s+(?:القائمة|الموجودة).{0,20}(?:يمكن|reuse)",
+    ]
+    if any(re.search(p, ml) for p in _REUSE_P):
+        return "reuse_systems"
 
     # ── Priority 1: file-awareness patterns (must run first) ──────────────────
     _FILE_Q = [
@@ -3828,7 +4235,10 @@ def explain_architecture(query: str = "project") -> dict:
     """Explain any subsystem of the project."""
     ql = query.lower()
 
-    if any(kw in ql for kw in ["frontend", "css", "html", "template", "ui", "style"]):
+    if any(kw in ql for kw in ["data flow", "تدفق", "flow from", "مسار", "من المستخدم",
+                               "telegram to", "request to", "message flow", "ai flow"]):
+        key = "data_flow"
+    elif any(kw in ql for kw in ["frontend", "css", "html", "template", "ui", "style"]):
         key = "frontend"
     elif any(kw in ql for kw in ["bot", "telegram", "handler", "command", "بوت"]):
         key = "bots"
@@ -4011,9 +4421,58 @@ def run_self_tests(extended: bool = True) -> dict:
                 "phase":            "P3",
             })
 
-    all_passed  = p1_passed + p2_passed + p3_passed
-    all_total   = len(p1_tests) + len(_PHASE2_TESTS) + (len(_ARABIC_REASONING_TESTS) if extended else 0)
-    all_results = p1_results + p2_results + p3_results
+    # ── Phase 4: Agent Foundation — 7 validation questions (use process_chat) ──
+    _AGENT_FOUNDATION_TESTS = [
+        # (question, expected_intent, keyword_in_response)
+        ("من أنت؟",
+         "identity",        "x ai"),
+        ("ما الملفات التي تعتمد على config/settings.py؟",
+         "who_depends",     "settings"),
+        ("ماذا يحدث لو حذفت config/settings.py؟",
+         "impact",          "config"),
+        ("ما أكبر نقطة ضعف في المشروع؟",
+         "weakness",        "نقطة فشل"),
+        ("لو أنشأت بوت إشعارات ما الأنظمة التي يمكن إعادة استخدامها",
+         "reuse_systems",   "قابلة"),
+        ("سلسلة التبعيات لـ ai_engine.py",
+         "who_depends",     "ai_engine"),
+        ("أظهر تدفق البيانات من Telegram إلى الرد النهائي",
+         "data_flow",       "تدفق"),
+    ]
+
+    p4_results = []
+    p4_passed  = 0
+    if extended:
+        for question, expected_intent, expected_keyword in _AGENT_FOUNDATION_TESTS:
+            got_intent = detect_intent(question)
+            intent_ok  = (got_intent == expected_intent)
+            try:
+                chat_resp    = process_chat(question)
+                ans_text     = chat_resp.get("text", "").lower()
+            except Exception as _e:
+                _ai_log.warning("P4 test process_chat error for %r: %s", question, _e)
+                ans_text = ""
+            keyword_found = expected_keyword.lower() in ans_text
+            ok = intent_ok and keyword_found
+            if ok:
+                p4_passed += 1
+            p4_results.append({
+                "question":         question,
+                "expected_intent":  expected_intent,
+                "got_intent":       got_intent,
+                "intent_ok":        intent_ok,
+                "expected_keyword": expected_keyword,
+                "keyword_found":    keyword_found,
+                "passed":           ok,
+                "phase":            "P4",
+            })
+
+    p4_total    = len(_AGENT_FOUNDATION_TESTS) if extended else 0
+    all_passed  = p1_passed + p2_passed + p3_passed + p4_passed
+    all_total   = (len(p1_tests) + len(_PHASE2_TESTS)
+                   + (len(_ARABIC_REASONING_TESTS) if extended else 0)
+                   + p4_total)
+    all_results = p1_results + p2_results + p3_results + p4_results
 
     return {
         "score":     f"{all_passed}/{all_total}",
@@ -4024,9 +4483,10 @@ def run_self_tests(extended: bool = True) -> dict:
         "passed":    all_passed,
         "total":     all_total,
         "failed":    all_total - all_passed,
-        "phase1":    {"passed": p1_passed, "total": len(p1_tests),                                             "label": "File Awareness"},
-        "phase2":    {"passed": p2_passed, "total": len(_PHASE2_TESTS),                                        "label": "Intent Classification (A-E)"},
-        "phase3":    {"passed": p3_passed, "total": len(_ARABIC_REASONING_TESTS) if extended else 0,           "label": "Arabic Reasoning"},
+        "phase1":    {"passed": p1_passed, "total": len(p1_tests),                "label": "File Awareness"},
+        "phase2":    {"passed": p2_passed, "total": len(_PHASE2_TESTS),            "label": "Intent Classification (A-E)"},
+        "phase3":    {"passed": p3_passed, "total": len(_ARABIC_REASONING_TESTS) if extended else 0, "label": "Arabic Reasoning"},
+        "phase4":    {"passed": p4_passed, "total": p4_total,                     "label": "Agent Foundation (7 Validation Qs)"},
     }
 
 
@@ -4375,24 +4835,62 @@ def full_analysis() -> dict:
 
 def process_chat(msg: str) -> dict:
     """
-    Main entry point for AI chat messages.
-    Phase 3: Integrates ReasoningEngine gate, AIMemoryLayer (context-aware), and full handler table.
-    I/O: single _persist_turn() call = 1 read + 1 write per turn (was 4 I/O ops).
+    AGENT FOUNDATION ENFORCEMENT — Reasoning-First Pipeline.
+
+    Mandate execution order:
+    1. Check pending plan approval/rejection  (AgentPlanningGate)
+    2. Detect intent
+    3. Record to session memory
+    4. For project intents: run AgentReasoningChain (7-step analysis)
+    5. Dispatch to handler
+    6. Record response + persist turn
     """
+    # ── AGENT GATE 1: pending plan approval / rejection ──────────────────────
+    if AgentPlanningGate.has_pending():
+        if AgentPlanningGate.is_approval(msg):
+            resp = AgentPlanningGate.execute_approved()
+            resp["intent"] = "plan_approved"
+            _persist_turn(msg, resp.get("text", "")[:500])
+            return resp
+        if AgentPlanningGate.is_rejection(msg):
+            resp = AgentPlanningGate.cancel()
+            resp["intent"] = "plan_cancelled"
+            _persist_turn(msg, resp.get("text", "")[:500])
+            return resp
+
     intent = detect_intent(msg)
 
     # Phase 3: Record to session memory BEFORE routing so handlers can read context
     AIMemoryLayer.record("user", msg, intent)
 
+    # ── AGENT GATE 2: 7-step reasoning chain for all project intents ─────────
+    _PROJECT_INTENTS = {
+        "find_file", "plan_modify", "dependency", "who_depends", "data_flow",
+        "reuse_systems", "impact", "root_cause", "arch", "security", "analyze",
+        "improve", "weakness", "strategy", "scale", "tech_debt", "redesign",
+        "errors", "create_feature", "ui_redesign", "debug_fix", "new_page",
+        "routes", "structure",
+    }
+    if intent in _PROJECT_INTENTS:
+        try:
+            _chain = AgentReasoningChain.execute(msg, intent)
+            AIMemoryLayer.record(
+                "assistant",
+                f"[reasoning: {', '.join(_chain.get('steps_done', [])[:4])}]",
+                "reasoning",
+            )
+        except Exception as _re:
+            _ai_log.debug("AgentReasoningChain (non-fatal): %s", _re)
+
     handlers = {
-        # ── Phase 3: Conversational Mode (NEVER touches project files) ────────
+        # ── Conversational (NEVER touches project files) ──────────────────────
         "greeting":       lambda: _r_greeting(),
         "conversation":   lambda: _r_conversation(msg),
         # ── Meta / identity ───────────────────────────────────────────────────
         "identity":       lambda: _r_identity(),
         "capabilities":   lambda: _r_capabilities(),
         "hf_query":       lambda: _r_hf_query(),
-        # ── Action intents ────────────────────────────────────────────────────
+        # ── Action intents (GATED — always awaits approval) ───────────────────
         "create_feature": lambda: _r_create_feature(msg),
         "ui_redesign":    lambda: _r_ui_redesign(msg),
         "debug_fix":      lambda: _r_debug_fix(msg),
@@ -4401,6 +4899,9 @@ def process_chat(msg: str) -> dict:
         "find_file":      lambda: _r_find_file(msg),
         "plan_modify":    lambda: _r_plan(msg),
         "dependency":     lambda: _r_dependency(msg),
+        "who_depends":    lambda: _r_who_depends_on(msg),
+        "data_flow":      lambda: _r_data_flow(msg),
+        "reuse_systems":  lambda: _r_reuse_systems(msg),
         "impact":         lambda: _r_impact(msg),
         "root_cause":     lambda: _r_root_cause(msg),
         "arch":           lambda: _r_arch(msg),
@@ -4700,42 +5201,32 @@ def _r_hf_query() -> dict:
 
 def _r_create_feature(msg: str) -> dict:
     """
-    Project Intelligence Mode — 5-step protocol.
-    Scan → Understand → Impact → Plan → Execute.
-    Never generic. Always uses actual project structure.
+    AGENT GATE: Analyze + produce plan → await explicit approval before any execution.
+    Never executes immediately. Uses AgentPlanningGate.submit() which runs the full
+    5-step ProjectIntelligenceAgent protocol and adds ⏸️ approval prompt.
     """
-    update_stats("total_plans")
-    return ProjectIntelligenceAgent.run(msg)
+    return AgentPlanningGate.submit(msg)
 
 
 def _r_ui_redesign(msg: str) -> dict:
     """
-    Project Intelligence Mode — 5-step protocol.
-    Scan → Understand → Impact → Plan → Execute.
-    Never generic. Always uses actual project structure.
+    AGENT GATE: Analyze redesign request → produce plan → await explicit approval.
     """
-    update_stats("total_plans")
-    return ProjectIntelligenceAgent.run(msg)
+    return AgentPlanningGate.submit(msg)
 
 
 def _r_debug_fix(msg: str) -> dict:
     """
-    Project Intelligence Mode — 5-step protocol.
-    Scan → Understand → Impact → Plan → Execute.
-    Never generic. Always uses actual project structure.
+    AGENT GATE: Diagnose issue → produce fix plan → await explicit approval.
     """
-    update_stats("total_scans")
-    return ProjectIntelligenceAgent.run(msg)
+    return AgentPlanningGate.submit(msg)
 
 
 def _r_new_page(msg: str) -> dict:
     """
-    Project Intelligence Mode — 5-step protocol.
-    Scan → Understand → Impact → Plan → Execute.
-    Never generic. Always uses actual project structure.
+    AGENT GATE: Design new page plan → await explicit approval before execution.
     """
-    update_stats("total_plans")
-    return ProjectIntelligenceAgent.run(msg)
+    return AgentPlanningGate.submit(msg)
 
 
 def _r_find_file(msg: str) -> dict:
@@ -4761,9 +5252,21 @@ def _r_plan(msg: str) -> dict:
 
 
 def _r_dependency(msg: str) -> dict:
-    entries = _find_concept(msg)
+    """
+    Live dependency analysis — reads real AST import graph via ProjectDependencyGraph.
+
+    Reasoning:
+    1. Try _find_concept() for semantic file mapping
+    2. Try _route_for_concept() for route/template relationship
+    3. For each found file: ProjectDependencyGraph.full_impact_report() → direct importers + risk
+    4. Fall back to keyword search in reverse graph
+    """
+    entries    = _find_concept(msg)
     route_info = _route_for_concept(msg)
-    lines = ["🔗 **تحليل التبعيات**\n"]
+    risk_icons = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢", "NONE": "⚪"}
+    lines      = ["🔗 **تحليل التبعيات — قراءة مباشرة من الكود**\n"]
+
+    # ── Route/template level ──────────────────────────────────────────────────
     if route_info:
         lines.append(f"📄 **Template:** `{route_info['template']}`")
         lines.append(f"  ↳ يرث من: `{route_info.get('base', 'standalone')}`")
@@ -4774,14 +5277,46 @@ def _r_dependency(msg: str) -> dict:
             lines.append(f"📜 **JS:** `{j}`")
         for a in route_info.get("apis", []):
             lines.append(f"  🔌 API: `{a}`")
-    elif entries:
-        for path, role, desc in entries:
-            impact = analyze_file_impact(path)
-            lines.append(f"• `{path}` [{role}]")
-            for a in impact.get("affects", []):
-                lines.append(f"  ↳ يؤثر على: {a}")
-    else:
-        lines.append("لم يتم العثور على معلومات تبعية لهذا الاستعلام.")
+
+    # ── File-level import graph (live AST) ────────────────────────────────────
+    if entries:
+        for path, role, desc in entries[:4]:
+            report = ProjectDependencyGraph.full_impact_report(path)
+            direct = report.get("direct_importers", [])
+            risk   = report.get("risk", "LOW")
+            lines.append(f"\n📁 `{path}` [{role}] — {desc}")
+            if direct:
+                lines.append(f"  📥 **يستورده ({len(direct)} ملف):**")
+                for imp in direct[:10]:
+                    lines.append(f"    ↳ `{imp}`")
+                if len(direct) > 10:
+                    lines.append(f"    ... و {len(direct) - 10} ملف آخر")
+            trans = report.get("transitive_impact", [])
+            if trans:
+                lines.append(
+                    f"  {risk_icons.get(risk,'⚪')} **التأثير الإجمالي:** "
+                    f"{report['total_files_at_risk']} ملف — خطر: {risk}"
+                )
+            if not direct and not trans:
+                lines.append("  ℹ️ لا ملفات تستورده مباشرة")
+
+    # ── Keyword fallback: search dep graph directly ───────────────────────────
+    if not entries and not route_info:
+        ml_norm = _normalize_ar(msg.lower())
+        graph   = ProjectDependencyGraph.get()
+        reverse = graph.get("reverse", {})
+        tokens  = [t for t in ml_norm.split() if len(t) > 2]
+        matches = [k for k in reverse if any(t in k for t in tokens)]
+        if matches:
+            best   = matches[0]
+            report = ProjectDependencyGraph.full_impact_report(best)
+            lines.append(f"🔍 **أقرب تطابق:** `{best}`")
+            lines.append(f"  📥 يستورده: {len(report.get('direct_importers', []))} ملف — خطر: {report.get('risk', 'LOW')}")
+            lines.append(f"  💥 التأثير الإجمالي: {report['total_files_at_risk']} ملف")
+        else:
+            lines.append("⚠️ لم يتم العثور على ملف بالاسم المحدد.")
+            lines.append("💡 جرب: 'تبعيات config/settings.py' أو 'تبعيات database/db.py' أو 'تبعيات ai_engine.py'")
+
     return {"text": "\n".join(lines), "data": {"entries": entries}}
 
 
@@ -4792,6 +5327,43 @@ def _r_impact(msg: str) -> dict:
     2. If no specific file, reason semantically about what the operation affects.
     """
     ml = msg.lower()
+
+    # ── Live graph: if a specific file/concept is mentioned → query live dep graph ──
+    # This case runs FIRST for any message mentioning a real file or known concept.
+    _ENTRIES = _find_concept(msg)
+    if _ENTRIES:
+        report   = ProjectDependencyGraph.full_impact_report(_ENTRIES[0][0])
+        path     = report["file"]
+        direct   = report["direct_importers"]
+        trans    = report["transitive_impact"]
+        risk     = report["risk"]
+        risk_icons = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢", "NONE": "⚪"}
+        icon     = risk_icons.get(risk, "⚪")
+        n_dir    = len(direct)
+        n_trans  = len(trans)
+        lines = [
+            f"💥 **تحليل التأثير الكامل: `{path}`** — من قراءة مباشرة للكود\n",
+            f"{icon} **مستوى الخطر:** {risk}",
+            f"📥 **يستورده مباشرة:** {n_dir} ملف",
+        ]
+        for f in direct[:12]:
+            lines.append(f"  ↳ `{f}`")
+        if n_dir > 12:
+            lines.append(f"  ... و {n_dir - 12} آخرون")
+        if trans:
+            lines.append(f"\n💣 **التأثير الإجمالي عند الحذف:** {n_trans} ملف")
+            for f in trans[:10]:
+                lines.append(f"  ⚠️ `{f}`")
+            if n_trans > 10:
+                lines.append(f"  ... و {n_trans - 10} ملف آخر")
+        if risk in ("CRITICAL", "HIGH"):
+            lines.append(
+                f"\n🚨 **تحذير:** `{path}` نقطة فشل مركزية — "
+                f"{n_dir} ملف تتوقف عليه. لا تحذفه أو تعدّله دون خطة واضحة."
+            )
+        elif risk == "LOW" and n_dir == 0:
+            lines.append(f"\n✅ **آمن:** لا ملفات تعتمد على `{path}` مباشرة.")
+        return {"text": "\n".join(lines), "data": report}
 
     # ── Semantic operation detection ─────────────────────────────────────────
     _ADD_BOT  = re.search(r"(?:أضفت|بنيت|أنشأت|دمجت).{0,20}(?:بوت|bot)|add.{0,20}bot", ml)
@@ -5046,11 +5618,20 @@ def _r_weakness(msg: str) -> dict:
 
     weaknesses = []
 
-    # 1. Single point of failure: config.py
+    # 1. Single point of failure: config/settings.py — live count from dep graph
+    _dep_g      = ProjectDependencyGraph.get()
+    _cfg_key    = ProjectDependencyGraph._resolve_name("config/settings.py")
+    _cfg_deps   = _dep_g.get("reverse", {}).get(_cfg_key, [])
+    _cfg_count  = len(_cfg_deps)
     weaknesses.append({
-        "title": "نقطة فشل واحدة — `config.py`",
-        "risk": "HIGH",
-        "detail": "12 راوتر يستوردون config مباشرة — أي خطأ فيه يوقف اللوحة كلها. لا يوجد fallback.",
+        "title": "نقطة فشل واحدة — `config/settings.py`",
+        "risk": "CRITICAL" if _cfg_count >= 15 else "HIGH",
+        "detail": (
+            f"{_cfg_count} ملف يستورد config/settings.py مباشرة — "
+            "أي خطأ syntax فيه يوقف البوتات واللوحة كلها. لا يوجد fallback."
+            if _cfg_count > 0
+            else "ملف الإعدادات المركزي — قاعدة كل مكونات المشروع. لا يوجد fallback."
+        ),
     })
 
     # 2. No automated tests
@@ -5510,6 +6091,235 @@ def _r_redesign() -> dict:
     }
 
 
+def _r_who_depends_on(msg: str) -> dict:
+    """
+    Answers: "What files depend on X?" / "Show dependency chain for X"
+    Uses live AST-based ProjectDependencyGraph — never hardcoded.
+    """
+    risk_icons = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢", "NONE": "⚪"}
+
+    # Extract target file from message
+    target_file: str | None = None
+
+    # Check for explicit file path pattern
+    for pat in [r"[\w]+/[\w./]+\.py", r"[\w]+\.py"]:
+        m = re.search(pat, msg.lower())
+        if m:
+            target_file = m.group(0)
+            break
+
+    # Check aliases / semantic map
+    if not target_file:
+        for alias, concept in _ALIASES.items():
+            if alias in msg.lower() or alias in _normalize_ar(msg.lower()):
+                entries = _SEMANTIC_MAP.get(concept, [])
+                if entries:
+                    target_file = entries[0][0]
+                break
+
+    # Try _find_concept as final fallback
+    if not target_file:
+        found = _find_concept(msg)
+        if found:
+            target_file = found[0][0]
+
+    if not target_file:
+        return {
+            "text": (
+                "🔗 **من يعتمد على هذا الملف؟**\n\n"
+                "⚠️ لم أتمكن من تحديد الملف المستهدف.\n\n"
+                "**أمثلة صحيحة:**\n"
+                "  • `سلسلة تبعيات config/settings.py`\n"
+                "  • `ما الملفات التي تعتمد على database/db.py؟`\n"
+                "  • `dependency chain for ai_engine.py`"
+            ),
+            "data": {},
+        }
+
+    report  = ProjectDependencyGraph.full_impact_report(target_file)
+    key     = report["file"]
+    direct  = report["direct_importers"]
+    trans   = report["transitive_impact"]
+    risk    = report["risk"]
+    icon    = risk_icons.get(risk, "⚪")
+
+    lines = [
+        f"🔗 **سلسلة التبعيات: `{key}`** — قراءة مباشرة من الكود\n",
+        f"{icon} **مستوى الخطر إذا حُذف:** {risk}",
+        f"📥 **المستوردون المباشرون ({len(direct)} ملف):**",
+    ]
+    for f in direct[:15]:
+        lines.append(f"  ↳ `{f}`")
+    if len(direct) > 15:
+        lines.append(f"  ... و {len(direct) - 15} ملف آخر")
+
+    if trans:
+        lines.append(f"\n💥 **التأثير الإجمالي عند الحذف ({report['total_files_at_risk']} ملف):**")
+        for f in trans[:10]:
+            lines.append(f"  ⚠️ `{f}`")
+        if len(trans) > 10:
+            lines.append(f"  ... و {len(trans) - 10} ملف آخر")
+
+    # Chain visualization (depth-2)
+    if direct:
+        lines.append("\n**🔗 عمق التبعية (أول 3 مستوردين):**")
+        for f in direct[:3]:
+            sub_callers = ProjectDependencyGraph.what_depends_on(f)
+            entry = f"  `{f}`"
+            if sub_callers:
+                entry += f"  ← [{', '.join(f'`{c}`' for c in sub_callers[:2])}]"
+            lines.append(entry)
+
+    if report["total_files_at_risk"] > 0:
+        lines.append(
+            f"\n🚨 **تحذير:** حذف `{key}` سيوقف "
+            f"{report['total_files_at_risk']} ملف عن العمل."
+        )
+    else:
+        lines.append(f"\n✅ لا ملفات أخرى تعتمد على `{key}` حالياً.")
+
+    return {"text": "\n".join(lines), "data": report}
+
+
+def _r_data_flow(msg: str) -> dict:
+    """
+    Shows complete data flow paths through the project.
+    Answers: "Show data flow from Telegram user to final response"
+    Uses _ARCH_MAP["data_flow"] — maintained in this file.
+    """
+    ml   = msg.lower()
+    arch = _ARCH_MAP.get("data_flow", _ARCH_MAP.get("project", {}))
+    lines = ["📊 **تدفق البيانات الكامل في مشروع X**\n"]
+
+    # Determine which flow(s) to show
+    want_bot   = any(kw in ml for kw in ["telegram", "bot", "user", "بوت", "مستخدم", "تليغرام", "رسالة"])
+    want_panel = any(kw in ml for kw in ["panel", "http", "web", "لوحة", "browser", "request", "تحكم"])
+    want_ai    = any(kw in ml for kw in ["ai", "chat", "ذكاء", "محادثة", "operator"])
+    want_all   = not (want_bot or want_panel or want_ai)
+
+    if want_bot or want_all:
+        lines.append("## 🤖 مسار بوت PrimeDownloader (Telegram → رد)\n")
+        for step in arch.get("telegram_to_response", []):
+            lines.append(f"  {step}")
+
+    if want_panel or want_all:
+        lines.append("\n## 🌐 مسار لوحة التحكم (HTTP → HTML)\n")
+        for step in arch.get("panel_request_to_response", []):
+            lines.append(f"  {step}")
+
+    if want_ai or want_all:
+        lines.append("\n## 🧠 مسار AI Operator (رسالة → تحليل → رد)\n")
+        for step in arch.get("ai_message_flow", []):
+            lines.append(f"  {step}")
+
+    if want_all:
+        lines.append("\n## ⚠️ مسار نشر الفشل (config/settings.py)\n")
+        for step in arch.get("critical_config_flow", []):
+            lines.append(f"  {step}")
+
+    return {"text": "\n".join(lines), "data": arch}
+
+
+def _r_reuse_systems(msg: str) -> dict:
+    """
+    Answers: "If I create a Notification Bot, what existing systems can be reused?"
+    Scans project for reusable components — uses live dep graph to identify shared modules.
+    """
+    ml = msg.lower()
+
+    is_notification = bool(re.search(r"إشعار|notification|notif|تنبيه|broadcast", ml))
+    is_bot          = bool(re.search(r"بوت|bot", ml))
+    is_payment      = bool(re.search(r"دفع|payment|pay|اشتراك|subscription", ml))
+    is_analytics    = bool(re.search(r"إحصاء|analytics|stats|report|تقارير|dashboard", ml))
+
+    lines = ["♻️ **الأنظمة القابلة للإعادة الاستخدام في مشروع X**\n"]
+
+    reusable = [
+        {
+            "system": "config/settings.py",
+            "role": "إعدادات المشروع",
+            "how": "TOKEN الجديد + ADMIN_IDS يُضافان هنا. لا تعدّل القيم الموجودة.",
+            "risk": "CRITICAL",
+        },
+        {
+            "system": "database/db.py + database/users.py",
+            "role": "قاعدة البيانات + إدارة المستخدمين",
+            "how": "init_db() + get_user() + create_user() جاهزة للاستخدام المباشر",
+            "risk": "HIGH — لا تعدّل schema موجودة، أضف جداول جديدة فقط",
+        },
+        {
+            "system": "utils/logger.py",
+            "role": "نظام السجلات الموحّد",
+            "how": "setup_logger('new_bot') → Logger جاهز بدون أي تعديل",
+            "risk": "NONE",
+        },
+    ]
+
+    if is_notification or is_bot:
+        reusable.extend([
+            {
+                "system": "middlewares/auth.py",
+                "role": "مصادقة المستخدمين",
+                "how": "check_subscription_status(user_id) يمكن استدعاؤه من أي handler",
+                "risk": "LOW",
+            },
+            {
+                "system": "services/subscription.py",
+                "role": "التحقق من الاشتراك",
+                "how": "check_subscription(user_id) جاهز للاستخدام",
+                "risk": "LOW",
+            },
+        ])
+
+    if is_notification:
+        reusable.append({
+            "system": "database/users.py → get_all_users()",
+            "role": "قائمة المستخدمين للإرسال الجماعي",
+            "how": "get_all_users() تعيد كل user_id — استخدمها مع rate limiting (1 msg/30ms)",
+            "risk": "MEDIUM — Broadcast بدون throttling يُوقف البوت بـ FloodWait",
+        })
+
+    if is_payment or is_analytics:
+        reusable.append({
+            "system": "control_panel/db_utils.py",
+            "role": "استعلامات قاعدة البيانات",
+            "how": "get_db() + execute_query() جاهزان للصفحات الجديدة في اللوحة",
+            "risk": "LOW",
+        })
+
+    for r in reusable:
+        risk_word = r["risk"].split()[0] if r["risk"] else "LOW"
+        ri = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢", "NONE": "⚪"}.get(risk_word, "⚪")
+        lines.append(f"\n♻️ **`{r['system']}`** — {r['role']}")
+        lines.append(f"  → {r['how']}")
+        lines.append(f"  {ri} الخطر: {r['risk']}")
+
+    # New files that must be created
+    lines.append("\n\n📁 **الملفات الجديدة المطلوبة:**")
+    if is_bot:
+        bot_match = re.search(r"([\w_]+)\s*(?:bot|بوت)", ml)
+        bname     = bot_match.group(1).strip() if bot_match else "new_bot"
+        bname     = re.sub(r"\s+", "_", bname.strip())
+        lines.extend([
+            f"  🆕 `{bname}_bot/bot.py` — نقطة دخول البوت الجديد",
+            f"  🆕 `{bname}_bot/handlers/` — معالجات الأوامر",
+            f"  🆕 Secret في Replit: `{bname.upper()}_BOT_TOKEN`",
+            f"  🆕 Workflow جديد في Replit: `{bname.capitalize()} Bot`",
+        ])
+    else:
+        lines.extend([
+            "  🆕 ملف Python جديد للوظيفة المطلوبة",
+            "  🆕 Router جديد في control_panel/routers/ (إن كانت صفحة في اللوحة)",
+        ])
+
+    lines.append(
+        "\n⚠️ **القاعدة الذهبية:** أضف ولا تعدّل — "
+        "أي تعديل على ملف موجود يتطلب خطة موافَق عليها."
+    )
+
+    return {"text": "\n".join(lines), "data": {"reusable_count": len(reusable)}}
+
+
 def _r_general(msg: str) -> dict:
     """
     Reasoning-first fallback.
@@ -5648,3 +6458,15 @@ def _fmt(b: int) -> str:
 # ─── Alias for backward compatibility ────────────────────────────────────────
 def create_plan(description: str) -> dict:
     return create_modification_plan(description)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AGENT FOUNDATION — STARTUP KNOWLEDGE RECOVERY
+# Pre-builds the dependency graph on module import so the first user query
+# gets live project data instantly (no cold-build latency on first message).
+# ═══════════════════════════════════════════════════════════════════════════════
+try:
+    ProjectDependencyGraph.startup_recover()
+    _ai_log.info("Agent Foundation: startup knowledge recovery complete.")
+except Exception as _startup_exc:
+    _ai_log.warning("Agent Foundation: startup recovery non-fatal error: %s", _startup_exc)
