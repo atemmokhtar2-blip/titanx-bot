@@ -1435,7 +1435,7 @@ def detect_intent(msg: str) -> str:
     _COMPARE_P = [
         r"difference between", r"\bcompare\b.{0,25}\band\b", r"\bvs\b", r"\bversus\b",
         r"الفرق\s+بين", r"فرق\s+بين", r"\bcontrast\b", r"compare.{0,20}and",
-        r"between.{0,30}and",
+        r"between.{0,30}and", r"\bقارن\b", r"مقارنة\s+بين",
     ]
     if any(re.search(p, ml) for p in _COMPARE_P):
         return "conversation"
@@ -1566,6 +1566,19 @@ def detect_intent(msg: str) -> str:
     if re.search(r"اختبر نفسك|self.?test|test yourself", ml):
         return "self_test"
 
+    # ── Priority 2·5: Architecture quality (before scored match steals "بنية") ─
+    # "هل بنية المشروع جيدة؟" / "is the project structure good?"
+    _ARCH_Q = [
+        r"هل.{0,10}(?:بنية|هيكل)\s+المشروع",
+        r"(?:بنية|هيكل)\s+المشروع.{0,20}(?:جيدة?|صحيحة?|منظمة?|مناسبة?)",
+        r"تقييم\s+المشروع",
+        r"هل\s+المشروع\s+(?:جيد|منظم|صحيح|مناسب)",
+        r"(?:review|evaluate|assess).{0,20}(?:project|architecture)",
+        r"(?:is|how\s+is).{0,10}(?:the\s+)?(?:project|architecture|code).{0,20}(?:good|solid|structured)",
+    ]
+    if any(re.search(p, ml) for p in _ARCH_Q):
+        return "arch"
+
     # ── Scored match ──────────────────────────────────────────────────────────
     scores: dict = {}
     for intent, patterns in INTENTS.items():
@@ -1574,6 +1587,76 @@ def detect_intent(msg: str) -> str:
             scores[intent] = score
     if scores:
         return max(scores, key=lambda k: scores[k])
+
+    # ── Semantic reasoning — broad Arabic / mixed patterns ────────────────────
+    # These catch well-formed questions that score 0 on keyword lists but have
+    # clear meaning. Checked AFTER scored match so specific handlers win first.
+
+    # Identity variants: "عرفني بنفسك", "ما اسمك", "هل أنت AI"
+    _IDENTITY_SEM = [
+        r"عرّفني\s+بنفسك", r"عرفني\s+بنفسك", r"عرّف\s+نفسك", r"عرف\s+نفسك",
+        r"ما\s+اسمك", r"ما\s+هو\s+اسمك",
+        r"هل\s+أنت\s+(?:ذكاء|ذكاءً)\s+اصطناعي",
+        r"هل\s+أنت\s+(?:بوت|روبوت|ai|برنامج|آلة)",
+        r"من\s+تكون\b", r"من\s+تكون\s+أنت",
+    ]
+    if any(re.search(p, ml) for p in _IDENTITY_SEM):
+        return "identity"
+
+    # Impact / conditional: "لو عدلت X ماذا سيحدث؟"
+    _IMPACT_SEM = [
+        r"لو\s+(?:عدلت|غيرت|حذفت|أنشأت|بدلت|أضفت)",
+        r"إذا\s+(?:عدلت|غيرت|حذفت|أنشأت|أضفت|بنيت)",
+        r"ماذا\s+(?:سيحدث|سيتأثر|سيتغير|قد\s+يحدث|ينكسر|يتأثر|سيُكسر|سيتعطل)",
+        r"what\s+(?:would|will)\s+(?:happen|break|change)",
+        r"if\s+(?:i|we)\s+(?:change|modify|delete|add|edit)",
+    ]
+    if any(re.search(p, ml) for p in _IMPACT_SEM):
+        return "impact"
+
+    # Project architecture / quality
+    _ARCH_SEM = [
+        r"(?:بنية|هيكل)\s+المشروع",
+        r"هل\s+المشروع\s+(?:جيد|منظم|صحيح|مناسب)",
+        r"تقييم\s+المشروع",
+        r"(?:project|code|architecture).{0,20}(?:good|solid|quality|well.structured)",
+        r"(?:review|evaluate|assess).{0,20}(?:project|architecture|code\s+quality)",
+    ]
+    if any(re.search(p, ml) for p in _ARCH_SEM):
+        return "arch"
+
+    # Improvement / best-practice
+    _IMPROVE_SEM = [
+        r"أفضل\s+(?:تطوير|تحسين|ميزة|إضافة).{0,30}(?:للمشروع|المشروع)?",
+        r"(?:كيف|ماذا)\s+(?:أطور|أحسن|أعزز)\s+المشروع",
+        r"best\s+(?:improvement|feature|addition|upgrade)\s+(?:for\s+)?(?:the\s+)?project",
+        r"(?:what|how).{0,10}(?:improve|enhance|upgrade)\s+(?:the\s+)?project",
+        r"ما\s+(?:الذي\s+)?(?:يحسن|يطور)\s+المشروع",
+    ]
+    if any(re.search(p, ml) for p in _IMPROVE_SEM):
+        return "improve"
+
+    # Feature creation / integration
+    _CREATE_SEM = [
+        r"كيف\s+(?:أضيف|أنشئ|أبني|أدمج|أحدث).{0,40}(?:بوت|ميزة|نظام|خدمة|إشعار)",
+        r"هل\s+يمكن\s+(?:دمج|إضافة|إنشاء|بناء).{0,30}(?:بوت|ميزة|نظام|خدمة)",
+        r"يمكن\s+(?:دمج|إضافة|إنشاء)\s*(?:بوت|ميزة|نظام)?",
+        r"how\s+(?:do\s+i|to|can\s+i).{0,20}(?:add|create|build|integrate).{0,20}(?:bot|feature|system|service)",
+        r"can\s+(?:i|we).{0,15}(?:add|create|integrate|build).{0,20}(?:bot|feature|service)",
+    ]
+    if any(re.search(p, ml) for p in _CREATE_SEM):
+        return "create_feature"
+
+    # General explanation / conversation (broad catch before giving up)
+    _CONV_SEM = [
+        r"(?:اشرح|وضح|فسّر|فسر|ما\s+هو|ما\s+هي|ما\s+معنى|ما\s+المقصود)",
+        r"(?:explain|describe|what\s+is|what\s+are|how\s+does|how\s+do)",
+        r"(?:فرق|مقارنة|الفرق|أيهما\s+أفضل)",
+        r"(?:why|لماذا|متى|when\s+(?:should|do|does))",
+    ]
+    if any(re.search(p, ml) for p in _CONV_SEM):
+        return "conversation"
+
     return "general"
 
 
@@ -3464,46 +3547,107 @@ def _r_help() -> dict:
 
 
 def _r_general(msg: str) -> dict:
-    """Intelligent fallback — NEVER returns raw file lists for conversational questions.
-
-    Rule: Only call answer_file_question() when the message contains an explicit
-    file-related keyword. For all other inputs, give a contextual guidance response.
+    """
+    Reasoning-first fallback.
+    Attempts semantic understanding across 6 layers before admitting defeat.
+    'لم أتعرف' is the absolute last resort — only if ALL layers fail.
     """
     ml = msg.lower()
 
-    # Only route to file search when the question is EXPLICITLY about a file/page/route
-    _FILE_INDICATORS = [
-        r"\bfile\b", r"\bملف\b", r"\bpage\b", r"\bصفحة\b",
-        r"\btemplate\b", r"\brouter\b", r"\bcss\b", r"\bjavascript\b",
-        r"\bjs\b", r"\bcode\b", r"\bكود\b", r"\bpath\b", r"\bمسار\b",
-        r"\bwhere is\b", r"\bأين\b", r"\bfind\b", r"\bابحث\b",
+    # ── Layer 1: Impact / conditional reasoning ────────────────────────────────
+    # "لو عدلت style.css ماذا قد يحدث؟" / "إذا أنشأت بوت إشعارات ماذا سيتأثر؟"
+    _L1 = [
+        r"لو\s+(?:عدلت|غيرت|حذفت|أنشأت|بدلت|أضفت)",
+        r"إذا\s+(?:عدلت|غيرت|حذفت|أنشأت|أضفت|بنيت)",
+        r"ماذا\s+(?:سيحدث|سيتأثر|سيتغير|قد\s+يحدث|ينكسر|يتأثر|سيُكسر|سيتعطل)",
+        r"what\s+(?:would|will)\s+(?:happen|break|change)",
+        r"if\s+(?:i|we)\s+(?:change|modify|delete|add|edit)",
     ]
-    is_explicit_file_question = any(re.search(p, ml) for p in _FILE_INDICATORS)
+    if any(re.search(p, ml) for p in _L1):
+        return _r_impact(msg)
 
-    if is_explicit_file_question:
+    # ── Layer 2: Project architecture / quality ───────────────────────────────
+    # "هل بنية المشروع جيدة؟" / "is the project structure solid?"
+    _L2 = [
+        r"(?:بنية|هيكل)\s+المشروع",
+        r"هل\s+المشروع\s+(?:جيد|منظم|صحيح|مناسب)",
+        r"تقييم\s+المشروع",
+        r"(?:project|architecture|code).{0,20}(?:good|solid|quality|well.structured)",
+        r"(?:review|evaluate|assess).{0,20}(?:project|architecture|code)",
+    ]
+    if any(re.search(p, ml) for p in _L2):
+        return _r_arch(msg)
+
+    # ── Layer 3: Improvement / best-practice ──────────────────────────────────
+    # "ما أفضل تطوير للمشروع؟"
+    _L3 = [
+        r"أفضل\s+(?:تطوير|تحسين|ميزة|إضافة)",
+        r"(?:كيف|ماذا)\s+(?:أطور|أحسن|أعزز)",
+        r"ما\s+(?:الذي\s+)?(?:يحسن|يطور)\s+المشروع",
+        r"best\s+(?:improvement|feature|upgrade)",
+        r"(?:what|how).{0,10}(?:improve|enhance|upgrade).{0,15}project",
+    ]
+    if any(re.search(p, ml) for p in _L3):
+        return _r_improve(msg)
+
+    # ── Layer 4: Feature creation / integration ───────────────────────────────
+    # "كيف أضيف بوت جديد؟" / "هل يمكن دمج بوت جديد؟"
+    _L4 = [
+        r"كيف\s+(?:أضيف|أنشئ|أبني|أدمج|أحدث)",
+        r"هل\s+يمكن\s+(?:دمج|إضافة|إنشاء|بناء)",
+        r"يمكن\s+(?:دمج|إضافة|إنشاء)",
+        r"how\s+(?:do\s+i|to|can\s+i).{0,20}(?:add|create|build|integrate)",
+        r"can\s+(?:i|we).{0,15}(?:add|create|integrate|build)",
+    ]
+    if any(re.search(p, ml) for p in _L4):
+        return _r_create_feature(msg)
+
+    # ── Layer 5: General explanation / tech question → conversation ───────────
+    # "اشرح FastAPI" / "explain async" / "ما الفرق بين X و Y"
+    _L5 = [
+        r"(?:اشرح|وضح|فسّر|فسر|ما\s+هو|ما\s+هي|ما\s+معنى|ما\s+المقصود)",
+        r"(?:explain|describe|what\s+is|what\s+are|how\s+does|how\s+do)",
+        r"(?:فرق|مقارنة|الفرق|أيهما\s+أفضل)",
+        r"(?:why|لماذا|متى|when\s+(?:should|do|does))",
+    ]
+    if any(re.search(p, ml) for p in _L5):
+        return _r_conversation(msg)
+
+    # ── Layer 6: Explicit file search (ONLY when user asks for a file) ─────────
+    _L6_FILE = [
+        r"\bما\s+الملف\b", r"\bأي\s+ملف\b", r"\bأين\s+(?:الملف|الصفحة|الكود)\b",
+        r"\bwhat\s+file\b", r"\bwhich\s+file\b", r"\bwhere\s+is\b",
+        r"\blocate\b", r"\bfind\s+(?:the\s+)?file\b",
+    ]
+    if any(re.search(p, ml) for p in _L6_FILE):
         entries = _find_concept(msg)
         if entries:
             return answer_file_question(msg)
 
-    # Intelligent contextual response — never return a raw file list
-    mem   = load_memory()
-    proj  = mem.get("project", {})
-    pname = proj.get("name", "X Control Center")
+    # ── Layer 7: Hugging Face API ─────────────────────────────────────────────
+    try:
+        hf = call_hf_analyze(code=msg, question=msg)
+        if hf.get("ok") and isinstance(hf.get("analysis"), str) and len(hf["analysis"]) > 30:
+            return {"text": f"💬 {hf['analysis']}", "data": {"mode": "general_hf", "source": "hf"}}
+    except Exception:
+        pass
 
-    lines = [
-        f"🧠 **X AI Operator** · **{pname}**\n",
-        "لم أتعرف على نوع هذا الطلب بدقة.",
-        "**يمكنني مساعدتك في:**\n",
-        "  🔍 **ملفات المشروع** — \"What file controls the dashboard?\"",
-        "  🚀 **ميزات جديدة** — \"Create notification bot\"",
-        "  🔧 **إصلاح مشاكل** — \"Fix broken button\"",
-        "  🎨 **إعادة تصميم** — \"Redesign homepage\"",
-        "  🏗️ **المعمارية** — \"How does the bot work?\"",
-        "  ⚡ **قدراتي الكاملة** — \"What can you do?\"",
-        "  🧪 **اختبار ذاتي** — \"اختبر نفسك\"\n",
-        "أعِد صياغة سؤالك وسأحاول الإجابة بدقة أكبر.",
-    ]
-    return {"text": "\n".join(lines), "data": {"intent": "general", "query": msg}}
+    # ── LAST RESORT ───────────────────────────────────────────────────────────
+    mem   = load_memory()
+    pname = mem.get("project", {}).get("name", "X Control Center")
+    return {
+        "text": (
+            f"🧠 **X AI Operator** · {pname}\n\n"
+            "لم أستطع تحديد نوع طلبك بدقة كافية.\n\n"
+            "**أعد الصياغة بإحدى هذه الطرق:**\n"
+            "  • **سؤال تقني** — \"اشرح FastAPI\" · \"الفرق بين Python و JavaScript\"\n"
+            "  • **تحليل تأثير** — \"لو عدلت style.css ماذا سيحدث؟\"\n"
+            "  • **إنشاء ميزة** — \"كيف أضيف بوت إشعارات؟\"\n"
+            "  • **تقييم المشروع** — \"هل بنية المشروع جيدة؟\"\n"
+            "  • **إصلاح مشكلة** — \"إصلاح خطأ في صفحة الإعدادات\""
+        ),
+        "data": {"intent": "general", "query": msg},
+    }
 
 
 # ─── Utility ─────────────────────────────────────────────────────────────────
