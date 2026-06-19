@@ -388,6 +388,269 @@ class FutureExecutionArchitecture:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# PROJECT BRAIN — Phase 3 Core: Living Cached Project Model
+# Built once from the real filesystem. Refreshed every 5 minutes.
+# Knows modules, routers, templates, bots, DB, APIs, risks, tech-debt.
+# Handlers read from this instead of re-scanning on every request.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class ProjectBrain:
+    """
+    Phase 3: Permanent internal project model.
+    Single source of truth for all engineering-intelligence handlers.
+    """
+    _model: dict = {}
+    _built_at: float = 0.0
+    _TTL: float = 300.0  # 5-minute cache
+
+    # ── Authoritative risk registry ────────────────────────────────────────────
+    RISKS = [
+        {
+            "rank": 1, "category": "Single Point of Failure",
+            "title": "config.py — نقطة فشل مركزية",
+            "severity": "CRITICAL",
+            "detail": "12 راوتر تستورد config مباشرة. أي خطأ syntax يوقف اللوحة بالكامل — لا fallback.",
+            "fix": "config validation عند startup + unit test لـ config + lazy imports.",
+            "files": ["control_panel/config.py", "control_panel/app.py"],
+        },
+        {
+            "rank": 2, "category": "Database",
+            "title": "لا يوجد Migration System",
+            "severity": "CRITICAL",
+            "detail": "لا Alembic، لا rollback آلي. أي تغيير schema = تدخل يدوي + خطر فقدان بيانات.",
+            "fix": "تثبيت Alembic + إنشاء migration أولية لتوثيق الـ schema الحالي.",
+            "files": ["database/db.py"],
+        },
+        {
+            "rank": 3, "category": "Testing",
+            "title": "صفر Unit Tests / Integration Tests",
+            "severity": "HIGH",
+            "detail": "لا pytest، لا fixtures، لا CI. أي تعديل قد يكسر ميزة موجودة بصمت كامل.",
+            "fix": "إضافة pytest + تغطية: auth, DB init, router imports, bot startup, AI engine.",
+            "files": ["bot.py", "control_panel/auth.py", "control_panel/ai_engine.py"],
+        },
+        {
+            "rank": 4, "category": "Scalability",
+            "title": "SQLite + uvicorn single-process",
+            "severity": "HIGH",
+            "detail": "SQLite تُعاني من write locks عند concurrent users. uvicorn بلا workers.",
+            "fix": "PostgreSQL للإنتاج + uvicorn --workers 4 أو Gunicorn + connection pooling.",
+            "files": ["database/db.py", "scripts/start.sh"],
+        },
+        {
+            "rank": 5, "category": "Security",
+            "title": "لا يوجد Rate Limiting على /panel/login",
+            "severity": "HIGH",
+            "detail": "Brute force على صفحة تسجيل الدخول بدون أي تقييد — 1000 محاولة/ثانية ممكنة.",
+            "fix": "إضافة slowapi أو middleware يحدد 5 محاولات/دقيقة لكل IP.",
+            "files": ["control_panel/app.py", "control_panel/auth.py"],
+        },
+        {
+            "rank": 6, "category": "Architecture",
+            "title": "ai_engine.py — 4000+ سطر في ملف واحد",
+            "severity": "MEDIUM",
+            "detail": "ملف واحد يجمع: reasoning, handlers, memory, backup, analysis, 7 مسؤوليات.",
+            "fix": "تقسيم إلى: reasoning.py, handlers.py, memory.py, analysis.py, brain.py",
+            "files": ["control_panel/ai_engine.py"],
+        },
+        {
+            "rank": 7, "category": "Observability",
+            "title": "Logging غير موحّد — أخطاء صامتة",
+            "severity": "MEDIUM",
+            "detail": "bare except: pass في أماكن متعددة تبتلع الأخطاء. يصعب تشخيص الإنتاج.",
+            "fix": "استبدال bare except بـ logging.exception() + structured logging.",
+            "files": ["bot.py", "control_panel/routers/"],
+        },
+    ]
+
+    # ── Authoritative tech-debt registry ─────────────────────────────────────
+    TECH_DEBT = [
+        {
+            "id": "TD-001", "category": "Architecture",
+            "item": "ai_engine.py — 4000+ سطر ملف واحد يجمع 7 مسؤوليات",
+            "impact": "HIGH", "effort": "HIGH",
+            "detail": "Reasoning + handlers + memory + backup + analysis — يجب تقسيمه لوحدات.",
+            "priority": 1,
+        },
+        {
+            "id": "TD-002", "category": "Database",
+            "item": "لا يوجد Alembic — schema يُعدَّل يدوياً",
+            "impact": "HIGH", "effort": "MEDIUM",
+            "detail": "أي ALTER TABLE يدوي. لا version control لقاعدة البيانات.",
+            "priority": 2,
+        },
+        {
+            "id": "TD-003", "category": "Testing",
+            "item": "غياب كامل لـ Unit/Integration Tests",
+            "impact": "HIGH", "effort": "MEDIUM",
+            "detail": "لا pytest، لا mocks، لا CI pipeline. الكود بلا شبكة أمان.",
+            "priority": 3,
+        },
+        {
+            "id": "TD-004", "category": "Configuration",
+            "item": "قيم hardcoded مبعثرة (OWNER_ID، URLs، paths)",
+            "impact": "MEDIUM", "effort": "LOW",
+            "detail": "بعض القيم Hardcoded بدلاً من تمريرها عبر config موحّد.",
+            "priority": 4,
+        },
+        {
+            "id": "TD-005", "category": "Error Handling",
+            "item": "bare except: pass في أكثر من 15 موضع",
+            "impact": "MEDIUM", "effort": "LOW",
+            "detail": "أخطاء تُبتلع صامتةً. يصعب تشخيص مشاكل الإنتاج.",
+            "priority": 5,
+        },
+        {
+            "id": "TD-006", "category": "Security",
+            "item": "لا Rate Limiting على /panel/login",
+            "impact": "MEDIUM", "effort": "LOW",
+            "detail": "Brute force ممكن بدون أي تقييد على عدد المحاولات.",
+            "priority": 6,
+        },
+        {
+            "id": "TD-007", "category": "Dependencies",
+            "item": "requirements.txt بدون pin كامل للإصدارات",
+            "impact": "LOW", "effort": "LOW",
+            "detail": "بعض المكتبات بدون == — قد تنكسر عند تحديث تلقائي.",
+            "priority": 7,
+        },
+    ]
+
+    # ── Scaling blueprint ──────────────────────────────────────────────────────
+    SCALING_PLAN = {
+        "current_capacity": "~500–2,000 مستخدم متزامن (SQLite + uvicorn single)",
+        "target_100k": {
+            "database":    "الانتقال من SQLite → PostgreSQL مع connection pool (asyncpg)",
+            "server":      "uvicorn --workers 4 أو Gunicorn + worker processes",
+            "bot":         "webhook mode بدلاً من polling + أكثر من worker thread",
+            "caching":     "Redis لـ session cache + hot data (leaderboard, stats)",
+            "cdn":         "static files (CSS/JS) عبر CDN بدلاً من FastAPI StaticFiles",
+            "monitoring":  "Prometheus + Grafana لمراقبة latency/throughput/errors",
+            "queue":       "Celery + Redis لمهام الخلفية (تحميل الميديا، الإشعارات)",
+        },
+        "phases": [
+            {
+                "phase": "Phase A — Foundation (0→10k)",
+                "steps": [
+                    "نقل DB إلى PostgreSQL (Render.com أو Railway.app)",
+                    "تفعيل uvicorn --workers 2",
+                    "تفعيل webhook mode في bot.py",
+                    "إضافة health-check endpoint يراقب DB + Telegram",
+                ],
+                "risk": "MEDIUM",
+                "effort": "3–5 أيام",
+            },
+            {
+                "phase": "Phase B — Performance (10k→50k)",
+                "steps": [
+                    "إضافة Redis للـ session caching",
+                    "تحسين queries بإضافة indexes على users.user_id",
+                    "نقل static files لـ CDN",
+                    "إضافة rate limiting على جميع API endpoints",
+                ],
+                "risk": "MEDIUM",
+                "effort": "1–2 أسبوع",
+            },
+            {
+                "phase": "Phase C — Scale (50k→100k+)",
+                "steps": [
+                    "Celery + Redis queue للتحميل الثقيل",
+                    "Horizontal scaling: نسخ متعددة من الـ panel",
+                    "Database read replicas",
+                    "Telegram Bot API webhook مع dedicated domain",
+                ],
+                "risk": "HIGH",
+                "effort": "2–4 أسابيع",
+            },
+        ],
+    }
+
+    @classmethod
+    def _build(cls) -> dict:
+        files = walk_project()
+        py_files  = [f for f in files if f.endswith(".py")]
+        html      = [f for f in files if f.endswith(".html")]
+        routers   = [f for f in files if "routers/" in f and f.endswith(".py")]
+        handlers  = [f for f in files if "handlers/" in f and f.endswith(".py")]
+        db_files  = [f for f in files if "database/" in f and f.endswith(".py")]
+        services  = [f for f in files if "services/" in f and f.endswith(".py")]
+        key_files = [
+            "bot.py", "control_panel/ai_engine.py", "control_panel/app.py",
+            "control_panel/auth.py", "database/db.py",
+            "control_panel/static/css/style.css",
+        ]
+        line_counts = {}
+        for rel in key_files:
+            fp = EXTRACTED_DIR / rel
+            if fp.exists():
+                try:
+                    line_counts[rel] = len(fp.read_text(errors="ignore").splitlines())
+                except Exception:
+                    pass
+        return {
+            "built_at": datetime.now().isoformat(),
+            "project_name": "X Control Center",
+            "version": "5.0",
+            "totals": {
+                "files": len(files), "python_files": len(py_files),
+                "templates": len(html), "routers": len(routers),
+                "handlers": len(handlers), "db_files": len(db_files),
+                "services": len(services),
+            },
+            "bots": {
+                "main":    "bot.py — PrimeDownloader (yt-dlp, gamification, Lucky Wheel, referrals)",
+                "support": "support_bot/bot.py — ticket system, feedback, escalation",
+            },
+            "databases": {
+                "main":    "database/bot.db — users, downloads, referrals, achievements, cache, reports",
+                "support": "support_bot/database/support.db — tickets, messages",
+                "engine":  "SQLite via aiosqlite — no migration system",
+            },
+            "key_apis":   list(_ROUTE_GRAPH.keys()),
+            "routers":    routers,
+            "templates":  html,
+            "handlers":   handlers,
+            "services":   services,
+            "dependencies": {
+                "python": ["python-telegram-bot==21.6", "fastapi", "uvicorn",
+                           "yt-dlp", "aiohttp", "Pillow", "itsdangerous", "jinja2", "psutil"],
+                "system": ["ffmpeg", "freetype", "libwebp"],
+            },
+            "line_counts": line_counts,
+            "risks":       cls.RISKS,
+            "tech_debt":   cls.TECH_DEBT,
+            "scaling":     cls.SCALING_PLAN,
+        }
+
+    @classmethod
+    def get(cls) -> dict:
+        if not cls._model or (time.time() - cls._built_at) > cls._TTL:
+            try:
+                cls._model    = cls._build()
+                cls._built_at = time.time()
+            except Exception as e:
+                _ai_log.warning("ProjectBrain build error: %s", e)
+                if not cls._model:
+                    cls._model = {"error": str(e), "built_at": datetime.now().isoformat()}
+        return cls._model
+
+    @classmethod
+    def status(cls) -> dict:
+        m   = cls.get()
+        age = int(time.time() - cls._built_at)
+        return {
+            "active":      True,
+            "model_built": bool(cls._model and "error" not in cls._model),
+            "age_seconds": age,
+            "ttl_seconds": int(cls._TTL),
+            "total_files": m.get("totals", {}).get("files", 0),
+            "risks":       len(cls.RISKS),
+            "tech_debt":   len(cls.TECH_DEBT),
+            "phase":       3,
+        }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CONVERSATION KNOWLEDGE BASE
 # Used by _r_conversation() — general tech knowledge, no project file access
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1506,6 +1769,44 @@ def detect_intent(msg: str) -> str:
     if any(re.search(p, ml) for p in _COND_OVERRIDE):
         return "impact"
 
+    # ── Scaling / capacity questions ──────────────────────────────────────────
+    _SCALE_P = [
+        r"(?:كيف|كيفية).{0,20}(?:يتحمل|يتوسع|يُوسَّع|يُطوَّر).{0,30}(?:مستخدم|user|ألف|مليون)",
+        r"(?:scale|scaling).{0,30}(?:\d+[kK]?|hundred|thousand|million|مليون|ألف)",
+        r"(?:\d+[kK]|hundred|thousand|million)\s+(?:users?|مستخدم)",
+        r"(?:توسع|scale\s*up|horizontal\s*scal|vertical\s*scal)",
+        r"(?:كيف|how).{0,20}(?:أتوسع|أوسّع|أُطوّر|grow|scale).{0,20}(?:مشروع|project|system|نظام)",
+        r"(?:capacity|طاقة\s*استيعاب|عدد\s*المستخدمين).{0,20}(?:\d+|أكثر|زيادة)",
+        r"100[,.]?000\s*(?:user|مستخدم)",
+        r"(?:million|مليون)\s+(?:user|مستخدم)",
+    ]
+    if any(re.search(p, ml) for p in _SCALE_P):
+        return "scale"
+
+    # ── Technical debt ────────────────────────────────────────────────────────
+    _TECH_DEBT_P = [
+        r"(?:technical\s+debt|ديون\s+تقنية|الديون\s+التقنية)",
+        r"(?:ما|which|what).{0,20}(?:يحتاج|needs?|requires?).{0,20}(?:إعادة\s*كتابة|refactor|rewrite)",
+        r"(?:refactor|إعادة\s*هيكلة|إعادة\s*كتابة).{0,30}(?:المشروع|project|code|الكود)",
+        r"(?:code\s+quality|جودة\s+الكود|نظافة\s+الكود)",
+        r"(?:ما|which|what).{0,20}(?:يحتاج|needs?).{0,20}(?:تنظيف|cleanup|تحسين\s+الكود)",
+        r"(?:legacy|قديم|outdated).{0,20}(?:code|كود|نظام)",
+    ]
+    if any(re.search(p, ml) for p in _TECH_DEBT_P):
+        return "tech_debt"
+
+    # ── Redesign / restructure ────────────────────────────────────────────────
+    _REDESIGN_ARCH_P = [
+        r"(?:كيف|how).{0,15}(?:ستعيد|would\s+you\s+redesign|تُعيد\s+تصميم|تُعيد\s+بناء)",
+        r"(?:إعادة\s+تصميم|redesign).{0,25}(?:المشروع|بنية|architecture|النظام|TitanX)",
+        r"(?:كيف|how).{0,15}(?:ستبني|would\s+you\s+build|تبني).{0,20}(?:من\s+الصفر|from\s+scratch|again|مجدداً)",
+        r"(?:لو|if).{0,20}(?:بدأت|started|start).{0,20}(?:من\s+الصفر|scratch|again|مجدداً)",
+        r"(?:best|أفضل).{0,15}(?:architecture|معمارية|بنية).{0,20}(?:لهذا|for\s+this|للمشروع)",
+        r"(?:restructure|إعادة\s+هيكلة\s+المشروع)",
+    ]
+    if any(re.search(p, ml) for p in _REDESIGN_ARCH_P):
+        return "redesign"
+
     # ── Strategy / owner-perspective questions ────────────────────────────────
     # "لو كنت مسؤولاً عن TitanX ماذا ستفعل؟" / "if you were in charge, what would you do?"
     _STRATEGY_P = [
@@ -1614,10 +1915,13 @@ def detect_intent(msg: str) -> str:
     # "ما أكبر نقطة ضعف بالمشروع؟" / "biggest risk in the system?"
     _WEAKNESS_Q = [
         r"(?:أكبر|أشد|أخطر|أهم).{0,20}(?:نقطة\s+ضعف|مشكلة|ثغرة|خطر|تحدي)",
+        r"(?:أكبر|أشد|أهم|أخطر).{0,10}(?:\d+\s+)?مخاطر",
         r"(?:نقطة|نقاط)\s+(?:ضعف|ضعيفة).{0,20}(?:بالمشروع|في\s+المشروع|المشروع)?",
         r"أين\s+(?:الضعف|المشكلة\s+الكبرى|الثغرة|الخطر)",
-        r"(?:biggest|main|major|worst).{0,15}(?:weakness|problem|risk|vulnerability|flaw)",
+        r"(?:biggest|main|major|worst|top\s*\d*).{0,15}(?:weakness|problem|risk|vulnerability|flaw)",
         r"what.{0,15}(?:risk|weak|vulnerable|fragile).{0,15}(?:project|system|app)",
+        r"(?:top|biggest|major)\s+\d+\s+risks?",
+        r"(?:ما|list).{0,10}(?:أكبر|أشد|أخطر|biggest|main|major).{0,10}(?:مخاطر|risks?)",
     ]
     if any(re.search(p, ml) for p in _WEAKNESS_Q):
         return "weakness"
@@ -2460,6 +2764,12 @@ _ARABIC_REASONING_TESTS = [
     ("ما الفرق بين FastAPI و Flask",              "conversation",   "FastAPI"),
     ("اشرح معمارية المشروع",                      "arch",           "معمارية"),
     ("ما أفضل تطوير للمشروع؟",                    "improve",        "تطوير"),
+    # ── Phase 3 Canonical Engineering Tests ───────────────────────────────────
+    ("كيف يتحمل المشروع 100,000 مستخدم؟",         "scale",          "توسع"),
+    ("ما هي الديون التقنية في المشروع؟",          "tech_debt",      "ديون"),
+    ("كيف ستعيد تصميم TitanX من الصفر؟",          "redesign",       "تصميم"),
+    ("ما أكبر 5 مخاطر في المشروع؟",              "weakness",       "ضعف"),
+    ("ما الذي يحتاج إعادة كتابة في المشروع؟",    "tech_debt",      "ديون"),
 ]
 
 # Phase 2 self-tests — intent classification (Tests A–E from spec)
@@ -2653,9 +2963,39 @@ def _default_memory() -> dict:
         },
         "stats": {"total_scans": 0, "total_plans": 0, "total_questions": 0, "total_chats": 0},
         "chat_history": [],
+        # ── Phase 3: Engineering Decision Memory ──────────────────────────────
+        "decisions": [],       # List of {id, title, rationale, date, files_affected}
+        "upgrades": [],        # List of {title, status, date, notes}
+        "tech_debt_log": [],   # List of {id, item, category, resolved, date}
         "created": datetime.now().isoformat(),
         "updated": datetime.now().isoformat(),
     }
+
+
+def save_engineering_decision(title: str, rationale: str, files_affected: list = None) -> dict:
+    """Persist an engineering decision to memory. Called when significant arch decisions are made."""
+    try:
+        m = load_memory()
+        decisions = m.setdefault("decisions", [])
+        decision = {
+            "id":            f"DEC-{len(decisions) + 1:03d}",
+            "title":         title,
+            "rationale":     rationale,
+            "files_affected": files_affected or [],
+            "date":          datetime.now().isoformat(),
+        }
+        decisions.append(decision)
+        m["decisions"] = decisions[-50:]  # keep last 50
+        m["updated"] = datetime.now().isoformat()
+        save_memory(m)
+        return {"ok": True, "decision": decision}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+def list_engineering_decisions() -> list:
+    """Return all saved engineering decisions."""
+    return load_memory().get("decisions", [])
 
 
 def update_stats(key: str, val: int = 1):
@@ -2946,6 +3286,9 @@ def process_chat(msg: str) -> dict:
         "self_test":      lambda: _r_self_test(),
         "weakness":       lambda: _r_weakness(msg),
         "strategy":       lambda: _r_strategy(msg),
+        "scale":          lambda: _r_scale(msg),
+        "tech_debt":      lambda: _r_tech_debt(),
+        "redesign":       lambda: _r_redesign(),
         "help":           lambda: _r_help(),
         "general":        lambda: _r_general(msg),
     }
@@ -4057,6 +4400,200 @@ def _r_strategy(msg: str) -> dict:
             "  · وقت استجابة API < 200ms"
         ),
         "data": {"strategy_generated": True, "project_files": total},
+    }
+
+
+def _r_risk_full() -> dict:
+    """
+    Phase 3: Comprehensive risk detection using ProjectBrain.RISKS registry.
+    Returns ranked risks with severity, detail, and fix actions.
+    """
+    brain = ProjectBrain.get()
+    risks = ProjectBrain.RISKS
+    sec   = security_scan()
+
+    sev_icon = {"CRITICAL": "🔴", "HIGH": "🟠", "MEDIUM": "🟡", "LOW": "🟢"}
+    lines = ["🚨 **أكبر المخاطر في المشروع — تقييم ProjectBrain**\n"]
+
+    for r in risks:
+        icon = sev_icon.get(r["severity"], "⚪")
+        lines.append(f"**{r['rank']}. {r['title']}**")
+        lines.append(f"   {icon} {r['severity']} | {r['category']}")
+        lines.append(f"   📋 {r['detail']}")
+        lines.append(f"   ✅ الحل: {r['fix']}\n")
+
+    if sec:
+        lines.append(f"⚠️ **إضافة: تم اكتشاف {len(sec)} نمط أمني مثير للقلق في الكود**")
+        lines.append(f"   مثال: `{sec[0]['pattern']}` في `{sec[0]['file']}`\n")
+
+    totals = brain.get("totals", {})
+    lines.append(f"📊 **السياق:** {totals.get('files', 0)} ملف · "
+                 f"{totals.get('routers', 0)} راوتر · "
+                 f"{totals.get('handlers', 0)} handler")
+    lines.append("\n💡 **الأولوية القصوى:** ابدأ بـ #1 (config.py) ثم #2 (Migration) ثم #3 (Tests)")
+
+    return {
+        "text": "\n".join(lines),
+        "data": {"risks": risks, "security_patterns": len(sec), "total_files": totals.get("files", 0)},
+    }
+
+
+def _r_scale(msg: str) -> dict:
+    """
+    Phase 3: Scaling intelligence — how to grow TitanX to 100k+ users.
+    Reads from ProjectBrain.SCALING_PLAN.
+    """
+    brain  = ProjectBrain.get()
+    plan   = ProjectBrain.SCALING_PLAN
+    totals = brain.get("totals", {})
+    ml     = msg.lower()
+
+    # Detect target scale from the question
+    target = "100,000"
+    for pat, label in [
+        (r"مليون|million", "1,000,000"),
+        (r"100k|100,000|مئة\s+ألف", "100,000"),
+        (r"50k|50,000|خمسين\s+ألف", "50,000"),
+        (r"10k|10,000|عشر(?:ة)?\s+آلاف", "10,000"),
+    ]:
+        if re.search(pat, ml):
+            target = label
+            break
+
+    lines = [
+        f"🚀 **خطة التوسع إلى {target} مستخدم — تحليل ProjectBrain**\n",
+        f"📊 **الوضع الحالي:** {totals.get('files', 0)} ملف — "
+        f"SQLite + uvicorn single-process\n",
+        f"⚡ **الطاقة الحالية:** {plan['current_capacity']}\n",
+    ]
+
+    for phase in plan["phases"]:
+        risk_icon = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢"}.get(phase["risk"], "⚪")
+        lines.append(f"**{phase['phase']}**")
+        lines.append(f"   {risk_icon} الخطر: {phase['risk']} | الجهد: {phase['effort']}")
+        for step in phase["steps"]:
+            lines.append(f"   • {step}")
+        lines.append("")
+
+    lines.append("🔑 **المتطلبات الأساسية للوصول إلى 100k:**")
+    for key, val in plan["target_100k"].items():
+        lines.append(f"  • **{key}**: {val}")
+
+    return {
+        "text": "\n".join(lines),
+        "data": {"scaling_plan": plan, "current_capacity": plan["current_capacity"], "target": target},
+    }
+
+
+def _r_tech_debt() -> dict:
+    """
+    Phase 3: Technical debt scanner using ProjectBrain.TECH_DEBT registry.
+    Shows prioritized list of what needs refactoring.
+    """
+    brain = ProjectBrain.get()
+    debts = ProjectBrain.TECH_DEBT
+    code_issues = detect_code_issues()
+    todos = [i for i in code_issues if i.get("type") == "TODO"]
+
+    impact_icon = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢"}
+    effort_icon = {"HIGH": "⚙️⚙️⚙️", "MEDIUM": "⚙️⚙️", "LOW": "⚙️"}
+
+    lines = ["🔧 **الديون التقنية في المشروع — تقييم ProjectBrain**\n"]
+
+    for d in debts:
+        lines.append(f"**{d['id']} — {d['item']}**")
+        lines.append(f"   {impact_icon.get(d['impact'], '⚪')} التأثير: {d['impact']} "
+                     f"| {effort_icon.get(d['effort'], '')} الجهد: {d['effort']}")
+        lines.append(f"   📋 {d['detail']}")
+        lines.append(f"   📁 الفئة: {d['category']}\n")
+
+    # Live TODOs from code
+    if todos:
+        lines.append(f"📝 **TODOs في الكود ({len(todos)} موضع):**")
+        for t in todos[:5]:
+            lines.append(f"  • `{t['file']}` — {t['detail'][:80]}")
+        if len(todos) > 5:
+            lines.append(f"  ... و{len(todos) - 5} TODO إضافية")
+        lines.append("")
+
+    total_high = sum(1 for d in debts if d["impact"] == "HIGH")
+    lines.append(f"📊 **الملخص:** {len(debts)} دَين تقني — {total_high} عالي التأثير")
+    lines.append("💡 **ابدأ بـ:** TD-002 (Alembic) ثم TD-003 (Tests) — أعلى عائد بأقل تعقيد")
+
+    return {
+        "text": "\n".join(lines),
+        "data": {"tech_debt": debts, "todos_in_code": len(todos), "high_impact": total_high},
+    }
+
+
+def _r_redesign() -> dict:
+    """
+    Phase 3: Senior engineer perspective on how to redesign TitanX from scratch.
+    Provides architectural vision: ideal structure, tech choices, rationale.
+    """
+    brain  = ProjectBrain.get()
+    totals = brain.get("totals", {})
+    files  = totals.get("files", 0)
+    py     = totals.get("python_files", 0)
+
+    return {
+        "text": (
+            "🏛️ **رؤية إعادة التصميم — لو بنيت X Control Center من الصفر**\n\n"
+            f"📊 **الوضع الحالي:** {files} ملف · {py} Python · SQLite · uvicorn single\n\n"
+
+            "**📐 البنية المثالية (Ideal Architecture):**\n\n"
+            "```\n"
+            "x-control-center/\n"
+            "├── bots/\n"
+            "│   ├── main/          # PrimeDownloader — handlers, services, commands\n"
+            "│   └── support/       # Support Bot — tickets, escalation\n"
+            "├── api/               # FastAPI — routers, schemas, middleware\n"
+            "│   ├── routers/       # One router per domain (users, stats, ai, files)\n"
+            "│   ├── schemas/       # Pydantic models — request/response\n"
+            "│   └── middleware/    # Auth, rate-limiting, logging\n"
+            "├── core/              # Shared business logic\n"
+            "│   ├── database/      # SQLAlchemy + Alembic migrations\n"
+            "│   ├── cache/         # Redis abstraction\n"
+            "│   └── config/        # Pydantic Settings — single source of truth\n"
+            "├── ai/                # AI Engine — split into modules\n"
+            "│   ├── brain.py       # ProjectBrain — project model\n"
+            "│   ├── reasoning.py   # Intent detection + semantic map\n"
+            "│   ├── handlers.py    # Response generators\n"
+            "│   └── memory.py      # Persistent engineering memory\n"
+            "├── tests/             # pytest — unit + integration\n"
+            "└── deploy/            # Docker, docker-compose, nginx config\n"
+            "```\n\n"
+
+            "**🔑 القرارات التقنية الأساسية:**\n\n"
+            "  1. **Database:** PostgreSQL + SQLAlchemy + Alembic\n"
+            "     - Concurrent writes, transactions, migrations — SQLite لا تكفي للإنتاج\n\n"
+            "  2. **Configuration:** Pydantic Settings v2\n"
+            "     - جميع القيم من env vars مع type validation — لا hardcoded values\n\n"
+            "  3. **API Server:** FastAPI + uvicorn (4 workers) أو Gunicorn\n"
+            "     - نفس الـ framework لكن بـ worker pool للتوازي الحقيقي\n\n"
+            "  4. **Caching:** Redis\n"
+            "     - Session cache + hot data (stats, leaderboard) — لا filesystem cache\n\n"
+            "  5. **Bot:** Webhook mode + python-telegram-bot\n"
+            "     - Polling للتطوير، webhook للإنتاج — latency أقل وموثوقية أعلى\n\n"
+            "  6. **Testing:** pytest + pytest-asyncio\n"
+            "     - 80% code coverage كهدف — يحمي من الانكسارات الصامتة\n\n"
+            "  7. **Monitoring:** Prometheus + Grafana (أو Sentry للأخطاء)\n"
+            "     - Visibility حقيقية على الإنتاج\n\n"
+
+            "**⚡ أهم فرق عن الوضع الحالي:**\n"
+            "  · ai_engine.py (4000 سطر) → 5 وحدات منفصلة واضحة المسؤوليات\n"
+            "  · SQLite → PostgreSQL مع migration history\n"
+            "  · لا tests → pytest مع CI/CD pipeline\n"
+            "  · config مبعثر → Pydantic Settings موحّد\n\n"
+
+            "💡 **التوصية:** لا تعيد الكتابة من الصفر — ابدأ بـ Strangler Fig Pattern:\n"
+            "  استبدل وحدة واحدة في كل مرة دون كسر ما يعمل."
+        ),
+        "data": {
+            "ideal_structure": ["bots/", "api/", "core/", "ai/", "tests/", "deploy/"],
+            "key_decisions": ["PostgreSQL", "Pydantic Settings", "Redis", "webhook", "pytest"],
+            "current_files": files,
+        },
     }
 
 

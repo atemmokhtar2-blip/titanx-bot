@@ -20,6 +20,8 @@ from ..ai_engine import (
     # Phase 2 — HF Space Integration
     call_hf_analyze, call_hf_assistant, call_hf_planner, call_hf_memory, hf_status,
     HF_SPACE_URL,
+    # Phase 3 — Engineering Intelligence
+    ProjectBrain, save_engineering_decision, list_engineering_decisions,
 )
 
 router = APIRouter(prefix="/ai")
@@ -557,3 +559,93 @@ async def api_hf_memory(session: dict = Depends(require_owner)):
     """GET HF /api/memory — project memory stored in the HF space."""
     result = call_hf_memory()
     return result
+
+
+# ─── Phase 3: Engineering Intelligence API ───────────────────────────────────
+
+@router.get("/api/brain")
+async def api_brain(session: dict = Depends(require_owner)):
+    """
+    GET /ai/api/brain — Full ProjectBrain snapshot.
+    Returns the living cached project model: modules, totals, risks, tech-debt, scaling.
+    """
+    brain  = ProjectBrain.get()
+    status = ProjectBrain.status()
+    return {
+        "ok":     True,
+        "status": status,
+        "brain":  brain,
+    }
+
+
+@router.get("/api/risk")
+async def api_risk(session: dict = Depends(require_owner)):
+    """
+    GET /ai/api/risk — Full risk analysis from ProjectBrain.RISKS.
+    Returns ranked risks with severity, detail, and fix actions.
+    """
+    risks   = ProjectBrain.RISKS
+    totals  = ProjectBrain.get().get("totals", {})
+    critical = [r for r in risks if r["severity"] == "CRITICAL"]
+    high     = [r for r in risks if r["severity"] == "HIGH"]
+    medium   = [r for r in risks if r["severity"] == "MEDIUM"]
+    return {
+        "ok":           True,
+        "total_risks":  len(risks),
+        "critical":     len(critical),
+        "high":         len(high),
+        "medium":       len(medium),
+        "risks":        risks,
+        "project_size": totals,
+        "generated_at": datetime.now().isoformat(),
+    }
+
+
+@router.get("/api/tech_debt")
+async def api_tech_debt(session: dict = Depends(require_owner)):
+    """
+    GET /ai/api/tech_debt — Technical debt registry from ProjectBrain.TECH_DEBT.
+    Returns prioritized list of refactoring items with impact/effort ratings.
+    """
+    debts    = ProjectBrain.TECH_DEBT
+    high     = [d for d in debts if d["impact"] == "HIGH"]
+    medium   = [d for d in debts if d["impact"] == "MEDIUM"]
+    low      = [d for d in debts if d["impact"] == "LOW"]
+    return {
+        "ok":          True,
+        "total":       len(debts),
+        "high_impact": len(high),
+        "medium":      len(medium),
+        "low":         len(low),
+        "tech_debt":   debts,
+        "generated_at": datetime.now().isoformat(),
+    }
+
+
+@router.post("/api/decision")
+async def api_save_decision(request: Request, session: dict = Depends(require_owner)):
+    """
+    POST /ai/api/decision — Save an engineering decision to persistent memory.
+    Body: { "title": str, "rationale": str, "files_affected": list[str] }
+    """
+    body          = await request.json()
+    title         = str(body.get("title", "")).strip()
+    rationale     = str(body.get("rationale", "")).strip()
+    files_affected = body.get("files_affected", [])
+    if not title or not rationale:
+        return JSONResponse({"ok": False, "error": "title and rationale are required"}, status_code=400)
+    result = save_engineering_decision(title, rationale, files_affected)
+    return result
+
+
+@router.get("/api/decisions")
+async def api_list_decisions(session: dict = Depends(require_owner)):
+    """
+    GET /ai/api/decisions — List all saved engineering decisions from memory.
+    """
+    decisions = list_engineering_decisions()
+    return {
+        "ok":        True,
+        "total":     len(decisions),
+        "decisions": decisions,
+    }

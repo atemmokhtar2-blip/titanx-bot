@@ -1,11 +1,11 @@
 ---
-name: AI Phase 3 Core + Foundation Finalization
-description: Phase 3 implementation + full AI Foundation audit fixes. Validation: 33/33 ✅
+name: AI Phase 3 Core + Engineering Intelligence
+description: Phase 3 complete — ProjectBrain, 4 new handlers, 5 new intents, 5 new API endpoints, 38/38 self-tests
 ---
 
 ## What was built
 
-Phase 3 complete in `extracted_project/control_panel/ai_engine.py` (~4200 lines).
+Phase 3 Engineering Intelligence Layer complete in `extracted_project/control_panel/ai_engine.py`.
 
 ## Key architectural decision: ReasoningEngine Gate
 
@@ -18,59 +18,71 @@ Returns one of:
 
 **Why:** Without this gate, "Explain FastAPI" or "Python vs JavaScript" would score on the existing keyword matches (arch, compare, general) and incorrectly search project files.
 
-## ReasoningEngine._TECH_EXTRA
+## ProjectBrain (Phase 3 Core)
 
-A SECOND regex specifically for plural/compound tech terms:
-```python
-_TECH_EXTRA = re.compile(
-    r"\b(?:telegram|discord|whatsapp|slack)\s*bots?\b|"
-    r"\brest\s+apis?\b|\bweb\s*sockets?\b|\bmicro\s*services?\b",
-    re.IGNORECASE,
-)
-```
+`ProjectBrain` class inserted after `FutureExecutionArchitecture`. 5-minute TTL cached project model.
 
-**Why:** The main `_TECH` regex is inside `\b(?:...)\b`, so `telegram.{0,5}bot` FAILS to match "Telegram Bots" (plural). `_TECH_EXTRA` catches these.
+- `RISKS` — 7-item ranked registry (CRITICAL→LOW) with title, detail, fix, files
+- `TECH_DEBT` — 7-item registry (TD-001→TD-007) with impact, effort, priority
+- `SCALING_PLAN` — 3-phase blueprint (0→10k, 10k→50k, 50k→100k+)
+- `get()` — returns cached model, rebuilds if expired
+- `status()` — returns active/built/age/ttl/counts
 
-## Phase 3 Classes
+**Why:** Previously every handler re-scanned the filesystem. ProjectBrain builds once and all Phase 3 handlers read from it.
 
-All classes are in ai_engine.py, inserted between `hf_status()` and `SKIP_DIRS`.
+## Phase 3 handlers
 
-- `ReasoningEngine` — classify(), is_conversational(), _TECH, _EXPLAIN, _COMPARE, _GREETING, _PROJECT, _PROJECT_CONCEPT, _TECH_EXTRA
-- `AIMemoryLayer` — session memory; record(), context(), last_intent(), status(); class-level lists (resets on restart)
-- `AIPlanner` — plan(), risk(), status(); HF-backed with local fallback
-- `AIEngineerCore` — understand(), _classify(), ACTION_MAP; maps high-level requests to files+restart flags
-- `ProjectImpactAnalysis` — analyze(target), status(); scans rglob("*.py") for imports
-- `FutureExecutionArchitecture` — DEAD/permanently disabled; do NOT reference in response dicts
+- `_r_scale(msg)` → intent `scale` — scaling blueprint for N users using ProjectBrain.SCALING_PLAN
+- `_r_tech_debt()` → intent `tech_debt` — 7-item debt registry + live TODO scan
+- `_r_redesign()` → intent `redesign` — senior architect ideal-structure vision
+- `_r_risk_full()` → intent (also routes through `weakness`) — 7-item ranked risk analysis
 
-## Foundation Finalization fixes (all complete)
+## Phase 3 intents added to detect_intent
 
-1. **Logging**: `_ai_log` logger added; all silent `except: pass` → `_ai_log.warning()`
-2. **HF async**: `_hf_post()` and `_hf_get()` run in `ThreadPoolExecutor` (non-blocking)
-3. **Disk I/O**: `_persist_turn(user, assistant)` consolidates 4 I/O ops → 1 load + 1 write per turn; `process_chat` no longer calls `save_chat` or `update_stats` directly
-4. **walk_project cache**: 60s TTL `_walk_cache` dict — avoids repeated filesystem scans; cache write inserted before `return sorted(files)`
-5. **Startup memory**: `if not MEMORY_FILE.exists(): save_memory(_default_memory())` runs at module import time
-6. **Memory connections**: `AIMemoryLayer.record_decision()` called in `_r_create_feature`, `_r_new_page`, `_r_plan`; `AIMemoryLayer.context()` + `last_intent()` used in `_r_conversation` fallback
-7. **async api_chat**: `process_chat` wrapped in `asyncio.to_thread()` in `ai_workspace.py`; `asyncio` import added
-8. **FutureExecutionArchitecture**: Removed from `_r_identity` response dict (was dead code leaking into output)
-9. **Arabic patterns**: expanded `_STRATEGY_P` with 4 additional patterns; `_r_general` layers route correctly
-10. **Self-test suite**: `run_self_tests(extended=True)` default; 3 phases: P1=answer_file_question, P2=detect_intent, P3=process_chat for Arabic; 12 Arabic reasoning tests added to `_ARABIC_REASONING_TESTS`
+- `scale` — catches "يتحمل 100,000", "scale to 100k", "توسع", "horizontal scaling"
+- `tech_debt` — catches "technical debt", "ديون تقنية", "refactor", "إعادة كتابة"
+- `redesign` (arch) — catches "كيف ستعيد تصميم", "how would you redesign", "from scratch"
+- `_WEAKNESS_Q` fixed: added `r"(?:أكبر|أشد|أهم|أخطر).{0,10}(?:\d+\s+)?مخاطر"` pattern to catch "أكبر 5 مخاطر" BEFORE `_SECURITY_Q`
+
+## Persistent engineering memory
+
+- `_default_memory()` expanded with `decisions[]`, `upgrades[]`, `tech_debt_log[]`
+- `save_engineering_decision(title, rationale, files_affected)` → appends to memory
+- `list_engineering_decisions()` → reads from memory
+
+## Phase 3 API endpoints (ai_workspace.py)
+
+- `GET /ai/api/brain` — full ProjectBrain snapshot
+- `GET /ai/api/risk` — ranked risk analysis
+- `GET /ai/api/tech_debt` — tech debt registry
+- `POST /ai/api/decision` — save engineering decision to persistent memory
+- `GET /ai/api/decisions` — list all saved decisions
 
 ## Validation results (final)
 
-**33/33 ✅ PASS** — P1(file): 16/16 | P2(intent A-E): 5/5 | P3(Arabic reasoning): 12/12
+**38/38 ✅ PASS** — P1(file): 16/16 | P2(intent A-E): 5/5 | P3(Arabic reasoning): 17/17
 
-Arabic test keywords: use *actual* words from response text, not synonyms. Known mapping:
-- strategy response uses "استراتيج" (not "خطة")
-- arch response uses "معمارية" (not "بنية")
+5 new Phase 3 canonical tests added to `_ARABIC_REASONING_TESTS`:
+- "كيف يتحمل المشروع 100,000 مستخدم؟" → scale → "توسع"
+- "ما هي الديون التقنية في المشروع؟" → tech_debt → "ديون"
+- "كيف ستعيد تصميم TitanX من الصفر؟" → redesign → "تصميم"
+- "ما أكبر 5 مخاطر في المشروع؟" → weakness → "ضعف"
+- "ما الذي يحتاج إعادة كتابة في المشروع؟" → tech_debt → "ديون"
 
-## Conversation handlers
+Arabic test keywords: use *actual* words from response text, not synonyms:
+- scale response uses "توسع"
+- tech_debt response uses "ديون"
+- redesign response uses "تصميم"
+- strategy response uses "استراتيج"
+- arch response uses "معمارية"
 
-`_r_greeting()` and `_r_conversation(msg)` added BEFORE `_r_identity()` in the handlers section.
+## Phase 3 Classes Summary
 
-`_r_conversation()` flow:
-1. Check all `_COMPARE_MAP` pairs → structured side-by-side comparison
-2. Check `_TECH_PATTERNS` list → structured tech knowledge entry
-3. Try HF assistant fallback (step 3)
-4. Second HF attempt (step 4 — labeled hf_fallback in data)
-5. Memory-aware context hint if total_turns > 2 and prior intent known
-6. Generic menu fallback (absolute last resort)
+All classes in ai_engine.py, in order:
+- `ReasoningEngine` — classify, is_conversational, _TECH, _EXPLAIN, _COMPARE, _GREETING, _PROJECT
+- `AIMemoryLayer` — session memory; record(), context(), last_intent(), status()
+- `AIPlanner` — plan(), risk(), status(); HF-backed with local fallback
+- `AIEngineerCore` — understand(), _classify(), ACTION_MAP
+- `ProjectImpactAnalysis` — analyze(target), status(); scans rglob("*.py") for imports
+- `FutureExecutionArchitecture` — infrastructure placeholder; can_execute() always False
+- `ProjectBrain` — living cached project model; RISKS, TECH_DEBT, SCALING_PLAN, get(), status()
