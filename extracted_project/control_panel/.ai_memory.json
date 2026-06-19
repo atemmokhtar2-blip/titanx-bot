@@ -110,16 +110,6 @@
   "chat_history": [
     {
       "role": "user",
-      "text": "هل بنية المشروع جيدة؟",
-      "ts": "2026-06-19T14:21:35.729920"
-    },
-    {
-      "role": "assistant",
-      "text": "🏗️ **معمارية: PROJECT**\n\nX Control Center — نظام بوت Telegram مع لوحة تحكم FastAPI\n\n**components:**\n  • PrimeDownloader Bot (bot.py) — بوت التحميل الرئيسي\n  • Support Bot (support_bot/bot.py) — بوت الدعم الفني\n  • Control Panel (control_panel/app.py) — لوحة تحكم FastAPI على بورت 5000\n  • Database (database/) — SQLite (bot.db) + Support (support.db)\n  • AI Engine (control_panel/ai_engine.py) — نظام الذكاء الاصطناعي",
-      "ts": "2026-06-19T14:21:35.741549"
-    },
-    {
-      "role": "user",
       "text": "إذا فشلت قاعدة البيانات ماذا يحدث؟",
       "ts": "2026-06-19T14:21:35.745356"
     },
@@ -357,6 +347,16 @@
       "role": "assistant",
       "text": "💡 **أفضل تطويرات للمشروع — بالأولوية**\n\n**2. إضافة Unit Tests بـ pytest**\n   🟠 التأثير: HIGH | الجهد: MEDIUM\n   يحمي التعديلات المستقبلية ويكتشف الأخطاء فور حدوثها.\n\n**3. معالجة 8 ملاحظة أمنية**\n   🟡 التأثير: MEDIUM | الجهد: LOW\n   مثال: `control_panel/ai_engine.py` — النمط `eval(`\n\n**3. إضافة نظام Database Migration (Alembic)**\n   🟠 التأثير: HIGH | الجهد: MEDIUM\n   يجعل تغييرات Schema آمنة وقابلة للتراجع.\n\n**4. إضافة Caching للـ API endpoints الثقيلة**\n   🟡 التأثير: MEDIUM | الجهد: LOW\n   تحليل",
       "ts": "2026-06-19T14:24:17.168040"
+    },
+    {
+      "role": "user",
+      "text": "لو كنت أنت المسؤول عن TitanX لمدة أسبوع واحد فقط، ما أول 5 أشياء ستقوم بإصلاحها؟ ولماذا؟ وما المخاطر إذا تجاهلتها؟",
+      "ts": "2026-06-19T14:33:39.922413"
+    },
+    {
+      "role": "assistant",
+      "text": "💬 **وضع المحادثة العامة**\n\nيمكنني الإجابة على أسئلة تقنية مثل:\n  • **شرح تقنية** — \"اشرح FastAPI\" · \"ما هو Python؟\"\n  • **مقارنة** — \"Python مقابل JavaScript\" · \"FastAPI vs Flask\"\n  • **مفاهيم** — \"ما هو REST API؟\" · \"اشرح Async/Await\"\n  • **Telegram Bots** — \"كيف تعمل بوتات تيليغرام؟\"\n\nأو اسألني عن **مشروعك مباشرة** — \"Create notification bot\" · \"Fix broken button\"",
+      "ts": "2026-06-19T14:33:40.081032"
     }
   ],
   "analysis_cache": {},
@@ -367,7 +367,7 @@
     "errors_found": 57,
     "last_scan": null
   },
-  "updated": "2026-06-19T14:24:17.168043",
+  "updated": "2026-06-19T14:33:40.081036",
   "project": {
     "name": "X Control Center",
     "main_bot": "PrimeDownloader Bot (bot.py)",
@@ -385,7 +385,7 @@
     "total_scans": 20,
     "total_plans": 12,
     "total_questions": 6,
-    "total_chats": 166
+    "total_chats": 167
   },
   "created": "2026-06-19T09:05:02.173299"
 }
