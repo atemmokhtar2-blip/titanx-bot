@@ -31,6 +31,20 @@ except Exception:
     _KG = None                 # type: ignore
     _FO = None                 # type: ignore
     _KG_OK = False
+try:
+    from control_panel.context_engine import (
+        ContextEngine      as _CE,
+        ClassificationAudit as _CA,
+        SelfCorrectionEngine as _SCE,
+        IntentConfidence   as _IC,
+    )
+    _CE_OK = True
+except Exception:
+    _CE  = None                # type: ignore
+    _CA  = None                # type: ignore
+    _SCE = None                # type: ignore
+    _IC  = None                # type: ignore
+    _CE_OK = False
 
 # ─── Arabic Text Normalizer ───────────────────────────────────────────────────
 def _normalize_ar(text: str) -> str:
@@ -5059,6 +5073,20 @@ def process_chat(msg: str) -> dict:
 
     intent = detect_intent(msg)
 
+    # ── Phase 12: Context Engine — detect subsystem before reasoning ──────────
+    _ctx_result: dict = {"detected": "general", "confidence": 0.0, "evidence": []}
+    if _CE_OK and _CE is not None:
+        try:
+            _ctx_result = _CE.detect(msg)
+            _ai_log.debug(
+                "ContextEngine: %s (conf=%.2f) evidence=%s",
+                _ctx_result["detected"],
+                _ctx_result["confidence"],
+                _ctx_result["evidence"][:3],
+            )
+        except Exception as _ce_err:
+            _ai_log.debug("ContextEngine (non-fatal): %s", _ce_err)
+
     # Phase 3: Record to session memory BEFORE routing so handlers can read context
     AIMemoryLayer.record("user", msg, intent)
 
@@ -5141,6 +5169,47 @@ def process_chat(msg: str) -> dict:
     fn   = handlers.get(intent, handlers["general"])
     resp = fn()
     resp["intent"] = intent
+
+    # ── Phase 18: Self-Correction Engine — verify evidence before returning ───
+    _chain_files = _ACTIVE_CHAIN.get("search", {}).get("files", []) if _ACTIVE_CHAIN else []
+    _correction: dict = {"ok": True, "issues": [], "warnings": [], "evidence_score": 0.0}
+    if _CE_OK and _SCE is not None:
+        try:
+            _correction = _SCE.verify(
+                intent        = intent,
+                response_text = resp.get("text", ""),
+                files_scanned = _chain_files,
+                context_result = _ctx_result,
+            )
+            if _correction["issues"]:
+                _ai_log.warning(
+                    "SelfCorrection issues for intent=%s: %s",
+                    intent, _correction["issues"]
+                )
+        except Exception as _sc_err:
+            _ai_log.debug("SelfCorrectionEngine (non-fatal): %s", _sc_err)
+
+    # ── Phase 19: Classification Audit — attach metadata to every response ────
+    _audit: dict = {}
+    if _CE_OK and _CA is not None:
+        try:
+            _audit = _CA.run(
+                intent         = intent,
+                msg            = msg,
+                context_result = _ctx_result,
+                files_used     = _chain_files,
+            )
+        except Exception as _ca_err:
+            _ai_log.debug("ClassificationAudit (non-fatal): %s", _ca_err)
+
+    # Attach engineering metadata to response data payload (available to frontend)
+    resp.setdefault("data", {}).update({
+        "context":     _ctx_result.get("detected", "general"),
+        "ctx_conf":    _ctx_result.get("confidence", 0.0),
+        "ctx_evidence": _ctx_result.get("evidence", [])[:5],
+        "correction":  _correction,
+        "audit":       _audit,
+    })
 
     # ── Rule 3: Scan-Usage Verification ──────────────────────────────────────
     # After handler returns, check if it used live scan evidence.

@@ -1,6 +1,6 @@
 {
-  "built_at": "2026-06-19T20:25:33.567894",
-  "files_scanned": 119,
+  "built_at": "2026-06-19T21:34:53.968659",
+  "files_scanned": 122,
   "forward": {
     "admin_bot/__init__.py": [],
     "admin_bot/bot.py": [
@@ -81,7 +81,11 @@
     ],
     "config/settings.py": [],
     "control_panel/__init__.py": [],
-    "control_panel/ai_engine.py": [],
+    "control_panel/ai_engine.py": [
+      "control_panel/call_graph.py",
+      "control_panel/knowledge_graph.py",
+      "control_panel/context_engine.py"
+    ],
     "control_panel/app.py": [
       "control_panel/config.py",
       "control_panel/auth.py"
@@ -89,10 +93,13 @@
     "control_panel/auth.py": [
       "control_panel/config.py"
     ],
+    "control_panel/call_graph.py": [],
     "control_panel/config.py": [],
+    "control_panel/context_engine.py": [],
     "control_panel/db_utils.py": [
       "control_panel/config.py"
     ],
+    "control_panel/knowledge_graph.py": [],
     "control_panel/routers/__init__.py": [],
     "control_panel/routers/ai_workspace.py": [
       "control_panel/auth.py",
@@ -509,6 +516,9 @@
       "control_panel/routers/updates.py",
       "control_panel/routers/users.py"
     ],
+    "control_panel/call_graph.py": [
+      "control_panel/ai_engine.py"
+    ],
     "control_panel/config.py": [
       "control_panel/app.py",
       "control_panel/auth.py",
@@ -528,11 +538,17 @@
       "control_panel/routers/updates.py",
       "control_panel/routers/users.py"
     ],
+    "control_panel/context_engine.py": [
+      "control_panel/ai_engine.py"
+    ],
     "control_panel/db_utils.py": [
       "control_panel/routers/broadcast.py",
       "control_panel/routers/dashboard.py",
       "control_panel/routers/db_manager.py",
       "control_panel/routers/users.py"
+    ],
+    "control_panel/knowledge_graph.py": [
+      "control_panel/ai_engine.py"
     ],
     "control_panel/routers/__init__.py": [],
     "control_panel/routers/ai_workspace.py": [],
