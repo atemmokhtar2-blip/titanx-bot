@@ -1,0 +1,200 @@
+{
+  "project_name": "X Control Center",
+  "version": "5.0",
+  "engine_version": "2.0",
+  "last_updated": "2026-06-19T06:15:31.232473",
+  "components": {
+    "main_bot": {
+      "name": "PrimeDownloader Bot",
+      "file": "bot.py",
+      "status": "active",
+      "description": "البوت الرئيسي لتحميل المحتوى"
+    },
+    "support_bot": {
+      "name": "Support Bot",
+      "file": "support_bot/bot.py",
+      "status": "active",
+      "description": "بوت الدعم الفني"
+    },
+    "control_panel": {
+      "name": "X Control Center",
+      "file": "control_panel/app.py",
+      "status": "active",
+      "description": "لوحة التحكم الرئيسية FastAPI"
+    },
+    "ai_system": {
+      "name": "AI Workspace v2",
+      "file": "control_panel/routers/ai_workspace.py",
+      "status": "active",
+      "description": "نظام الذكاء الاصطناعي — Intelligence Layer"
+    },
+    "backup_system": {
+      "name": "Backup Center",
+      "file": "control_panel/routers/backups.py",
+      "status": "active",
+      "description": "نظام النسخ الاحتياطية"
+    },
+    "github": {
+      "name": "GitHub Manager",
+      "file": "control_panel/routers/github_router.py",
+      "status": "active",
+      "description": "مدير GitHub الذكي"
+    },
+    "system_health": {
+      "name": "System Health",
+      "file": "control_panel/routers/system.py",
+      "status": "active",
+      "description": "مراقبة صحة النظام"
+    }
+  },
+  "knowledge_index": {
+    "semantic_concepts": [
+      "homepage",
+      "dashboard",
+      "login",
+      "access",
+      "panel",
+      "users",
+      "broadcast",
+      "database",
+      "db",
+      "files",
+      "logs",
+      "system",
+      "updates",
+      "github",
+      "backups",
+      "bots",
+      "search",
+      "replit",
+      "ai",
+      "ai_engineer",
+      "ai_memory",
+      "ai_review",
+      "css",
+      "colors",
+      "theme",
+      "style",
+      "javascript",
+      "frontend",
+      "sidebar",
+      "navbar",
+      "base",
+      "layout",
+      "main_bot",
+      "support_bot",
+      "downloader",
+      "config",
+      "auth",
+      "session",
+      "password",
+      "settings",
+      "token",
+      "workers",
+      "handlers"
+    ],
+    "total_mapped_files": 48,
+    "engine_version": "2.0"
+  },
+  "architecture": {
+    "framework": "FastAPI + Uvicorn",
+    "bots": "python-telegram-bot 21.6",
+    "db": "SQLite (aiosqlite)",
+    "templates": "Jinja2",
+    "css_file": "control_panel/static/css/style.css",
+    "js_file": "control_panel/static/js/app.js",
+    "base_template": "control_panel/templates/base.html",
+    "entry_point": "control_panel/server.py",
+    "port": 5000
+  },
+  "chat_history": [
+    {
+      "role": "user",
+      "text": "ما الملفات المسؤولة عن ألوان لوحة التحكم؟",
+      "ts": "2026-06-19T06:11:49.688721"
+    },
+    {
+      "role": "ai",
+      "text": "📁 **هيكل المشروع** (159 ملف إجمالاً)\n\n**المجلدات الرئيسية:**\n  `control_panel/templates/` — 20 ملف\n  `control_panel/routers/` — 15 ملف\n  `developer_bot/handlers/` — 15 ملف\n  `database/` — 12 ملف\n  `admin_bot/handlers/` — 11 ملف\n  `handlers/` — 10 ملف\n\n**المكونات:**\n  🤖 `bot.py` — البوت الرئيسي (PrimeDownloader)\n  🆘 `support_bot/` — بوت الدعم الفني\n  🖥️ `control_panel/` — لوحة التحكم (FastAPI)\n  🧠 `control_panel/routers/` — مسارات API (11 router)\n  🎨 `control_panel/templates/` — واجهات المستخدم\n\n",
+      "ts": "2026-06-19T06:11:49.700791"
+    },
+    {
+      "role": "user",
+      "text": "افحص الأخطاء",
+      "ts": "2026-06-19T06:12:23.833130"
+    },
+    {
+      "role": "ai",
+      "text": "✅ **تحليل المشروع مكتمل**\n\n📊 **الإحصائيات الكاملة:**\n- إجمالي الملفات: **159** ملف\n- ملفات الكود: **144** ملف\n- إجمالي الأسطر: **24,454** سطر\n\n📂 **أكثر الأنواع شيوعاً:**\n  `.py` ← 119 ملف\n  `.html` ← 20 ملف\n  `.log` ← 8 ملف\n\n💡 المشروع يحتوي على بنية منظمة. اكتب **\"افحص الأخطاء\"** للكشف عن المشاكل.",
+      "ts": "2026-06-19T06:12:23.857542"
+    },
+    {
+      "role": "user",
+      "text": "افحص الأمان",
+      "ts": "2026-06-19T06:12:36.856968"
+    },
+    {
+      "role": "ai",
+      "text": "✅ **تحليل المشروع مكتمل**\n\n📊 **الإحصائيات الكاملة:**\n- إجمالي الملفات: **159** ملف\n- ملفات الكود: **144** ملف\n- إجمالي الأسطر: **24,464** سطر\n\n📂 **أكثر الأنواع شيوعاً:**\n  `.py` ← 119 ملف\n  `.html` ← 20 ملف\n  `.log` ← 8 ملف\n\n💡 المشروع يحتوي على بنية منظمة. اكتب **\"افحص الأخطاء\"** للكشف عن المشاكل.",
+      "ts": "2026-06-19T06:12:36.866641"
+    },
+    {
+      "role": "user",
+      "text": "افحص الأخطاء",
+      "ts": "2026-06-19T06:12:44.097250"
+    },
+    {
+      "role": "ai",
+      "text": "✅ **تحليل المشروع مكتمل**\n\n📊 **الإحصائيات الكاملة:**\n- إجمالي الملفات: **159** ملف\n- ملفات الكود: **144** ملف\n- إجمالي الأسطر: **24,474** سطر\n\n📂 **أكثر الأنواع شيوعاً:**\n  `.py` ← 119 ملف\n  `.html` ← 20 ملف\n  `.log` ← 8 ملف\n\n💡 المشروع يحتوي على بنية منظمة. اكتب **\"افحص الأخطاء\"** للكشف عن المشاكل.",
+      "ts": "2026-06-19T06:12:44.108331"
+    },
+    {
+      "role": "user",
+      "text": "أريد إعادة تصميم الصفحة الرئيسية بالكامل.\n\nلا تنفذ.\n\nاعرض فقط:\n1- الملفات المطلوبة\n2- سبب تعديل كل ملف\n3- مستوى الخطورة\n4- خطة التنفيذ",
+      "ts": "2026-06-19T06:13:04.289406"
+    },
+    {
+      "role": "ai",
+      "text": "📋 **خطة التنفيذ: أريد إعادة تصميم الصفحة الرئيسية بالكامل.\n\nلا تنفذ.\n\nاعرض فق**\n\n⚠️ مستوى الخطورة: 🟠 متوسط\n🔄 الاستعادة: استعادة النسخة الاحتياطية التي تم إنشاؤها في الخطوة 1\n\n**الملفات المتأثرة:**\n  🟡 `control_panel/templates/dashboard.html` — صفحة لوحة القيادة الرئيسية\n  🟠 `control_panel/routers/dashboard.py` — مسار / وبيانات لوحة القيادة\n\n**خطوات التنفيذ:**\n  **1.** 💾 نسخة احتياطية أولاً\n     ↳ حفظ الحالة الحالية قبل أي تعديل ✅\n  **2.** تعديل `dashboard.html`\n     ↳ صفحة لوحة القيادة الرئيسية ",
+      "ts": "2026-06-19T06:13:04.301707"
+    },
+    {
+      "role": "user",
+      "text": "كيف أعرف سبب عدم عمل زر معين في لوحة التحكم؟\nحلل طريقة البحث عن المشكلة.",
+      "ts": "2026-06-19T06:13:53.454524"
+    },
+    {
+      "role": "ai",
+      "text": "🔍 **نتائج فحص الأخطاء** (إجمالي: **57** مشكلة)\n\n✅ **السجلات:** نظيفة\n\n⚠️ **مشاكل الكود:** 57\n  · 🖨️ print() داخل الكود: **36x**\n  · ⏰ time.sleep(): **7x**\n  · ⚠️ Wildcard import: **1x**\n  · 📝 ملاحظة TODO غير منجزة: **9x**\n\n💡 اذهب إلى **مهندس الذكاء** `/ai/engineer` للتقرير الكامل.",
+      "ts": "2026-06-19T06:13:53.622879"
+    },
+    {
+      "role": "user",
+      "text": "ما الملف المسؤول عن ألوان لوحة التحكم؟",
+      "ts": "2026-06-19T06:15:00.873446"
+    },
+    {
+      "role": "ai",
+      "text": "🔍 **بحث عن: \"ما الملف المسؤول عن ألوان لوحة التحكم؟\"**\n\nلم أجد تطابقاً مباشراً في خريطة المعرفة.\n\n💡 جرب الأوامر التالية:\n  · `ابحث عن dashboard` — لوحة القيادة\n  · `ما الملف الذي يتحكم في الألوان؟`\n  · `أين صفحة المستخدمين؟`",
+      "ts": "2026-06-19T06:15:00.885745"
+    },
+    {
+      "role": "user",
+      "text": "إذا طلبت إنشاء بوت جديد وربطه بالمشروع الحالي، ما الملفات والمجلدات التي ستحتاج إلى تعديلها؟ ولماذا؟",
+      "ts": "2026-06-19T06:15:31.233234"
+    },
+    {
+      "role": "ai",
+      "text": "📁 **هيكل المشروع** (159 ملف إجمالاً)\n\n**المجلدات الرئيسية:**\n  `control_panel/templates/` — 20 ملف\n  `control_panel/routers/` — 15 ملف\n  `developer_bot/handlers/` — 15 ملف\n  `database/` — 12 ملف\n  `admin_bot/handlers/` — 11 ملف\n  `handlers/` — 10 ملف\n\n**المكونات:**\n  🤖 `bot.py` — البوت الرئيسي (PrimeDownloader)\n  🆘 `support_bot/` — بوت الدعم الفني\n  🖥️ `control_panel/` — لوحة التحكم (FastAPI)\n  🧠 `control_panel/routers/` — مسارات API (11 router)\n  🎨 `control_panel/templates/` — واجهات المستخدم\n\n",
+      "ts": "2026-06-19T06:15:31.240332"
+    }
+  ],
+  "analysis_cache": {},
+  "ai_stats": {
+    "total_chats": 8,
+    "total_analyses": 4,
+    "total_backups": 0,
+    "errors_found": 57,
+    "last_scan": null
+  }
+}

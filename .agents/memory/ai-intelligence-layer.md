@@ -1,47 +1,74 @@
 ---
 name: AI Intelligence Layer
-description: Phase 1.5 upgrade — Project Knowledge Engine in ai_engine.py v2.0. Semantic file awareness, dependency mapping, planning engine, self-tests.
+description: Foundation upgrade — complete Project Knowledge System in ai_engine.py v3.0. Full knowledge graph, dependency analyzer, root cause analysis, architecture intelligence, 16-test suite.
 ---
 
-# AI Intelligence Layer — Phase 1.5
+# AI Intelligence Layer — v3.0 Complete Foundation
 
 ## What was built
-`extracted_project/control_panel/ai_engine.py` upgraded from v1.0 → v2.0.
+`extracted_project/control_panel/ai_engine.py` upgraded to v3.0 — complete rewrite.
 
-## Key components added
+## Core data structures
 
-### `_SEMANTIC_MAP`
-Dict mapping ~35 concept keywords (homepage, dashboard, css, colors, login, auth, sidebar, bots, etc.) to `[(rel_path, role, description)]` tuples. This is the core knowledge index.
+### `_ROUTE_GRAPH` (20 routes)
+Every control panel route → {router, template, base, css, js, apis, description, aliases}.
+Used by `_route_for_concept()` and `answer_file_question()`.
 
-### `_ALIASES`
-Arabic + English aliases that normalize before lookup (e.g. "الصفحة الرئيسية" → "homepage").
+### `_SEMANTIC_MAP` (56 concepts)
+All project concepts → [(file, role, description)]. Covers every page, CSS section, JS section, DB model, bot, service, config.
 
-### `_find_concept(q)`
-**Critical rule:** Sort concepts by length DESCENDING before matching, so "ai_engineer" beats "ai". Short concept keys like "ai", "db" caused false-first matches before this fix.
+### `_CSS_MAP` / `_JS_MAP`
+Detailed section maps for the single CSS file (15 sections) and single JS file (13 sections).
+
+### `_DB_MAP` (11 models)
+All database models with functions + used_by relationships.
+
+### `_BOT_MAP` (2 bots)
+Main bot + support bot with all handlers, services, middlewares, databases.
+
+### `_CONFIG_MAP` / `_ARCH_MAP`
+Config files + architecture descriptions for frontend, bots, database, panel subsystems.
+
+### `_PLAN_TEMPLATES`
+Pre-built accurate modification plans for: homepage, dashboard, sidebar, colors, css, login, auth, users, ai_engineer, navigation, bots, backup.
+
+## Engines
+
+### `_find_concept(q)` — 4-pass matching
+1. Exact substring (longest concept wins — "ai_engineer" beats "ai")
+2. All keywords in concept present (AND logic)
+3. Any meaningful keyword (len > 2)
+4. Route alias search fallback
 
 ### `answer_file_question(msg)`
-Answers "what file controls X?" with real file paths, roles, and descriptions.
+Returns router + template + base + css + js + apis + semantic entries for any concept.
 
-### `build_dependency_map()`
-Auto-scans all Python router files, extracts `@router.get/post` + `TemplateResponse` pairs to build route→template→CSS/JS map. Found 95 routes.
+### `create_modification_plan(description)`
+Uses `_PLAN_TEMPLATES` for known pages, falls back to `_route_for_concept()` + `_find_concept()`. Returns real files, why, risk, rollback, numbered steps.
 
-### `create_modification_plan(description)` (replaces old `create_plan`)
-Returns real file names, roles, risk levels, rollback strategy — not generic steps.
+### `analyze_file_impact(file)`
+Static impact map for all critical files (style.css → critical, base.html → critical, db.py → critical, etc.).
 
-### `run_self_tests()`
-8 canonical questions tested (English). Must pass 8/8. Tests intent detection + keyword presence in answer.
+### `analyze_root_cause(question)`
+Identifies failure layers: router, template, CSS, JS, API. Returns diagnostic steps.
 
-## New API endpoints (added to routers/ai_workspace.py)
-- `GET  /ai/api/knowledge` — full semantic map
-- `POST /ai/api/search` — intelligent file search
-- `POST /ai/api/file_question` — answer "what file controls X?"
-- `GET  /ai/api/dependencies` — route→template dependency map
-- `POST /ai/api/file_role` — full profile of a specific file
-- `POST /ai/api/plan_v2` — real planning engine with actual files
-- `GET  /ai/api/self_test` — run 8/8 self-tests
+### `explain_architecture(query)`
+Returns architecture doc for: project, control_panel, bots, database, frontend.
 
-## Self-test results
-8/8 — 100% PASS rate (verified after fix)
+## Self-test suite
+- 8 canonical (required): 8/8 ✅ 100%
+- 16 extended: 16/16 ✅ 100%
 
-## Why: longest-match-first matters
-Before fix: `_find_concept("ai engineer page")` matched "ai" concept first (insertion order) → returned ai_workspace.html instead of ai_engineer.html. Fix: sort by `len(concept)` descending before iterating.
+## Critical rule: longest-match-first
+Sort `_SEMANTIC_MAP` items by `len(concept)` descending before any match pass.
+Short keys like "ai", "db", "css" would otherwise swallow longer keys.
+
+## Self-test pass list (canonical 8)
+1. What file controls the homepage? → dashboard.html ✅
+2. What file controls the dashboard? → dashboard.html ✅
+3. What file controls the colors? → style.css ✅
+4. What file controls the sidebar? → base.html ✅
+5. What file loads the AI Engineer page? → ai_engineer ✅
+6. What route serves the users page? → users ✅
+7. What files must change to redesign the homepage? → dashboard.html ✅
+8. What files must change to redesign the sidebar? → base.html ✅

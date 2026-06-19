@@ -1,7 +1,13 @@
 """
-X Control Center — AI Engine v2.0
-Project Intelligence Layer: File Awareness + Dependency Mapping + Planning Engine
-Natural language understanding (Arabic + English)
+X Control Center — AI Engine v3.0
+Complete Project Knowledge System:
+  - Project Knowledge Graph (all routes, templates, CSS, JS, DB, bots)
+  - Semantic File Awareness (Arabic + English)
+  - Dependency Analyzer (what breaks if X changes)
+  - Root Cause Analysis (why is X broken?)
+  - Architecture Intelligence (explain any subsystem)
+  - Modification Planning Engine (real files, real impact)
+  - Self-Test Suite (8 canonical questions, must pass 8/8)
 """
 import os, re, ast, json, zipfile, hashlib, time
 from pathlib import Path
@@ -15,1304 +21,2169 @@ MEMORY_FILE   = _HERE / ".ai_memory.json"
 BACKUP_DIR    = EXTRACTED_DIR / ".ai_backups"
 BACKUP_DIR.mkdir(exist_ok=True)
 
-SKIP_DIRS = {
+SKIP_DIRS  = {
     "__pycache__", ".git", "node_modules", ".pythonlibs", "temp", "backups",
     ".local", ".venv", "dist", "build", ".cache", ".ai_backups", "artifacts",
 }
-CODE_EXTS = {".py", ".js", ".ts", ".html", ".css", ".json", ".yaml", ".yml", ".toml", ".sh", ".md"}
+CODE_EXTS  = {".py", ".js", ".ts", ".html", ".css", ".json", ".yaml", ".yml", ".toml", ".sh", ".md"}
 
-# ─── Intent Detection ─────────────────────────────────────────────────────────
-INTENTS: dict = {
-    "errors":    [r"أخطاء", r"خطأ", r"errors?", r"bugs?", r"مشاكل", r"مشكلة", r"كسور", r"broken", r"يعطل"],
-    "analyze":   [r"افحص", r"حلل", r"analyze", r"scan", r"فحص", r"تحليل", r"inspect", r"اكتشف"],
-    "backup":    [r"احتياطي", r"backup", r"نسخة", r"احفظ", r"save", r"حفظ", r"نسخ احتياطي"],
-    "restore":   [r"استعادة", r"restore", r"رجوع", r"استرجاع", r"rollback"],
-    "improve":   [r"حسن", r"improve", r"احترافية", r"professional", r"تحسين", r"أفضل", r"جمال"],
-    "memory":    [r"تذكر", r"ذاكرة", r"memory", r"تعلم", r"اعرف", r"تعرف", r"معلومات"],
-    "status":    [r"حالة", r"status", r"شغال", r"يعمل", r"مباشر", r"live", r"working", r"online"],
-    "structure": [r"هيكل", r"structure", r"ملفات", r"files", r"مشروع", r"project", r"بنية", r"مجلدات"],
-    "routes":    [r"routes?", r"مسارات", r"صفحات", r"pages?", r"endpoints?", r"روابط", r"\bapi\b"],
-    "security":  [r"أمان", r"security", r"أمن", r"ثغرات", r"vulnerab", r"password", r"tokens?", r"حماية"],
-    "help":      [r"مساعدة", r"help", r"ساعد", r"كيف تعمل", r"ماذا تستطيع", r"قدرات", r"وظائف"],
-    "stats":     [r"إحصائيات", r"stats", r"أرقام", r"numbers", r"\bكم\b", r"how many", r"عدد"],
-    "duplicate": [r"مكرر", r"duplicate", r"تكرار", r"مشابه", r"similar"],
-    "unused":    [r"غير مستخدم", r"unused", r"مهمل", r"dead code", r"لا يستخدم"],
-    # ── Phase 1.5: Intelligence intents ──
-    "find_file":  [r"find\b", r"where is", r"which file", r"what file", r"locate",
-                   r"أين", r"أي ملف", r"ما الملف", r"ابحث عن", r"أين يوجد", r"يتحكم"],
-    "plan_modify":[r"plan", r"خطة", r"what.*modify", r"what.*change", r"ماذا.*أعدل",
-                   r"redesign", r"إعادة تصميم", r"modify plan", r"how to.*change"],
-    "dependency": [r"depend", r"uses", r"loads", r"import", r"related",
-                   r"يستخدم", r"يحمل", r"علاقة", r"ارتباط", r"مرتبط"],
-    "self_test":  [r"self.?test", r"test yourself", r"اختبر نفسك", r"self check"],
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROJECT KNOWLEDGE GRAPH — complete map of every relationship in the project
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_ROUTE_GRAPH: dict = {
+    # ── Control Panel routes ──────────────────────────────────────────────────
+    "/": {
+        "router": "control_panel/routers/dashboard.py",
+        "template": "control_panel/templates/dashboard.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/api/stats", "/api/activity", "/api/chart"],
+        "description": "الصفحة الرئيسية / لوحة التحكم",
+        "aliases": ["homepage", "home", "dashboard", "main page", "الرئيسية", "الصفحة الرئيسية", "لوحة التحكم"],
+    },
+    "/dashboard": {
+        "router": "control_panel/routers/dashboard.py",
+        "template": "control_panel/templates/dashboard.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/api/stats", "/api/activity", "/api/chart"],
+        "description": "لوحة التحكم الرئيسية",
+        "aliases": ["dashboard", "dash", "لوحة", "لوحة تحكم"],
+    },
+    "/panel": {
+        "router": "control_panel/app.py",
+        "template": "control_panel/templates/access.html",
+        "base": None,
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/panel/login", "/panel/api/change-password"],
+        "description": "صفحة الدخول / المصادقة",
+        "aliases": ["login", "access", "panel", "auth page", "صفحة الدخول", "تسجيل الدخول"],
+    },
+    "/panel/login": {
+        "router": "control_panel/app.py",
+        "template": "control_panel/templates/access.html",
+        "base": None,
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": [],
+        "description": "معالج تسجيل الدخول",
+        "aliases": ["login handler", "auth handler"],
+    },
+    "/users": {
+        "router": "control_panel/routers/users.py",
+        "template": "control_panel/templates/users.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/users/api/list", "/users/api/{user_id}", "/users/api/ban", "/users/api/unban", "/users/api/points", "/users/api/premium"],
+        "description": "إدارة المستخدمين",
+        "aliases": ["users", "user management", "user page", "إدارة المستخدمين", "المستخدمون", "صفحة المستخدمين"],
+    },
+    "/broadcast": {
+        "router": "control_panel/routers/broadcast.py",
+        "template": "control_panel/templates/broadcast.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/broadcast/api/send", "/broadcast/api/status"],
+        "description": "نظام البث للمستخدمين",
+        "aliases": ["broadcast", "بث", "رسائل جماعية", "إرسال"],
+    },
+    "/db": {
+        "router": "control_panel/routers/db_manager.py",
+        "template": "control_panel/templates/db_manager.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/db/api/info", "/db/api/repair"],
+        "description": "مدير قاعدة البيانات",
+        "aliases": ["database", "db", "db manager", "قاعدة بيانات", "مدير قاعدة البيانات"],
+    },
+    "/files": {
+        "router": "control_panel/routers/files.py",
+        "template": "control_panel/templates/files.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/files/api/list", "/files/api/read", "/files/api/save", "/files/api/delete", "/files/api/upload", "/files/api/download"],
+        "description": "مدير الملفات",
+        "aliases": ["files", "file manager", "file explorer", "ملفات", "مدير ملفات"],
+    },
+    "/logs": {
+        "router": "control_panel/routers/logs_router.py",
+        "template": "control_panel/templates/logs.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/logs/api/read", "/logs/api/files", "/logs/api/clear"],
+        "description": "عارض السجلات",
+        "aliases": ["logs", "log viewer", "سجلات", "سجل", "أخطاء السجل"],
+    },
+    "/system": {
+        "router": "control_panel/routers/system.py",
+        "template": "control_panel/templates/system.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/system/api/stats", "/system/api/bots"],
+        "description": "حالة النظام",
+        "aliases": ["system", "system status", "نظام", "حالة النظام", "CPU", "RAM", "ذاكرة"],
+    },
+    "/updates": {
+        "router": "control_panel/routers/updates.py",
+        "template": "control_panel/templates/updates.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/updates/api/analyze", "/updates/api/apply", "/updates/api/status", "/updates/api/backup", "/updates/api/restore"],
+        "description": "مركز التحديثات",
+        "aliases": ["updates", "update center", "تحديثات", "مركز تحديثات"],
+    },
+    "/github": {
+        "router": "control_panel/routers/github_router.py",
+        "template": "control_panel/templates/github.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/github/api/info", "/github/api/pull", "/github/api/push", "/github/api/commit", "/github/api/diff"],
+        "description": "تكامل GitHub",
+        "aliases": ["github", "git", "جيتهب", "تكامل جيتهب"],
+    },
+    "/search": {
+        "router": "control_panel/routers/search.py",
+        "template": "control_panel/templates/search.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/search/api"],
+        "description": "بحث في المشروع",
+        "aliases": ["search", "بحث", "بحث في المشروع"],
+    },
+    "/bots": {
+        "router": "control_panel/routers/bots.py",
+        "template": "control_panel/templates/bots.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/bots/api/status", "/bots/api/start/{key}", "/bots/api/stop/{key}", "/bots/api/restart/{key}", "/bots/api/logs/{key}"],
+        "description": "إدارة البوتات",
+        "aliases": ["bots", "bot management", "بوتات", "إدارة بوتات", "بوت"],
+    },
+    "/backups": {
+        "router": "control_panel/routers/backups.py",
+        "template": "control_panel/templates/backups.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/backups/api/list", "/backups/api/create", "/backups/api/verify/{name}", "/backups/api/restore/{name}", "/backups/api/download/{name}"],
+        "description": "مركز النسخ الاحتياطية",
+        "aliases": ["backups", "backup system", "نسخ احتياطية", "النسخ الاحتياطية", "احتياطي"],
+    },
+    "/replit": {
+        "router": "control_panel/routers/replit_manager.py",
+        "template": "control_panel/templates/replit_manager.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/replit/api/health", "/replit/api/processes", "/replit/api/routes", "/replit/api/check-panel"],
+        "description": "مركز إدارة Replit",
+        "aliases": ["replit", "replit manager", "ريبليت"],
+    },
+    "/ai": {
+        "router": "control_panel/routers/ai_workspace.py",
+        "template": "control_panel/templates/ai_workspace.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/ai/api/chat", "/ai/api/structure", "/ai/api/errors", "/ai/api/suggestions", "/ai/api/plan", "/ai/api/plan_v2", "/ai/api/knowledge", "/ai/api/search", "/ai/api/file_question", "/ai/api/dependencies", "/ai/api/self_test"],
+        "description": "X AI Operator — مركز الذكاء الاصطناعي",
+        "aliases": ["ai workspace", "ai operator", "ai chat", "مساحة ai", "الذكاء الاصطناعي", "ai"],
+    },
+    "/ai/engineer": {
+        "router": "control_panel/routers/ai_workspace.py",
+        "template": "control_panel/templates/ai_engineer.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/ai/api/plan_v2", "/ai/api/file_question", "/ai/api/dependencies"],
+        "description": "مهندس الذكاء الاصطناعي",
+        "aliases": ["ai engineer", "engineer page", "ai engineering", "مهندس الذكاء", "مهندس ai"],
+    },
+    "/ai/memory": {
+        "router": "control_panel/routers/ai_workspace.py",
+        "template": "control_panel/templates/ai_memory.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/ai/api/memory"],
+        "description": "ذاكرة المشروع",
+        "aliases": ["ai memory", "project memory", "ذاكرة المشروع", "ai memory page"],
+    },
+    "/ai/review": {
+        "router": "control_panel/routers/ai_workspace.py",
+        "template": "control_panel/templates/ai_review.html",
+        "base": "control_panel/templates/base.html",
+        "css": ["control_panel/static/css/style.css"],
+        "js": ["control_panel/static/js/app.js"],
+        "apis": ["/ai/api/review", "/ai/api/suggestions"],
+        "description": "مراجعة التعديلات",
+        "aliases": ["ai review", "review page", "مراجعة تعديلات"],
+    },
 }
+
+
+_CSS_MAP: dict = {
+    "main_css": {
+        "file": "control_panel/static/css/style.css",
+        "description": "الملف الرئيسي للتصميم — يحتوي على كل الأنماط",
+        "sections": {
+            "variables_colors": "CSS variables: --primary, --accent, --bg-glass, --text, --border — all theme colors",
+            "theme_dark": "body.theme-dark — تعريف الوضع الداكن",
+            "theme_light": "body.theme-light — تعريف الوضع الفاتح",
+            "sidebar": ".sidebar, .sidebar-nav, .sidebar-link — كل أنماط الشريط الجانبي",
+            "header": ".page-header, .header-logo — أنماط الترويسة",
+            "cards": ".glass-card, .stat-card, .info-card — بطاقات المحتوى",
+            "buttons": ".btn, .btn-primary, .btn-danger, .btn-success — الأزرار",
+            "tables": ".table-container, .data-table — الجداول",
+            "forms": "input, select, textarea — نماذج الإدخال",
+            "animations": "@keyframes fadeInUp, pulse, shimmer — الحركات",
+            "mobile": "@media (max-width: 768px) — التصميم للجوال",
+            "dashboard": ".stats-grid, .chart-container, .activity-feed — لوحة التحكم",
+            "ai_workspace": ".ai-container, .chat-messages, .message-bubble — مساحة AI",
+            "access_page": ".access-container, .login-form — صفحة الدخول",
+            "modals": ".modal, .modal-overlay — النوافذ المنبثقة",
+        },
+        "aliases": ["colors", "css", "styles", "theme", "colors", "styling", "الألوان", "التصميم", "الثيم", "css ملف"],
+    },
+}
+
+_JS_MAP: dict = {
+    "main_js": {
+        "file": "control_panel/static/js/app.js",
+        "description": "الملف الرئيسي للجافاسكريبت — كل التفاعلات",
+        "sections": {
+            "theme_toggle": "toggleTheme() — تبديل الوضع الداكن/الفاتح، حفظ titanx_theme في localStorage",
+            "sidebar_toggle": "toggleSidebar() — فتح/إغلاق الشريط الجانبي",
+            "sidebar_collapse": "sidebar collapse state, overlay click handling",
+            "navigation": "sidebar link activation, page navigation, active state management",
+            "alerts": "showAlert(msg, type) — نظام التنبيهات الملونة",
+            "modals": "openModal(id), closeModal(id) — إدارة النوافذ المنبثقة",
+            "api_calls": "fetchAPI(url, method, body) — wrapper لكل طلبات الـ API",
+            "forms": "form submission handlers, validation, loading states",
+            "dashboard_charts": "Chart.js integration for activity and stats charts",
+            "toast_notifications": "showToast(msg, type) — إشعارات الزاوية",
+            "copy_clipboard": "copyToClipboard(text) — نسخ للحافظة",
+            "search": "live search functionality",
+            "bot_controls": "startBot(), stopBot(), restartBot() — التحكم في البوتات",
+        },
+        "aliases": ["javascript", "js", "buttons", "sidebar actions", "form actions", "navigation actions", "جافاسكريبت", "الأزرار", "التفاعل"],
+    },
+}
+
+_DB_MAP: dict = {
+    "main_db": {
+        "file": "database/db.py",
+        "description": "اتصال قاعدة البيانات الرئيسية (bot.db) — init + migration",
+        "functions": ["get_connection", "db_cursor", "init_db", "_migrate"],
+        "used_by": ["database/users.py", "database/downloads.py", "database/cache.py", "database/favorites.py", "database/referrals.py", "database/reports.py", "database/achievements.py"],
+    },
+    "users_model": {
+        "file": "database/users.py",
+        "description": "نموذج المستخدمين — CRUD كامل للمستخدمين",
+        "functions": ["get_user", "create_user", "update_user", "ban_user", "unban_user", "set_vip", "add_points", "deduct_points", "get_total_users", "search_users"],
+        "used_by": ["handlers/start.py", "handlers/admin.py", "handlers/profile.py", "handlers/download.py", "control_panel/routers/users.py"],
+    },
+    "downloads_model": {
+        "file": "database/downloads.py",
+        "description": "نموذج التحميلات — تسجيل وإحصائيات التحميل",
+        "functions": ["log_download", "get_user_history", "get_downloads_today", "get_downloads_week", "get_total_downloads", "get_downloads_by_platform"],
+        "used_by": ["handlers/download.py", "control_panel/routers/dashboard.py"],
+    },
+    "cache_model": {
+        "file": "database/cache.py",
+        "description": "نموذج الكاش — تخزين روابط التحميل المسبق",
+        "functions": ["get_cached", "set_cache", "cleanup_old_cache", "get_cache_count"],
+        "used_by": ["services/downloader.py"],
+    },
+    "favorites_model": {
+        "file": "database/favorites.py",
+        "description": "نموذج المفضلة — قائمة روابط المفضلة للمستخدم",
+        "functions": ["add_favorite", "remove_favorite", "get_favorites", "is_favorite"],
+        "used_by": ["handlers/favorites.py", "handlers/download.py"],
+    },
+    "referrals_model": {
+        "file": "database/referrals.py",
+        "description": "نموذج الإحالات — نظام الإحالات والمكافآت",
+        "functions": ["create_pending_referral", "complete_referral", "get_referrer_stats", "get_top_referrers_by_period"],
+        "used_by": ["handlers/start.py", "handlers/profile.py", "handlers/admin.py"],
+    },
+    "reports_model": {
+        "file": "database/reports.py",
+        "description": "نموذج التقارير والتذاكر — نظام الدعم الفني",
+        "functions": ["create_report", "get_report_by_id", "reply_report", "close_report", "create_support_ticket"],
+        "used_by": ["handlers/feedback.py", "handlers/admin.py"],
+    },
+    "achievements_model": {
+        "file": "database/achievements.py",
+        "description": "نموذج الإنجازات — نظام مكافآت المستخدم",
+        "functions": ["get_user_achievements", "award_achievement", "check_and_award"],
+        "used_by": ["handlers/download.py", "handlers/profile.py"],
+    },
+    "activity_model": {
+        "file": "database/activity.py",
+        "description": "نموذج سجل النشاط",
+        "functions": ["get_activity_feed"],
+        "used_by": ["handlers/admin.py", "control_panel/routers/dashboard.py"],
+    },
+    "support_db": {
+        "file": "support_bot/database/db.py",
+        "description": "قاعدة بيانات بوت الدعم (support.db)",
+        "functions": ["db_cursor", "init_db", "is_main_bot_user"],
+        "used_by": ["support_bot/database/tickets.py"],
+    },
+    "tickets_model": {
+        "file": "support_bot/database/tickets.py",
+        "description": "نموذج تذاكر الدعم الفني",
+        "functions": ["create_ticket", "add_message", "get_ticket", "get_open_tickets", "close_ticket"],
+        "used_by": ["support_bot/handlers/admin.py", "support_bot/handlers/user.py"],
+    },
+}
+
+_BOT_MAP: dict = {
+    "main_bot": {
+        "entry": "bot.py",
+        "description": "بوت X الرئيسي (PrimeDownloader) — bot.py",
+        "token_env": "TELEGRAM_BOT_TOKEN",
+        "handlers": {
+            "start": "handlers/start.py — /start, language selection, subscription check",
+            "download": "handlers/download.py — URL detection, quality selection, download callback",
+            "admin": "handlers/admin.py — /panel, stats, ban/unban, broadcast, reports",
+            "profile": "handlers/profile.py — /profile, points, daily, wheel, leaderboard, achievements",
+            "favorites": "handlers/favorites.py — /favorites, unfav callback",
+            "feedback": "handlers/feedback.py — rating callback, report message, /support",
+            "logo": "handlers/logo.py — /logo, logo upload, logo callback",
+            "video_studio": "handlers/video_studio.py — /studio, video processing (premium)",
+            "video_tools": "handlers/video_tools.py — /tools, video tools callback",
+        },
+        "services": {
+            "downloader": "services/downloader.py — yt-dlp wrapper, URL analysis, file download",
+            "subscription": "services/subscription.py — Telegram channel subscription check",
+        },
+        "middlewares": {
+            "auth": "middlewares/auth.py — is_admin, is_owner, is_banned, get_role",
+            "rate_limiter": "middlewares/rate_limiter.py — download rate limiting",
+            "subscription_gate": "middlewares/subscription_gate.py — require_subscription decorator",
+        },
+        "database": "database/ (bot.db) — users, downloads, cache, favorites, referrals, reports, achievements",
+        "locales": {"ar": "locales/ar.py", "en": "locales/en.py", "init": "locales/__init__.py"},
+    },
+    "support_bot": {
+        "entry": "support_bot/bot.py",
+        "description": "بوت الدعم الفني",
+        "token_env": "SUPPORT_BOT_TOKEN",
+        "handlers": {
+            "user": "support_bot/handlers/user.py — start, new ticket, handle messages, cancel, my tickets",
+            "admin": "support_bot/handlers/admin.py — panel, list open/closed, view ticket, reply, close",
+        },
+        "database": "support_bot/database/ (support.db) — tickets, messages",
+        "config": "support_bot/config/settings.py",
+    },
+}
+
+_SERVICES_MAP: dict = {
+    "downloader": {
+        "file": "services/downloader.py",
+        "description": "خدمة التحميل الرئيسية — yt-dlp wrapper",
+        "functions": ["analyze_url", "download_video", "download_audio", "download_image"],
+        "used_by": ["handlers/download.py"],
+        "depends_on": ["database/cache.py", "database/downloads.py"],
+    },
+    "subscription": {
+        "file": "services/subscription.py",
+        "description": "خدمة التحقق من الاشتراك في القناة",
+        "functions": ["check_subscription", "build_subscription_keyboard"],
+        "used_by": ["handlers/start.py", "middlewares/subscription_gate.py"],
+    },
+}
+
+_CONFIG_MAP: dict = {
+    "main_config": {
+        "file": "config/settings.py",
+        "description": "الإعدادات الرئيسية للبوت — TELEGRAM_BOT_TOKEN, ADMIN_IDS, OWNER_ID, channels",
+        "used_by": ["bot.py", "handlers/admin.py", "middlewares/auth.py"],
+    },
+    "panel_config": {
+        "file": "control_panel/config.py",
+        "description": "إعدادات لوحة التحكم — PROJECT_ROOT, OWNER_ID, PUBLIC_URL, template engine",
+        "used_by": ["control_panel/app.py", "control_panel/routers/*.py"],
+    },
+    "panel_settings": {
+        "file": "extracted_project/.panel_settings.json",
+        "description": "إعدادات لوحة التحكم المحفوظة — hashed password, theme",
+        "used_by": ["control_panel/auth.py"],
+    },
+    "panel_auth": {
+        "file": "control_panel/auth.py",
+        "description": "مصادقة لوحة التحكم — session management, token auth, password hashing",
+        "used_by": ["control_panel/app.py", "control_panel/routers/*.py"],
+    },
+    "support_config": {
+        "file": "support_bot/config/settings.py",
+        "description": "إعدادات بوت الدعم",
+        "used_by": ["support_bot/bot.py", "support_bot/handlers/admin.py"],
+    },
+    "requirements": {
+        "file": "requirements.txt",
+        "description": "قائمة المكتبات المطلوبة — python-telegram-bot, fastapi, yt-dlp, uvicorn",
+        "used_by": ["all"],
+    },
+    "startup": {
+        "file": "scripts/start.sh",
+        "description": "سكريبت بدء تشغيل لوحة التحكم — PYTHONPATH + uvicorn",
+        "used_by": ["TitanX Control Panel workflow"],
+    },
+}
+
+_ARCH_MAP: dict = {
+    "project": {
+        "description": "X Control Center — نظام بوت Telegram مع لوحة تحكم FastAPI",
+        "components": [
+            "PrimeDownloader Bot (bot.py) — بوت التحميل الرئيسي",
+            "Support Bot (support_bot/bot.py) — بوت الدعم الفني",
+            "Control Panel (control_panel/app.py) — لوحة تحكم FastAPI على بورت 5000",
+            "Database (database/) — SQLite (bot.db) + Support (support.db)",
+            "AI Engine (control_panel/ai_engine.py) — نظام الذكاء الاصطناعي",
+        ],
+    },
+    "control_panel": {
+        "description": "FastAPI control panel — single CSS file + single JS file + 20 HTML templates",
+        "entry": "control_panel/app.py",
+        "template_engine": "Jinja2 via fastapi.templating.Jinja2Templates",
+        "base_template": "control_panel/templates/base.html — all pages extend this",
+        "exception": "control_panel/templates/access.html — standalone, does NOT extend base.html",
+        "static": "control_panel/static/ — css/style.css + js/app.js",
+        "routers": "control_panel/routers/ — 12 router files, each serves one page",
+        "auth": "control_panel/auth.py — session tokens + password hash",
+    },
+    "bots": {
+        "description": "python-telegram-bot v20+ architecture",
+        "main_bot": "bot.py + handlers/ + services/ + middlewares/ + database/",
+        "support_bot": "support_bot/bot.py + support_bot/handlers/ + support_bot/database/",
+        "shared_db": "Both bots share bot.db via is_main_bot_user() check in support_bot",
+    },
+    "database": {
+        "description": "SQLite — two separate databases",
+        "main": "database/bot.db — users, downloads, cache, favorites, referrals, reports, achievements, activity",
+        "support": "support_bot/database/support.db — tickets, messages",
+        "init": "database/db.py init_db() — called on bot startup, creates tables and runs migrations",
+    },
+    "frontend": {
+        "description": "Single-page-like FastAPI templates with Jinja2",
+        "css": "ONE file: control_panel/static/css/style.css (~2040 lines)",
+        "js": "ONE file: control_panel/static/js/app.js",
+        "templates": "20 HTML files in control_panel/templates/",
+        "inheritance": "19 pages extend base.html — only access.html is standalone",
+        "theme": "JS toggleTheme() stores 'titanx_theme' in localStorage — dark/light",
+    },
+}
+
+# ─── Semantic Map (concept → files) ───────────────────────────────────────────
+# Used by _find_concept() — longer keys matched first
+_SEMANTIC_MAP: dict = {
+    # ── Pages / Templates ─────────────────────────────────────────────────────
+    "ai_engineer": [
+        ("control_panel/templates/ai_engineer.html", "template", "صفحة مهندس الذكاء الاصطناعي"),
+        ("control_panel/routers/ai_workspace.py", "router", "route GET /ai/engineer"),
+    ],
+    "ai_workspace": [
+        ("control_panel/templates/ai_workspace.html", "template", "صفحة X AI Operator"),
+        ("control_panel/routers/ai_workspace.py", "router", "route GET /ai"),
+    ],
+    "ai_memory": [
+        ("control_panel/templates/ai_memory.html", "template", "صفحة ذاكرة المشروع"),
+        ("control_panel/routers/ai_workspace.py", "router", "route GET /ai/memory"),
+    ],
+    "ai_review": [
+        ("control_panel/templates/ai_review.html", "template", "صفحة مراجعة التعديلات"),
+        ("control_panel/routers/ai_workspace.py", "router", "route GET /ai/review"),
+    ],
+    "ai_engine": [
+        ("control_panel/ai_engine.py", "engine", "محرك الذكاء الاصطناعي الرئيسي v3.0"),
+    ],
+    "db_manager": [
+        ("control_panel/templates/db_manager.html", "template", "صفحة مدير قاعدة البيانات"),
+        ("control_panel/routers/db_manager.py", "router", "route GET /db"),
+    ],
+    "replit_manager": [
+        ("control_panel/templates/replit_manager.html", "template", "صفحة مركز Replit"),
+        ("control_panel/routers/replit_manager.py", "router", "route GET /replit"),
+    ],
+    "file_manager": [
+        ("control_panel/templates/files.html", "template", "صفحة مدير الملفات"),
+        ("control_panel/routers/files.py", "router", "route GET /files"),
+    ],
+    "log_viewer": [
+        ("control_panel/templates/logs.html", "template", "صفحة عارض السجلات"),
+        ("control_panel/routers/logs_router.py", "router", "route GET /logs"),
+    ],
+    "broadcast": [
+        ("control_panel/templates/broadcast.html", "template", "صفحة البث"),
+        ("control_panel/routers/broadcast.py", "router", "route GET /broadcast"),
+    ],
+    "homepage": [
+        ("control_panel/templates/dashboard.html", "template", "الصفحة الرئيسية / لوحة التحكم"),
+        ("control_panel/routers/dashboard.py", "router", "route GET / and GET /dashboard"),
+    ],
+    "dashboard": [
+        ("control_panel/templates/dashboard.html", "template", "لوحة التحكم الرئيسية"),
+        ("control_panel/routers/dashboard.py", "router", "route GET / and GET /dashboard"),
+    ],
+    "users_page": [
+        ("control_panel/templates/users.html", "template", "صفحة إدارة المستخدمين"),
+        ("control_panel/routers/users.py", "router", "route GET /users"),
+    ],
+    "users": [
+        ("control_panel/templates/users.html", "template", "صفحة إدارة المستخدمين"),
+        ("control_panel/routers/users.py", "router", "route GET /users + user CRUD APIs"),
+    ],
+    "bots_page": [
+        ("control_panel/templates/bots.html", "template", "صفحة إدارة البوتات"),
+        ("control_panel/routers/bots.py", "router", "route GET /bots + start/stop/restart APIs"),
+    ],
+    "backups_page": [
+        ("control_panel/templates/backups.html", "template", "صفحة النسخ الاحتياطية"),
+        ("control_panel/routers/backups.py", "router", "route GET /backups + create/restore/download APIs"),
+    ],
+    "updates_page": [
+        ("control_panel/templates/updates.html", "template", "صفحة التحديثات"),
+        ("control_panel/routers/updates.py", "router", "route GET /updates + analyze/apply APIs"),
+    ],
+    "system_page": [
+        ("control_panel/templates/system.html", "template", "صفحة حالة النظام"),
+        ("control_panel/routers/system.py", "router", "route GET /system + stats/bots APIs"),
+    ],
+    "github_page": [
+        ("control_panel/templates/github.html", "template", "صفحة تكامل GitHub"),
+        ("control_panel/routers/github_router.py", "router", "route GET /github + pull/push/commit APIs"),
+    ],
+    "search_page": [
+        ("control_panel/templates/search.html", "template", "صفحة البحث في المشروع"),
+        ("control_panel/routers/search.py", "router", "route GET /search"),
+    ],
+    "login_page": [
+        ("control_panel/templates/access.html", "template", "صفحة الدخول / المصادقة (standalone, no base.html)"),
+        ("control_panel/app.py", "app", "route GET /panel, POST /panel/login — auth logic"),
+    ],
+    "access": [
+        ("control_panel/templates/access.html", "template", "صفحة الدخول / المصادقة"),
+        ("control_panel/app.py", "app", "route GET /panel + POST /panel/login"),
+    ],
+    # ── Structural / Layout ───────────────────────────────────────────────────
+    "sidebar": [
+        ("control_panel/templates/base.html", "template", "الشريط الجانبي موجود في base.html"),
+        ("control_panel/static/css/style.css", "css", "أنماط .sidebar, .sidebar-nav, .sidebar-link"),
+        ("control_panel/static/js/app.js", "js", "toggleSidebar() — فتح/إغلاق الشريط الجانبي"),
+    ],
+    "base_template": [
+        ("control_panel/templates/base.html", "template", "القالب الأساسي — يرث منه كل الصفحات ماعدا access.html"),
+    ],
+    "header": [
+        ("control_panel/templates/base.html", "template", "الترويسة في base.html — .page-header"),
+        ("control_panel/static/css/style.css", "css", "أنماط .page-header, .header-logo"),
+    ],
+    "navigation": [
+        ("control_panel/templates/base.html", "template", "قائمة التنقل في sidebar داخل base.html"),
+        ("control_panel/static/js/app.js", "js", "sidebar navigation + active link management"),
+    ],
+    # ── CSS / Styling ─────────────────────────────────────────────────────────
+    "colors": [
+        ("control_panel/static/css/style.css", "css", "CSS variables: --primary, --accent, --bg-glass, --text — كل الألوان"),
+    ],
+    "theme": [
+        ("control_panel/static/css/style.css", "css", "body.theme-dark + body.theme-light — الوضع الداكن/الفاتح"),
+        ("control_panel/static/js/app.js", "js", "toggleTheme() — تبديل الثيم وحفظ titanx_theme في localStorage"),
+    ],
+    "animations": [
+        ("control_panel/static/css/style.css", "css", "@keyframes fadeInUp, pulse, shimmer, spin — الحركات"),
+    ],
+    "mobile_css": [
+        ("control_panel/static/css/style.css", "css", "@media (max-width: 768px) — التصميم للجوال"),
+    ],
+    "css": [
+        ("control_panel/static/css/style.css", "css", "ملف CSS الوحيد — كل الأنماط"),
+    ],
+    # ── JavaScript ────────────────────────────────────────────────────────────
+    "javascript": [
+        ("control_panel/static/js/app.js", "js", "ملف JS الوحيد — كل التفاعلات"),
+    ],
+    "buttons": [
+        ("control_panel/static/js/app.js", "js", "button handlers, loading states, confirmation dialogs"),
+        ("control_panel/static/css/style.css", "css", ".btn, .btn-primary, .btn-danger — أنماط الأزرار"),
+    ],
+    "forms": [
+        ("control_panel/static/js/app.js", "js", "form submission handlers, validation"),
+        ("control_panel/static/css/style.css", "css", "input, select, textarea styles"),
+    ],
+    "modals": [
+        ("control_panel/static/js/app.js", "js", "openModal(id), closeModal(id)"),
+        ("control_panel/static/css/style.css", "css", ".modal, .modal-overlay styles"),
+    ],
+    "charts": [
+        ("control_panel/static/js/app.js", "js", "Chart.js integration for dashboard stats"),
+        ("control_panel/templates/dashboard.html", "template", "chart canvases"),
+    ],
+    "alerts": [
+        ("control_panel/static/js/app.js", "js", "showAlert(msg, type) + showToast(msg, type)"),
+    ],
+    # ── Database ──────────────────────────────────────────────────────────────
+    "database": [
+        ("database/db.py", "db", "اتصال قاعدة البيانات الرئيسية + init_db() + migration"),
+        ("database/users.py", "model", "نموذج المستخدمين"),
+        ("database/downloads.py", "model", "نموذج التحميلات"),
+        ("database/cache.py", "model", "نموذج الكاش"),
+        ("database/favorites.py", "model", "نموذج المفضلة"),
+        ("database/referrals.py", "model", "نموذج الإحالات"),
+        ("database/reports.py", "model", "نموذج التقارير والتذاكر"),
+        ("database/achievements.py", "model", "نموذج الإنجازات"),
+    ],
+    "users_db": [
+        ("database/users.py", "model", "نموذج المستخدمين — get_user, create_user, ban_user, add_points"),
+    ],
+    "downloads_db": [
+        ("database/downloads.py", "model", "نموذج التحميلات — log_download, get_downloads_today, get_total_downloads"),
+    ],
+    "tickets_db": [
+        ("support_bot/database/tickets.py", "model", "نموذج تذاكر الدعم"),
+        ("support_bot/database/db.py", "db", "قاعدة بيانات بوت الدعم support.db"),
+    ],
+    # ── Bots ─────────────────────────────────────────────────────────────────
+    "main_bot": [
+        ("bot.py", "entry", "نقطة دخول البوت الرئيسي — PrimeDownloader"),
+        ("handlers/start.py", "handler", "/start command"),
+        ("handlers/download.py", "handler", "URL download handler"),
+        ("handlers/admin.py", "handler", "admin commands"),
+    ],
+    "support_bot": [
+        ("support_bot/bot.py", "entry", "نقطة دخول بوت الدعم الفني"),
+        ("support_bot/handlers/user.py", "handler", "user ticket handlers"),
+        ("support_bot/handlers/admin.py", "handler", "admin ticket handlers"),
+    ],
+    "download_handler": [
+        ("handlers/download.py", "handler", "معالج التحميل — URL detection, quality selection, download_callback"),
+        ("services/downloader.py", "service", "خدمة التحميل — yt-dlp wrapper"),
+    ],
+    "admin_handler": [
+        ("handlers/admin.py", "handler", "أوامر المدير — /panel, stats, ban, broadcast, reports"),
+    ],
+    "start_handler": [
+        ("handlers/start.py", "handler", "/start, language selection, subscription verification"),
+    ],
+    # ── Services ──────────────────────────────────────────────────────────────
+    "downloader_service": [
+        ("services/downloader.py", "service", "yt-dlp wrapper — analyze_url, download_video, download_audio"),
+    ],
+    "subscription_service": [
+        ("services/subscription.py", "service", "Telegram channel subscription check"),
+    ],
+    # ── Config / Auth ─────────────────────────────────────────────────────────
+    "config": [
+        ("config/settings.py", "config", "إعدادات البوت الرئيسي"),
+        ("control_panel/config.py", "config", "إعدادات لوحة التحكم"),
+    ],
+    "auth": [
+        ("control_panel/auth.py", "auth", "مصادقة لوحة التحكم — session + password"),
+        ("control_panel/templates/access.html", "template", "صفحة الدخول"),
+        ("control_panel/app.py", "app", "route POST /panel/login"),
+    ],
+    "settings": [
+        ("config/settings.py", "config", "إعدادات البوت الرئيسي"),
+        ("control_panel/config.py", "config", "إعدادات لوحة التحكم"),
+        ("extracted_project/.panel_settings.json", "data", "كلمة مرور لوحة التحكم + الثيم"),
+    ],
+    # ── AI System ─────────────────────────────────────────────────────────────
+    "ai": [
+        ("control_panel/ai_engine.py", "engine", "محرك الذكاء الاصطناعي v3.0"),
+        ("control_panel/routers/ai_workspace.py", "router", "AI API endpoints"),
+        ("control_panel/templates/ai_workspace.html", "template", "AI chat interface"),
+    ],
+    # ── Locales ───────────────────────────────────────────────────────────────
+    "locales": [
+        ("locales/ar.py", "locale", "ترجمة عربية"),
+        ("locales/en.py", "locale", "ترجمة إنجليزية"),
+        ("locales/__init__.py", "locale", "نظام الترجمة + get_text()"),
+    ],
+    # ── Middlewares ───────────────────────────────────────────────────────────
+    "middlewares": [
+        ("middlewares/auth.py", "middleware", "is_admin, is_owner, is_banned, get_role"),
+        ("middlewares/rate_limiter.py", "middleware", "check_rate_limit — حد التحميل"),
+        ("middlewares/subscription_gate.py", "middleware", "require_subscription decorator"),
+    ],
+    # ── Backup system ─────────────────────────────────────────────────────────
+    "backup": [
+        ("control_panel/templates/backups.html", "template", "صفحة النسخ الاحتياطية"),
+        ("control_panel/routers/backups.py", "router", "backup APIs — create, restore, download"),
+        ("control_panel/ai_engine.py", "engine", "create_backup(), restore_backup() in AI engine"),
+    ],
+    # ── GitHub system ─────────────────────────────────────────────────────────
+    "github": [
+        ("control_panel/templates/github.html", "template", "صفحة تكامل GitHub"),
+        ("control_panel/routers/github_router.py", "router", "GitHub APIs — pull, push, commit, diff"),
+    ],
+}
+
+_ALIASES: dict = {
+    "الصفحة الرئيسية": "homepage",
+    "الرئيسية": "homepage",
+    "لوحة التحكم": "dashboard",
+    "لوحة": "dashboard",
+    "صفحة الدخول": "login_page",
+    "تسجيل الدخول": "login_page",
+    "الدخول": "login_page",
+    "المستخدمون": "users",
+    "إدارة المستخدمين": "users",
+    "الشريط الجانبي": "sidebar",
+    "القائمة الجانبية": "sidebar",
+    "الألوان": "colors",
+    "التصميم": "css",
+    "الثيم": "theme",
+    "الجافاسكريبت": "javascript",
+    "الأزرار": "buttons",
+    "قاعدة البيانات": "database",
+    "بوت الدعم": "support_bot",
+    "البوت الرئيسي": "main_bot",
+    "مهندس الذكاء": "ai_engineer",
+    "ذاكرة المشروع": "ai_memory",
+    "مراجعة التعديلات": "ai_review",
+    "نسخ احتياطية": "backup",
+    "النسخ الاحتياطية": "backup",
+    "الإعدادات": "settings",
+    "المصادقة": "auth",
+    "الإحالات": "referrals_model",
+    "التحميل": "download_handler",
+    "التحميلات": "downloads_db",
+    "السجلات": "log_viewer",
+    "البحث": "search_page",
+    "النظام": "system_page",
+    "التحديثات": "updates_page",
+    "البوتات": "bots_page",
+    "البث": "broadcast",
+    "ريبليت": "replit_manager",
+}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INTENT DETECTION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+INTENTS: dict = {
+    "errors":      [r"أخطاء", r"خطأ", r"errors?", r"bugs?", r"مشاكل", r"مشكلة", r"broken", r"يعطل", r"كسور"],
+    "analyze":     [r"افحص", r"حلل", r"analyze", r"scan", r"فحص", r"تحليل", r"inspect", r"اكتشف"],
+    "backup":      [r"احتياطي", r"backup", r"نسخة", r"احفظ", r"save", r"حفظ", r"نسخ احتياطي"],
+    "restore":     [r"استعادة", r"restore", r"رجوع", r"استرجاع", r"rollback"],
+    "improve":     [r"حسن", r"improve", r"احترافية", r"professional", r"تحسين", r"أفضل", r"جمال"],
+    "memory":      [r"تذكر", r"ذاكرة", r"memory", r"تعلم", r"اعرف", r"معلومات"],
+    "status":      [r"حالة", r"status", r"شغال", r"يعمل", r"مباشر", r"live", r"working", r"online"],
+    "structure":   [r"هيكل", r"structure", r"بنية", r"مجلدات"],
+    "routes":      [r"routes?", r"مسارات", r"صفحات", r"endpoints?", r"روابط", r"\bapi\b"],
+    "security":    [r"أمان", r"security", r"أمن", r"ثغرات", r"vulnerab", r"password", r"حماية"],
+    "help":        [r"مساعدة", r"help", r"ساعد", r"كيف تعمل", r"ماذا تستطيع", r"قدرات"],
+    "stats":       [r"إحصائيات", r"stats", r"أرقام", r"numbers", r"\bكم\b", r"how many", r"عدد"],
+    "find_file":   [r"find\b", r"where is", r"which file", r"what file", r"locate",
+                    r"أين", r"أي ملف", r"ما الملف", r"ابحث عن", r"أين يوجد", r"يتحكم"],
+    "plan_modify": [r"plan", r"خطة", r"what.*modify", r"what.*change", r"ماذا.*أعدل",
+                    r"redesign", r"إعادة تصميم", r"modify plan", r"how to.*change"],
+    "dependency":  [r"depend", r"uses", r"loads", r"import", r"related",
+                    r"يستخدم", r"يحمل", r"علاقة", r"ارتباط", r"مرتبط"],
+    "arch":        [r"architecture", r"how does.{0,20}work", r"explain.{0,20}system",
+                    r"معمارية", r"كيف يعمل", r"اشرح", r"هيكل المشروع"],
+    "root_cause":  [r"why is.{0,30}broken", r"why.{0,20}not work", r"debug",
+                    r"لماذا.{0,20}لا يعمل", r"سبب الخطأ", r"لماذا كسر"],
+    "impact":      [r"what breaks", r"what happens if", r"impact of", r"if i change",
+                    r"ماذا يحدث لو", r"ماذا يكسر", r"تأثير التغيير"],
+    "self_test":   [r"self.?test", r"test yourself", r"اختبر نفسك", r"self check", r"run tests?"],
+}
+
 
 def detect_intent(msg: str) -> str:
     ml = msg.lower()
-    # Priority check: file-awareness questions (checked BEFORE generic intents)
-    file_q_pats = [
-        r"what file.{0,20}control",
-        r"which file.{0,20}control",
-        r"what file.{0,20}handle",
-        r"what file.{0,20}homepage",
-        r"what file.{0,20}dashboard",
-        r"what file.{0,20}color",
-        r"what file.{0,20}login",
-        r"what file.{0,20}css",
+
+    # ── Priority 1: file-awareness patterns (must run first) ──────────────────
+    _FILE_Q = [
+        r"what file.{0,25}control",
+        r"which file.{0,25}control",
+        r"what file.{0,25}handle",
+        r"what file.{0,25}manage",
+        r"what file.{0,25}(?:the\s+)?homepage",
+        r"what file.{0,25}(?:the\s+)?dashboard",
+        r"what file.{0,25}color",
+        r"what file.{0,25}css",
+        r"what file.{0,25}sidebar",
+        r"what file.{0,25}login",
+        r"what file.{0,25}auth",
+        r"what file.{0,25}users?",
+        r"what file.{0,25}(?:the\s+)?ai",
         r"what css",
         r"what.{0,10}css.{0,20}control",
         r"what files?.{0,20}(?:should|need|must).{0,20}(?:modify|change|edit|update)",
         r"what files?.{0,20}(?:to|for).{0,20}(?:redesign|rebuild|modify|change)",
-        r"files?.{0,20}(?:modify|change).{0,20}(?:redesign|homepage|dashboard|page)",
+        r"files?.{0,20}(?:must|should|need).{0,20}(?:change|modify)",
         r"what route",
         r"which route",
-        r"what.{0,10}route.{0,20}loads?",
-        r"أي ملف.{0,20}يتحكم",
-        r"ما الملف.{0,20}يتحكم",
-        r"أين.{0,20}الصفحة",
-        r"find.{0,20}page",
-        r"find.{0,20}file",
-        r"locate.{0,20}(?:page|file|route)",
+        r"what.{0,10}route.{0,20}(?:loads?|serves?|handles?)",
+        r"find.{0,25}(?:page|file|route|template)",
+        r"where.{0,10}(?:is|are).{0,20}(?:the\s+)?(?:homepage|dashboard|sidebar|colors?|login|css|js|backup|ai|bot|download|support|github|user|setting|log)",
+        r"locate.{0,25}(?:page|file|route)",
+        r"أي ملف.{0,25}يتحكم",
+        r"ما الملف.{0,25}(?:يتحكم|يعالج|المسؤول)",
+        r"أين.{0,25}(?:الصفحة|الملف|الكود|المسار)",
+        r"ما.{0,5}(?:ملف|صفحة).{0,20}(?:يتحكم|يعرض|يعالج)",
     ]
-    for p in file_q_pats:
+    for p in _FILE_Q:
         if re.search(p, ml):
             return "find_file"
+
+    # ── Priority 2: root cause & impact ───────────────────────────────────────
+    if re.search(r"why.{0,30}(?:broken|not work|fail)", ml):
+        return "root_cause"
+    if re.search(r"what.{0,10}(?:breaks?|happens? if)", ml):
+        return "impact"
+    if re.search(r"اختبر نفسك|self.?test|test yourself", ml):
+        return "self_test"
+
+    # ── Scored match ──────────────────────────────────────────────────────────
     scores: dict = {}
     for intent, patterns in INTENTS.items():
         score = sum(1 for p in patterns if re.search(p, ml))
         if score:
             scores[intent] = score
-    return max(scores, key=scores.get) if scores else "general"
+    if scores:
+        return max(scores, key=lambda k: scores[k])
+    return "general"
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  PROJECT KNOWLEDGE ENGINE  — Phase 1.5 Intelligence Layer
+# QUERY NORMALIZATION & CONCEPT MATCHING
 # ═══════════════════════════════════════════════════════════════════════════════
-
-# Semantic map: concept keywords → list of (file, role, description)
-# Each entry: (relative_path_from_extracted_dir, role, human_description)
-_SEMANTIC_MAP: dict = {
-    # Pages / UI
-    "homepage":      [("control_panel/templates/dashboard.html",      "template", "صفحة لوحة القيادة الرئيسية"),
-                      ("control_panel/routers/dashboard.py",           "router",   "مسار / وبيانات لوحة القيادة")],
-    "dashboard":     [("control_panel/templates/dashboard.html",      "template", "قالب لوحة القيادة"),
-                      ("control_panel/routers/dashboard.py",           "router",   "router لوحة القيادة")],
-    "login":         [("control_panel/templates/access.html",         "template", "صفحة تسجيل الدخول / الوصول"),
-                      ("control_panel/app.py",                         "handler",  "منطق /panel و /panel/login")],
-    "access":        [("control_panel/templates/access.html",         "template", "صفحة الوصول بكلمة المرور"),
-                      ("control_panel/app.py",                         "handler",  "panel_access و panel_password_login")],
-    "panel":         [("control_panel/app.py",                        "core",     "تطبيق FastAPI الرئيسي"),
-                      ("control_panel/templates/base.html",            "template", "القالب الأساسي المشترك")],
-    "users":         [("control_panel/templates/users.html",          "template", "صفحة إدارة المستخدمين"),
-                      ("control_panel/routers/users.py",               "router",   "API إدارة المستخدمين")],
-    "broadcast":     [("control_panel/templates/broadcast.html",      "template", "صفحة البث الجماعي"),
-                      ("control_panel/routers/broadcast.py",           "router",   "API إرسال الرسائل الجماعية")],
-    "database":      [("control_panel/templates/db_manager.html",     "template", "صفحة إدارة قاعدة البيانات"),
-                      ("control_panel/routers/db_manager.py",          "router",   "API قاعدة البيانات"),
-                      ("control_panel/db_utils.py",                    "utility",  "أدوات SQLite المشتركة")],
-    "db":            [("control_panel/db_utils.py",                   "utility",  "أدوات قاعدة البيانات"),
-                      ("database/bot.db",                              "database", "ملف قاعدة بيانات البوت الرئيسي")],
-    "files":         [("control_panel/templates/files.html",          "template", "صفحة إدارة الملفات"),
-                      ("control_panel/routers/files.py",               "router",   "API تصفح / تعديل الملفات")],
-    "logs":          [("control_panel/templates/logs.html",           "template", "صفحة السجلات"),
-                      ("control_panel/routers/logs_router.py",         "router",   "API قراءة السجلات")],
-    "system":        [("control_panel/templates/system.html",         "template", "صفحة صحة النظام"),
-                      ("control_panel/routers/system.py",              "router",   "API إحصائيات النظام (CPU/RAM)")],
-    "updates":       [("control_panel/templates/updates.html",        "template", "صفحة التحديثات"),
-                      ("control_panel/routers/updates.py",             "router",   "API تحديث الكود")],
-    "github":        [("control_panel/templates/github.html",         "template", "صفحة إدارة GitHub"),
-                      ("control_panel/routers/github_router.py",       "router",   "API تكامل GitHub")],
-    "backups":       [("control_panel/templates/backups.html",        "template", "صفحة النسخ الاحتياطية"),
-                      ("control_panel/routers/backups.py",             "router",   "API النسخ الاحتياطية")],
-    "bots":          [("control_panel/templates/bots.html",           "template", "صفحة إدارة البوتات"),
-                      ("control_panel/routers/bots.py",                "router",   "API تشغيل/إيقاف البوتات")],
-    "search":        [("control_panel/templates/search.html",         "template", "صفحة البحث"),
-                      ("control_panel/routers/search.py",              "router",   "API البحث في المشروع")],
-    "replit":        [("control_panel/templates/replit_manager.html", "template", "صفحة مدير Replit"),
-                      ("control_panel/routers/replit_manager.py",      "router",   "API مدير Replit")],
-    "ai":            [("control_panel/templates/ai_workspace.html",   "template", "صفحة AI Workspace الرئيسية"),
-                      ("control_panel/routers/ai_workspace.py",        "router",   "API مساحة العمل الذكية"),
-                      ("control_panel/ai_engine.py",                   "engine",   "محرك الذكاء الاصطناعي (هذا الملف)")],
-    "ai_engineer":   [("control_panel/templates/ai_engineer.html",   "template", "صفحة مهندس الذكاء"),
-                      ("control_panel/routers/ai_workspace.py",        "router",   "route /ai/engineer")],
-    "ai_memory":     [("control_panel/templates/ai_memory.html",     "template", "صفحة ذاكرة الذكاء"),
-                      ("control_panel/ai_engine.py",                   "engine",   "load_memory / save_memory")],
-    "ai_review":     [("control_panel/templates/ai_review.html",     "template", "صفحة مراجعة الذكاء"),
-                      ("control_panel/routers/ai_workspace.py",        "router",   "route /ai/review + /ai/api/plan")],
-    # Styles / assets
-    "css":           [("control_panel/static/css/style.css",          "stylesheet", "ملف CSS الرئيسي (كل الألوان والتصميم)")],
-    "colors":        [("control_panel/static/css/style.css",          "stylesheet", "متغيرات الألوان: --primary, --bg-*, --text-*")],
-    "theme":         [("control_panel/static/css/style.css",          "stylesheet", "النمط الكلي (Dark/Light) ومتغيرات CSS")],
-    "style":         [("control_panel/static/css/style.css",          "stylesheet", "كل تنسيقات الواجهة")],
-    "javascript":    [("control_panel/static/js/app.js",              "script",   "الكود الأمامي الرئيسي (frontend JS)")],
-    "frontend":      [("control_panel/static/js/app.js",              "script",   "منطق الواجهة الأمامية"),
-                      ("control_panel/static/css/style.css",          "stylesheet", "تصميم الواجهة")],
-    "sidebar":       [("control_panel/templates/base.html",           "template", "القالب الأساسي يحتوي الـ sidebar")],
-    "navbar":        [("control_panel/templates/base.html",           "template", "شريط التنقل الجانبي في base.html")],
-    "base":          [("control_panel/templates/base.html",           "template", "القالب الأساسي المشترك لكل الصفحات")],
-    "layout":        [("control_panel/templates/base.html",           "template", "هيكل الصفحة المشترك"),
-                      ("control_panel/static/css/style.css",          "stylesheet", "تنسيق التخطيط")],
-    # Bots
-    "main_bot":      [("bot.py",                                      "entry",    "نقطة بدء البوت الرئيسي"),
-                      ("handlers/",                                    "handlers", "جميع معالجات أوامر البوت"),
-                      ("config/settings.py",                          "config",   "إعدادات البوت الرئيسي")],
-    "support_bot":   [("support_bot/bot.py",                         "entry",    "نقطة بدء بوت الدعم"),
-                      ("support_bot/",                                "module",   "كل ملفات بوت الدعم")],
-    "downloader":    [("bot.py",                                      "entry",    "البوت الرئيسي للتحميل"),
-                      ("handlers/download.py",                        "handler",  "معالج التحميل الرئيسي (إن وجد)")],
-    # Config / auth
-    "config":        [("config/settings.py",                         "config",   "إعدادات البوت (tokens, limits, rewards)"),
-                      ("control_panel/config.py",                     "config",   "إعدادات لوحة التحكم (paths, secrets)")],
-    "auth":          [("control_panel/auth.py",                      "auth",     "نظام الجلسات والتحقق من الهوية"),
-                      ("control_panel/app.py",                        "handler",  "routes /panel, /login, /logout")],
-    "session":       [("control_panel/auth.py",                      "auth",     "create_session / get_session / require_owner")],
-    "password":      [("control_panel/app.py",                       "handler",  "_verify_password, _hash_pw, /panel/login"),
-                      ("control_panel/auth.py",                       "auth",     "ACCESS_TOKEN و SESSION_COOKIE")],
-    "settings":      [("config/settings.py",                         "config",   "جميع إعدادات البوت"),
-                      ("control_panel/config.py",                     "config",   "إعدادات لوحة التحكم")],
-    "token":         [("control_panel/auth.py",                      "auth",     "ACCESS_TOKEN المستخدم للدخول عبر رابط"),
-                      ("config/settings.py",                          "config",   "BOT_TOKEN من env")],
-    # Workers / background
-    "workers":       [("workers/",                                    "workers",  "مهام الخلفية (cleanup, heartbeat, monitors)")],
-    "handlers":      [("handlers/",                                   "handlers", "معالجات أوامر البوت الرئيسي")],
-}
-
-# Aliases map: normalize queries
-_ALIASES: dict = {
-    "home page":     "homepage",
-    "main page":     "homepage",
-    "الصفحة الرئيسية": "homepage",
-    "الرئيسية":      "homepage",
-    "لوحة القيادة":  "dashboard",
-    "الواجهة":       "frontend",
-    "الستايل":       "css",
-    "التصميم":       "css",
-    "الألوان":       "colors",
-    "قاعدة البيانات": "database",
-    "البوت":         "main_bot",
-    "البوت الرئيسي": "main_bot",
-    "بوت الدعم":     "support_bot",
-    "الجانبية":      "sidebar",
-    "التنقل":        "navbar",
-    "كلمة المرور":   "password",
-    "تسجيل الدخول":  "login",
-    "المصادقة":      "auth",
-}
-
 
 def _normalize_query(q: str) -> str:
     ql = q.lower().strip()
-    for alias, canonical in _ALIASES.items():
-        if alias in ql:
-            return canonical
+    for ar, en in _ALIASES.items():
+        if ar in q:
+            ql = ql.replace(ar.lower(), en)
     return ql
 
 
 def _find_concept(q: str) -> list:
     """Return list of (file, role, description) for a concept query.
-    Matches longest/most-specific concept first to avoid 'ai' swallowing 'ai_engineer'.
+    Uses longest-match-first so 'ai_engineer' beats 'ai'.
     """
     normalized = _normalize_query(q)
-    # Direct map hit — sort by concept length DESCENDING so specific beats generic
+
+    # ── Pass 1: exact substring (longest concept wins) ────────────────────────
     best_match = None
     best_len   = 0
     for concept, entries in sorted(_SEMANTIC_MAP.items(), key=lambda x: len(x[0]), reverse=True):
         concept_plain = concept.replace("_", " ")
-        if concept_plain in normalized and len(concept) > best_len:
-            best_match = entries
-            best_len   = len(concept)
-        elif concept in normalized and len(concept) > best_len:
+        matched = (concept_plain in normalized) or (concept in normalized)
+        if matched and len(concept) > best_len:
             best_match = entries
             best_len   = len(concept)
     if best_match:
         return best_match
-    # Fuzzy: all keywords in concept must appear in normalized (AND logic, not OR)
-    results = []
-    seen = set()
+
+    # ── Pass 2: all keywords in concept must be present (AND logic) ───────────
+    results, seen = [], set()
     for concept, entries in sorted(_SEMANTIC_MAP.items(), key=lambda x: len(x[0]), reverse=True):
         kws = concept.split("_")
         if len(kws) > 1 and all(kw in normalized for kw in kws):
             for e in entries:
                 if e[0] not in seen:
-                    results.append(e)
-                    seen.add(e[0])
+                    results.append(e); seen.add(e[0])
     if results:
         return results
-    # Last resort: any single keyword (excluding very short ones like 'ai', 'db')
+
+    # ── Pass 3: any meaningful keyword (len > 2) ─────────────────────────────
     for concept, entries in sorted(_SEMANTIC_MAP.items(), key=lambda x: len(x[0]), reverse=True):
         kws = [kw for kw in concept.split("_") if len(kw) > 2]
         if kws and any(kw in normalized for kw in kws):
             for e in entries:
                 if e[0] not in seen:
-                    results.append(e)
-                    seen.add(e[0])
+                    results.append(e); seen.add(e[0])
+
+    # ── Pass 4: route alias search ────────────────────────────────────────────
+    for route, info in _ROUTE_GRAPH.items():
+        for alias in info.get("aliases", []):
+            if alias.lower() in normalized and info["template"] not in seen:
+                results.append((info["template"], "template", info["description"]))
+                results.append((info["router"], "router", f"route {route}"))
+                seen.add(info["template"])
+                break
+
     return results
 
 
-def search_project_files(query: str) -> list:
-    """
-    Intelligent file search. Returns list of dicts with file info + relevance.
-    Combines semantic map + filesystem scan.
-    """
-    results = []
-    seen = set()
-    # 1. Semantic map search
-    semantic = _find_concept(query)
-    for (rel_path, role, desc) in semantic:
-        fp = os.path.join(EXTRACTED_DIR, rel_path)
-        exists = os.path.exists(fp)
-        results.append({
-            "path": rel_path,
-            "role": role,
-            "description": desc,
-            "exists": exists,
-            "source": "semantic",
-            "relevance": "high",
-        })
-        seen.add(rel_path)
-    # 2. Filename/content scan for leftovers
-    ql = query.lower()
-    for root, dirs, fnames in os.walk(EXTRACTED_DIR):
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
-        for fn in fnames:
-            fp = os.path.join(root, fn)
-            rel = os.path.relpath(fp, EXTRACTED_DIR)
-            if rel in seen:
-                continue
-            ext = os.path.splitext(fn)[1].lower()
-            if ext not in CODE_EXTS:
-                continue
-            name_match = ql in fn.lower() or any(kw in fn.lower() for kw in ql.split())
-            if name_match:
-                results.append({
-                    "path": rel, "role": "file", "description": fn,
-                    "exists": True, "source": "scan", "relevance": "medium",
-                })
-                seen.add(rel)
-    return results[:20]
+def _route_for_concept(q: str) -> Optional[dict]:
+    """Return the _ROUTE_GRAPH entry that best matches the query."""
+    normalized = _normalize_query(q)
+    best, best_score = None, 0
+    for route, info in _ROUTE_GRAPH.items():
+        score = sum(1 for alias in info.get("aliases", []) if alias.lower() in normalized)
+        if score > best_score:
+            best, best_score = info, score
+    return best if best_score else None
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FILE SEARCH ENGINE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def search_project_files(query: str) -> list:
+    """Semantic + filesystem file search."""
+    # Semantic first
+    concept_hits = _find_concept(query)
+    found_paths = {e[0] for e in concept_hits}
+
+    # Route alias match
+    route_info = _route_for_concept(query)
+    if route_info:
+        for f in [route_info.get("router"), route_info.get("template")]:
+            if f and f not in found_paths:
+                concept_hits.append((f, "route_match", route_info["description"]))
+                found_paths.add(f)
+
+    # Filesystem fallback
+    ql = query.lower()
+    for root, dirs, files in os.walk(str(EXTRACTED_DIR)):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        for fname in files:
+            fp = Path(root) / fname
+            rel = str(fp.relative_to(EXTRACTED_DIR))
+            if any(ext in fname for ext in CODE_EXTS) and ql in fname.lower() and rel not in found_paths:
+                concept_hits.append((rel, "filename_match", fname))
+                found_paths.add(rel)
+    return concept_hits
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FILE AWARENESS ENGINE — answer any "what file controls X?" question
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def answer_file_question(msg: str) -> dict:
+    """Answer questions like 'what file controls X?' with real file paths."""
+    # Extract concept from common patterns
+    concept_pats = [
+        r"what files?.{0,20}(?:should|must|need).{0,20}(?:(?:be\s+)?modified?|changed?|edited?|updated?).{0,30}(?:to\s+)?(.+?)[\?\.]*$",
+        r"what files?.{0,20}(?:to|for)\s+(?:redesign|rebuild|modify|change)\s+(.+?)[\?\.]*$",
+        r"what file.{0,20}(?:controls?|handles?|manages?|is)\s+(?:the\s+)?(.+?)[\?\.]*$",
+        r"which file.{0,20}(?:controls?|handles?|for|serves?)\s+(?:the\s+)?(.+?)[\?\.]*$",
+        r"what.{0,10}css.{0,20}(?:controls?|handles?|is\s+for)\s+(?:the\s+)?(.+?)[\?\.]*$",
+        r"what.{0,10}(?:route|path).{0,20}(?:loads?|serves?|handles?)\s+(?:the\s+)?(.+?)[\?\.]*$",
+        r"where.{0,10}is\s+(?:the\s+)?(.+?)(?:\s+(?:file|page|code|template|route))[\?\.]*$",
+        r"find\s+(?:the\s+)?(.+?)(?:\s+(?:file|page|template|route))?[\?\.]*$",
+        r"locate\s+(?:the\s+)?(.+?)(?:\s+(?:file|page|template))?[\?\.]*$",
+        r"أي ملف.{0,20}يتحكم.{0,20}(?:في\s+)?(.+?)[\?\.]*$",
+        r"ما الملف.{0,20}(?:يتحكم|يعالج|المسؤول).{0,20}(?:عن\s+)?(.+?)[\?\.]*$",
+        r"أين.{0,10}(?:يوجد\s+)?(.+?)[\?\.]*$",
+    ]
+    concept = msg
+    for pat in concept_pats:
+        m = re.search(pat, msg, re.IGNORECASE)
+        if m:
+            concept = m.group(1).strip(" ?.!")
+            break
+
+    # Also try the full message if concept extraction gives something very short
+    entries = _find_concept(concept)
+    if not entries:
+        entries = _find_concept(msg)
+
+    # Route-level match
+    route_info = _route_for_concept(concept) or _route_for_concept(msg)
+
+    if not entries and not route_info:
+        return {
+            "text": f"⚠️ لم أجد ملفات مرتبطة بـ: **{concept}**\n\nجرب: homepage, dashboard, sidebar, colors, login, users, ai engineer, bots, backup",
+            "data": {"concept": concept, "files": []},
+        }
+
+    # Build answer text
+    lines = [f"📍 **الملفات المسؤولة عن: `{concept}`**\n"]
+    file_list = []
+
+    if route_info:
+        lines.append(f"🌐 **الرابط:** `{route_info.get('description', '')}`")
+        for entry_type, label, emoji in [("router", "ROUTER", "⚙️"), ("template", "TEMPLATE", "🎨"), ("base", "BASE", "🏗️")]:
+            f = route_info.get(entry_type)
+            if f:
+                lines.append(f"  {emoji} **{label}**: `{f}` ✅")
+                file_list.append({"path": f, "role": entry_type, "desc": label})
+        css = route_info.get("css", [])
+        if css:
+            lines.append(f"  🎨 **CSS**: `{', '.join(css)}`")
+            for c in css:
+                file_list.append({"path": c, "role": "css", "desc": "stylesheet"})
+        js = route_info.get("js", [])
+        if js:
+            lines.append(f"  📜 **JS**: `{', '.join(js)}`")
+            for j in js:
+                file_list.append({"path": j, "role": "js", "desc": "javascript"})
+        apis = route_info.get("apis", [])
+        if apis:
+            lines.append(f"  🔌 **APIs**: {', '.join(f'`{a}`' for a in apis[:4])}")
+        lines.append("")
+
+    seen_files = {e["path"] for e in file_list}
+    if entries:
+        lines.append("📂 **الملفات المرتبطة:**")
+        for path, role, desc in entries:
+            if path not in seen_files:
+                role_icons = {
+                    "template": "🎨", "router": "⚙️", "css": "🎨", "js": "📜",
+                    "model": "🗄️", "db": "🗄️", "handler": "🤖", "service": "🔧",
+                    "auth": "🔐", "config": "⚙️", "engine": "🧠", "entry": "🚀",
+                    "locale": "🌍", "middleware": "🛡️",
+                }
+                icon = role_icons.get(role, "📄")
+                lines.append(f"  {icon} **{role.upper()}**: `{path}` — {desc}")
+                file_list.append({"path": path, "role": role, "desc": desc})
+                seen_files.add(path)
+
+    return {
+        "text": "\n".join(lines),
+        "data": {"concept": concept, "files": file_list},
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEPENDENCY ANALYZER
+# ═══════════════════════════════════════════════════════════════════════════════
 
 def build_dependency_map() -> dict:
-    """
-    Auto-build route → template → CSS/JS dependency map
-    by parsing all Python router files.
-    """
-    dep_map = {}
-    route_pat   = re.compile(r'@(?:router|app)\.(?:get|post|put|delete|patch)\(["\']([^"\']+)["\']')
-    tmpl_pat    = re.compile(r'TemplateResponse\s*\([^,]+,\s*["\']([^"\']+\.html)["\']')
-    prefix_pat  = re.compile(r'APIRouter\s*\(.*prefix\s*=\s*["\']([^"\']+)["\']')
+    """Auto-scan all Python router files + supplement with static knowledge."""
+    dep_map: dict = {}
 
-    for root, dirs, fnames in os.walk(EXTRACTED_DIR):
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
-        for fn in fnames:
-            if not fn.endswith(".py"):
-                continue
-            fp = os.path.join(root, fn)
-            rel = os.path.relpath(fp, EXTRACTED_DIR)
+    # Auto-discovery from router files
+    router_dir = _HERE / "routers"
+    if router_dir.exists():
+        for rf in sorted(router_dir.glob("*.py")):
             try:
-                with open(fp, "r", errors="replace") as f:
-                    content = f.read()
+                src = rf.read_text(encoding="utf-8")
             except Exception:
                 continue
-
-            prefix = ""
-            pm = prefix_pat.search(content)
-            if pm:
-                prefix = pm.group(1).rstrip("/")
-
-            routes_in_file = route_pat.findall(content)
-            tmpls_in_file  = tmpl_pat.findall(content)
-
-            for route in routes_in_file:
-                full_route = prefix + route if not route.startswith(prefix) else route
-                dep_map[full_route] = {
-                    "route":    full_route,
-                    "file":     rel,
-                    "templates": [],
-                    "css":      ["control_panel/static/css/style.css"],
-                    "js":       ["control_panel/static/js/app.js"],
+            for m in re.finditer(r'@router\.(get|post|put|delete|patch)\(["\']([^"\']+)', src):
+                route  = m.group(2)
+                pos    = m.start()
+                # find TemplateResponse near this route
+                snippet = src[pos:pos + 600]
+                tpls    = re.findall(r'TemplateResponse\([^,]+,\s*["\']([^"\']+)', snippet)
+                dep_map[route] = {
+                    "file": f"control_panel/routers/{rf.name}",
+                    "templates": tpls or [],
+                    "css": ["control_panel/static/css/style.css"],
+                    "js": ["control_panel/static/js/app.js"],
                 }
-            # Associate templates found in same file to its routes
-            if tmpls_in_file and routes_in_file:
-                for route in routes_in_file:
-                    full_route = prefix + route if not route.startswith(prefix) else route
-                    if full_route in dep_map:
-                        dep_map[full_route]["templates"] = tmpls_in_file
+
+    # App.py routes
+    try:
+        app_src = (_HERE / "app.py").read_text(encoding="utf-8")
+        for m in re.finditer(r'@app\.(get|post)\(["\']([^"\']+)', app_src):
+            route   = m.group(2)
+            pos     = m.start()
+            snippet = app_src[pos:pos + 400]
+            tpls    = re.findall(r'TemplateResponse\([^,]+,\s*["\']([^"\']+)', snippet)
+            dep_map[route] = {
+                "file": "control_panel/app.py",
+                "templates": tpls or [],
+                "css": ["control_panel/static/css/style.css"],
+                "js": ["control_panel/static/js/app.js"],
+            }
+    except Exception:
+        pass
 
     return dep_map
 
 
+def analyze_file_impact(file_rel_path: str) -> dict:
+    """What breaks if this file changes? What depends on it?"""
+    fp = file_rel_path.lower().replace("\\", "/")
+    impact = {"file": file_rel_path, "affects": [], "depended_by": [], "risk": "low"}
+
+    # Static knowledge about high-impact files
+    _IMPACT = {
+        "control_panel/static/css/style.css": {
+            "affects": ["ALL 20 templates — every page in the control panel"],
+            "risk": "critical",
+        },
+        "control_panel/static/js/app.js": {
+            "affects": ["ALL pages — sidebar, theme, alerts, modals, API calls, charts"],
+            "risk": "critical",
+        },
+        "control_panel/templates/base.html": {
+            "affects": ["19 pages that extend base.html — sidebar, header, navigation, CSS/JS loading"],
+            "risk": "critical",
+        },
+        "control_panel/app.py": {
+            "affects": ["Panel startup, auth routes /panel /panel/login, all router registration"],
+            "risk": "critical",
+        },
+        "control_panel/auth.py": {
+            "affects": ["All authenticated panel routes — removing auth breaks all page access"],
+            "risk": "critical",
+        },
+        "control_panel/config.py": {
+            "affects": ["All 12 routers import config — PROJECT_ROOT, OWNER_ID, template paths"],
+            "risk": "high",
+        },
+        "control_panel/ai_engine.py": {
+            "affects": ["All /ai/* API endpoints, chat, planning, file questions, self-tests"],
+            "risk": "high",
+        },
+        "database/db.py": {
+            "affects": ["init_db() — breaking this prevents bot startup; all 8 DB models depend on it"],
+            "risk": "critical",
+        },
+        "database/users.py": {
+            "affects": ["handlers/start.py, handlers/admin.py, handlers/profile.py, control_panel/routers/users.py"],
+            "risk": "high",
+        },
+        "bot.py": {
+            "affects": ["Entire PrimeDownloader bot — all handlers, all commands"],
+            "risk": "critical",
+        },
+        "support_bot/bot.py": {
+            "affects": ["Entire Support Bot — all ticket handlers"],
+            "risk": "critical",
+        },
+        "config/settings.py": {
+            "affects": ["TELEGRAM_BOT_TOKEN, ADMIN_IDS, OWNER_ID — bot won't start without it"],
+            "risk": "critical",
+        },
+        "services/downloader.py": {
+            "affects": ["handlers/download.py — ALL download operations"],
+            "risk": "high",
+        },
+        "middlewares/auth.py": {
+            "affects": ["All admin commands check is_admin/is_owner here"],
+            "risk": "high",
+        },
+        "locales/ar.py": {
+            "affects": ["All Arabic text in bot — all handlers use locales"],
+            "risk": "medium",
+        },
+        "locales/en.py": {
+            "affects": ["All English text in bot"],
+            "risk": "medium",
+        },
+    }
+
+    if fp in _IMPACT:
+        data   = _IMPACT[fp]
+        impact["affects"]  = data["affects"]
+        impact["risk"]     = data["risk"]
+        impact["depended_by"] = [k for k, v in _IMPACT.items() if fp in str(v.get("affects", []))]
+    else:
+        # Heuristic for other files
+        if "template" in fp or ".html" in fp:
+            impact["affects"] = ["This page only — change won't affect other pages"]
+            impact["risk"] = "low"
+        elif "router" in fp:
+            impact["affects"] = ["The routes and APIs defined in this router"]
+            impact["risk"] = "medium"
+        elif "handler" in fp:
+            impact["affects"] = ["The bot commands and callbacks in this handler"]
+            impact["risk"] = "medium"
+        elif "database" in fp or "model" in fp:
+            impact["affects"] = ["All code that imports this DB model"]
+            impact["risk"] = "medium"
+        elif "service" in fp:
+            impact["affects"] = ["All handlers that call this service"]
+            impact["risk"] = "medium"
+
+    return impact
+
+
 def get_file_role(rel_path: str) -> dict:
-    """Return a full profile of a file: what it does, who uses it, dependencies."""
-    fp = os.path.join(EXTRACTED_DIR, rel_path)
-    if not os.path.exists(fp):
-        return {"ok": False, "error": "الملف غير موجود"}
+    """Full profile of any file: role, purpose, dependencies, impact."""
+    fp = rel_path.strip().replace("\\", "/")
 
-    ext  = os.path.splitext(rel_path)[1].lower()
-    name = os.path.basename(rel_path)
+    # Check route graph
+    for route, info in _ROUTE_GRAPH.items():
+        if fp == info.get("router") or fp == info.get("template"):
+            role_type = "router" if fp == info.get("router") else "template"
+            impact    = analyze_file_impact(fp)
+            return {
+                "file": fp,
+                "role": role_type,
+                "page": info.get("description"),
+                "route": route,
+                "template": info.get("template"),
+                "router": info.get("router"),
+                "css": info.get("css"),
+                "js": info.get("js"),
+                "apis": info.get("apis"),
+                "impact": impact,
+            }
 
-    profile = {
-        "ok":     True,
-        "path":   rel_path,
-        "name":   name,
-        "ext":    ext,
-        "lines":  _count_lines(fp),
-        "size":   _fmt(os.path.getsize(fp)),
-        "role":   "",
-        "description": "",
-        "controls":    [],
-        "depends_on":  [],
-        "used_by":     [],
-    }
+    # Check db map
+    for key, db_info in _DB_MAP.items():
+        if fp == db_info.get("file"):
+            return {
+                "file": fp,
+                "role": "database_model",
+                "description": db_info.get("description"),
+                "functions": db_info.get("functions"),
+                "used_by": db_info.get("used_by"),
+                "impact": analyze_file_impact(fp),
+            }
 
-    # Determine role from semantic map
-    for concept, entries in _SEMANTIC_MAP.items():
-        for (path, role, desc) in entries:
-            if path in rel_path or rel_path in path:
-                profile["role"] = role
-                profile["description"] = desc
-                profile["controls"].append(concept)
+    # Check bot map
+    for bot_key, bot_info in _BOT_MAP.items():
+        if fp == bot_info.get("entry"):
+            return {
+                "file": fp,
+                "role": "bot_entry",
+                "description": bot_info.get("description"),
+                "handlers": bot_info.get("handlers"),
+                "database": bot_info.get("database"),
+                "impact": analyze_file_impact(fp),
+            }
+        for hname, hdesc in bot_info.get("handlers", {}).items():
+            hfile = hdesc.split(" —")[0].strip() if " —" in hdesc else hdesc
+            if fp in hfile:
+                return {
+                    "file": fp,
+                    "role": "bot_handler",
+                    "description": hdesc,
+                    "bot": bot_info.get("description"),
+                    "impact": analyze_file_impact(fp),
+                }
 
-    # Parse imports / TemplateResponse
-    if ext == ".py":
-        try:
-            with open(fp, "r", errors="replace") as f:
-                content = f.read()
-            imports = re.findall(r'^(?:from|import)\s+(\S+)', content, re.MULTILINE)
-            profile["depends_on"] = imports[:10]
-            tmpls = re.findall(r'TemplateResponse\s*\([^,]+,\s*["\']([^"\']+\.html)["\']', content)
-            profile["used_by"] = [f"template: {t}" for t in tmpls]
-        except Exception:
-            pass
-    elif ext == ".html":
-        try:
-            with open(fp, "r", errors="replace") as f:
-                content = f.read()
-            extends = re.findall(r'{%\s*extends\s*["\']([^"\']+)["\']', content)
-            includes = re.findall(r'{%\s*include\s*["\']([^"\']+)["\']', content)
-            css_links = re.findall(r'href=["\'][^"\']*\.css[^"\']*["\']', content)
-            js_links  = re.findall(r'src=["\'][^"\']*\.js[^"\']*["\']', content)
-            profile["depends_on"] = extends + includes + [c.split("=")[1].strip('"\'') for c in css_links[:3]]
-            profile["used_by"]    = [j.split("=")[1].strip('"\'') for j in js_links[:3]]
-        except Exception:
-            pass
+    # Check config map
+    for key, cfg_info in _CONFIG_MAP.items():
+        if fp == cfg_info.get("file"):
+            return {
+                "file": fp,
+                "role": "config",
+                "description": cfg_info.get("description"),
+                "used_by": cfg_info.get("used_by"),
+                "impact": analyze_file_impact(fp),
+            }
 
-    return profile
+    # Generic
+    impact = analyze_file_impact(fp)
+    return {"file": fp, "role": "unknown", "description": "ملف لم يُصنَّف بعد", "impact": impact}
 
 
-def answer_file_question(msg: str) -> dict:
-    """
-    Core file awareness: answer "what file controls X?" with real files.
-    Returns structured answer with files, roles, dependencies.
-    """
-    ml = msg.lower()
+# ═══════════════════════════════════════════════════════════════════════════════
+# MODIFICATION PLANNING ENGINE
+# ═══════════════════════════════════════════════════════════════════════════════
 
-    # Extract the concept being asked about
-    # Patterns: "what file controls X", "which file handles X", "find X file", "where is X"
-    concept_pats = [
-        r"what file.{0,15}(?:controls?|handles?|manages?|is)\s+(.+)",
-        r"which file.{0,15}(?:controls?|handles?|for)\s+(.+)",
-        r"find.{0,5}(?:the\s+)?(.+?)(?:\s+file|\s+page)?$",
-        r"where is.{0,5}(?:the\s+)?(.+)",
-        r"locate\s+(.+)",
-        r"أي ملف.{0,10}يتحكم.{0,5}(?:في|بـ)?\s*(.+)",
-        r"ما الملف.{0,10}(?:الذي\s+)?يتحكم.{0,5}(?:في|بـ)?\s*(.+)",
-        r"أين.{0,5}(?:يوجد|هو)?\s*(.+)",
-    ]
-    concept = msg.strip()
-    for pat in concept_pats:
-        m = re.search(pat, ml, re.IGNORECASE)
-        if m:
-            concept = m.group(1).strip().rstrip("?؟.")
-            break
-
-    results = _find_concept(concept)
-
-    # Fallback: search full text
-    if not results:
-        results_full = search_project_files(concept)
-        if results_full:
-            results = [(r["path"], r["role"], r["description"]) for r in results_full[:5]]
-
-    if not results:
-        return {
-            "text": f"""🔍 **بحث عن: "{concept}"**
-
-لم أجد تطابقاً مباشراً في خريطة المعرفة.
-
-💡 جرب الأوامر التالية:
-  · `ابحث عن dashboard` — لوحة القيادة
-  · `ما الملف الذي يتحكم في الألوان؟`
-  · `أين صفحة المستخدمين؟`""",
-            "intent": "find_file", "type": "info",
-            "actions": [{"label": "📁 ابحث في الملفات", "link": "/files"}]
-        }
-
-    # Build rich answer
-    lines = [f"📍 **الملفات المسؤولة عن: `{concept}`**\n"]
-    for (rel_path, role, desc) in results:
-        fp = os.path.join(EXTRACTED_DIR, rel_path)
-        exists = "✅" if os.path.exists(fp) else "⚠️ (غير موجود)"
-        role_icon = {
-            "template":   "🎨",
-            "router":     "🛣️",
-            "handler":    "⚙️",
-            "engine":     "🧠",
-            "stylesheet": "🎨",
-            "script":     "⚡",
-            "auth":       "🔒",
-            "config":     "⚙️",
-            "utility":    "🔧",
-            "core":       "🏗️",
-            "database":   "🗄️",
-            "entry":      "🚀",
-            "workers":    "⏱️",
-            "handlers":   "📨",
-        }.get(role, "📄")
-        lines.append(f"{role_icon} **{role.upper()}**: `{rel_path}` {exists}")
-        lines.append(f"   ↳ {desc}\n")
-
-    # Add dependency note for the first file
-    if results:
-        first_path, first_role, _ = results[0]
-        if first_role == "template":
-            lines.append("🔗 **المعتمدات:**")
-            lines.append("  · CSS: `control_panel/static/css/style.css`")
-            lines.append("  · JS:  `control_panel/static/js/app.js`")
-            lines.append("  · Base: `control_panel/templates/base.html`")
-
-    return {
-        "text": "\n".join(lines),
-        "intent": "find_file", "type": "success",
-        "data": {"concept": concept, "files": [{"path": r[0], "role": r[1], "description": r[2]} for r in results]},
-        "actions": [
-            {"label": f"📄 فتح {results[0][0].split('/')[-1]}", "link": f"/files"},
-        ]
-    }
+_PLAN_TEMPLATES: dict = {
+    "homepage": {
+        "files": [
+            ("control_panel/templates/dashboard.html", "template", "HTML structure of the homepage"),
+            ("control_panel/routers/dashboard.py", "router", "Python backend — data passed to template"),
+            ("control_panel/static/css/style.css", "css", "Dashboard layout .stats-grid, .activity-feed"),
+            ("control_panel/static/js/app.js", "js", "Chart.js, dashboard API calls"),
+        ],
+        "risk": "🟠 متوسط",
+        "rollback": "Restore dashboard.html from backups page (/backups) or git revert",
+    },
+    "dashboard": {
+        "files": [
+            ("control_panel/templates/dashboard.html", "template", "HTML structure"),
+            ("control_panel/routers/dashboard.py", "router", "Backend data"),
+            ("control_panel/static/css/style.css", "css", "Dashboard CSS sections"),
+            ("control_panel/static/js/app.js", "js", "Chart.js integration"),
+        ],
+        "risk": "🟠 متوسط",
+        "rollback": "Restore dashboard.html from /backups or git",
+    },
+    "sidebar": {
+        "files": [
+            ("control_panel/templates/base.html", "template", "Sidebar HTML — affects ALL 19 pages"),
+            ("control_panel/static/css/style.css", "css", ".sidebar, .sidebar-nav, .sidebar-link styles"),
+            ("control_panel/static/js/app.js", "js", "toggleSidebar() — sidebar open/close logic"),
+        ],
+        "risk": "🔴 عالي — تغيير base.html يؤثر على 19 صفحة",
+        "rollback": "Restore base.html immediately — all pages affected",
+    },
+    "colors": {
+        "files": [
+            ("control_panel/static/css/style.css", "css", "CSS variables block — :root { --primary: ... }"),
+        ],
+        "risk": "🟠 متوسط — CSS variables affect all pages",
+        "rollback": "Revert the :root CSS variables block",
+    },
+    "css": {
+        "files": [
+            ("control_panel/static/css/style.css", "css", "The one CSS file — all styles"),
+        ],
+        "risk": "🔴 عالي — affects all 20 pages",
+        "rollback": "Restore style.css from backups",
+    },
+    "login": {
+        "files": [
+            ("control_panel/templates/access.html", "template", "Login page HTML — standalone, no base.html"),
+            ("control_panel/app.py", "app", "POST /panel/login handler + session logic"),
+            ("control_panel/auth.py", "auth", "Password hashing + session management"),
+            ("control_panel/static/css/style.css", "css", ".access-container styles"),
+        ],
+        "risk": "🔴 عالي — breaking auth locks everyone out",
+        "rollback": "Restore access.html + auth.py before testing",
+    },
+    "auth": {
+        "files": [
+            ("control_panel/auth.py", "auth", "Session + password logic"),
+            ("control_panel/app.py", "app", "Login route handler"),
+            ("control_panel/templates/access.html", "template", "Login page"),
+        ],
+        "risk": "🔴 عالي — critical security component",
+        "rollback": "Always have a working backup before changing auth",
+    },
+    "users": {
+        "files": [
+            ("control_panel/templates/users.html", "template", "Users page HTML"),
+            ("control_panel/routers/users.py", "router", "Users CRUD APIs"),
+            ("database/users.py", "model", "Database operations — ban, points, VIP"),
+            ("control_panel/static/css/style.css", "css", "Table styles"),
+        ],
+        "risk": "🟠 متوسط",
+        "rollback": "Restore users.html + users.py",
+    },
+    "ai_engineer": {
+        "files": [
+            ("control_panel/templates/ai_engineer.html", "template", "AI Engineer page UI"),
+            ("control_panel/routers/ai_workspace.py", "router", "route GET /ai/engineer + APIs"),
+            ("control_panel/ai_engine.py", "engine", "Intelligence engine — the core logic"),
+            ("control_panel/static/css/style.css", "css", "AI workspace styles"),
+        ],
+        "risk": "🟠 متوسط",
+        "rollback": "Restore ai_engine.py from .ai_backups/",
+    },
+    "navigation": {
+        "files": [
+            ("control_panel/templates/base.html", "template", "Navigation links in sidebar"),
+            ("control_panel/static/css/style.css", "css", ".sidebar-nav, .sidebar-link styles"),
+            ("control_panel/static/js/app.js", "js", "Active link + sidebar toggle logic"),
+        ],
+        "risk": "🔴 عالي — affects all 19 pages",
+        "rollback": "Restore base.html — all pages will reset",
+    },
+    "bots": {
+        "files": [
+            ("control_panel/templates/bots.html", "template", "Bots management page"),
+            ("control_panel/routers/bots.py", "router", "Bot start/stop/restart APIs"),
+        ],
+        "risk": "🟡 منخفض",
+        "rollback": "Restore bots.html",
+    },
+    "backup": {
+        "files": [
+            ("control_panel/templates/backups.html", "template", "Backup management page"),
+            ("control_panel/routers/backups.py", "router", "Backup create/restore/download APIs"),
+            ("control_panel/ai_engine.py", "engine", "create_backup + restore_backup functions"),
+        ],
+        "risk": "🟠 متوسط",
+        "rollback": "Use an existing backup to restore",
+    },
+}
 
 
 def create_modification_plan(description: str) -> dict:
-    """
-    Phase 1.5 Planning Engine: generate a real plan with actual file names.
-    """
-    # Find which files are relevant
-    relevant = _find_concept(description)
-    all_search = search_project_files(description)
+    """Generate a real file-based modification plan."""
+    dl = description.lower()
 
-    # Merge results
-    files_to_modify = []
-    seen = set()
-    for (rel, role, desc) in relevant:
-        if rel not in seen and not rel.endswith("/"):
-            fp = os.path.join(EXTRACTED_DIR, rel)
-            if os.path.exists(fp):
-                files_to_modify.append({"path": rel, "role": role, "reason": desc, "risk": _assess_risk(role)})
-                seen.add(rel)
-
-    # Classify risk
-    overall_risk = "low"
-    for f in files_to_modify:
-        if f["risk"] == "high":
-            overall_risk = "high"
+    # Match plan template
+    plan_key = None
+    for key in _PLAN_TEMPLATES:
+        if key in dl or key.replace("_", " ") in dl:
+            plan_key = key
             break
-        if f["risk"] == "medium":
-            overall_risk = "medium"
 
-    RISK_LABELS = {"none": "✅ آمن تماماً", "low": "🟡 منخفض", "medium": "🟠 متوسط", "high": "🔴 عالي"}
+    # Fallback: match via concept
+    if not plan_key:
+        concept_entries = _find_concept(description)
+        route_info = _route_for_concept(description)
+        if route_info:
+            files = []
+            for ft, label in [("router", "router"), ("template", "template"), ("base", "base template")]:
+                f = route_info.get(ft)
+                if f:
+                    files.append((f, label, f"Controls {route_info.get('description', '')}"))
+            for c in route_info.get("css", []):
+                files.append((c, "css", "Page styling"))
+            plan_key = None
+            files_to_modify = files
+            risk = "🟠 متوسط"
+            rollback = "Use /backups to create a backup before making changes"
+        elif concept_entries:
+            files_to_modify = [(e[0], e[1], e[2]) for e in concept_entries]
+            risk = "🟠 متوسط"
+            rollback = "Use /backups to create a backup before making changes"
+        else:
+            files_to_modify = []
+            risk = "🟡 غير محدد"
+            rollback = "Create a backup first via /backups"
+    else:
+        pt = _PLAN_TEMPLATES[plan_key]
+        files_to_modify = pt["files"]
+        risk = pt["risk"]
+        rollback = pt["rollback"]
 
-    # Build steps
-    steps = [{"n": 1, "action": "💾 نسخة احتياطية أولاً", "desc": "حفظ الحالة الحالية قبل أي تعديل", "risk": "none"}]
-    for i, f in enumerate(files_to_modify[:6], 2):
-        steps.append({
-            "n": i,
-            "action": f"تعديل `{f['path'].split('/')[-1]}`",
-            "desc": f"{f['reason']} ({f['role']})",
-            "risk": f["risk"],
-            "file": f["path"],
-        })
-    steps.append({
-        "n": len(steps) + 1,
-        "action": "✅ اختبار التعديلات",
-        "desc": "مراجعة النتيجة النهائية وإعادة تشغيل الخدمة إن لزم",
-        "risk": "none",
-    })
-
-    rollback = f"استعادة النسخة الاحتياطية التي تم إنشاؤها في الخطوة 1"
+    steps = []
+    if files_to_modify:
+        steps.append("1. إنشاء نسخة احتياطية من /backups قبل البدء")
+        for i, (fpath, role, reason) in enumerate(files_to_modify, 2):
+            steps.append(f"{i}. تعديل `{fpath}` [{role.upper()}] — {reason}")
+        steps.append(f"{len(files_to_modify)+2}. اختبار التغييرات في المتصفح")
+        steps.append(f"{len(files_to_modify)+3}. التحقق من عدم ظهور أخطاء في /logs")
+    else:
+        steps = ["لم يتم تحديد الملفات بدقة — استخدم /search لإيجاد الملف المطلوب"]
 
     return {
-        "ok": True,
-        "title": f"خطة التنفيذ: {description[:60]}",
-        "intent": detect_intent(description),
+        "description": description,
+        "files_affected": [f[0] for f in files_to_modify],
+        "file_details": [{"file": f[0], "role": f[1], "why": f[2]} for f in files_to_modify],
         "steps": steps,
-        "files_affected": [f["path"] for f in files_to_modify],
-        "files_detail":   files_to_modify,
-        "risk":           overall_risk,
-        "risk_label":     RISK_LABELS.get(overall_risk, overall_risk),
-        "requires_backup": True,
-        "rollback":        rollback,
-        "estimated_time": f"{len(steps) * 2}-{len(steps) * 5} ثانية",
-        "created_at":     datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "risk_label": risk,
+        "rollback_strategy": rollback,
+        "estimated_files": len(files_to_modify),
     }
 
 
-def _assess_risk(role: str) -> str:
+# ═══════════════════════════════════════════════════════════════════════════════
+# ROOT CAUSE ANALYSIS ENGINE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def analyze_root_cause(question: str) -> dict:
+    """When asked 'why is X broken?', find all potential failure points."""
+    ql = question.lower()
+
+    # Identify what's broken from the question
+    broken_concept = _find_concept(question)
+    route_info     = _route_for_concept(question)
+
+    failure_points = []
+    checks = []
+
+    if route_info:
+        route = None
+        for r, info in _ROUTE_GRAPH.items():
+            if info is route_info:
+                route = r
+                break
+
+        failure_points = [
+            {"layer": "Python Router", "file": route_info["router"], "check": f"Any Python exception in {route_info['router']} — check /logs"},
+            {"layer": "Jinja2 Template", "file": route_info["template"], "check": f"Template syntax error in {route_info['template']} — check for unclosed tags"},
+            {"layer": "CSS", "file": "control_panel/static/css/style.css", "check": "CSS syntax error or missing class — check browser DevTools"},
+            {"layer": "JavaScript", "file": "control_panel/static/js/app.js", "check": "JS error in console — check browser console (F12)"},
+        ]
+        if route_info.get("apis"):
+            failure_points.append({
+                "layer": "API",
+                "file": route_info["router"],
+                "check": f"API endpoint returning error: {route_info['apis'][0]}",
+            })
+
+        checks = [
+            f"1. Open /logs — look for Python errors from {route_info.get('router', '')}",
+            "2. Open browser F12 → Console — look for JS errors",
+            "3. Open browser F12 → Network — check failed API calls",
+            f"4. Check {route_info.get('template', '')} for Jinja2 syntax errors (unclosed blocks)",
+            "5. Check style.css for the relevant CSS class",
+        ]
+    else:
+        failure_points = [{"layer": "Unknown", "file": "—", "check": "Could not identify the broken component from the question"}]
+        checks = ["Describe what exactly is broken (button, page, API, bot command) for a more specific analysis"]
+
     return {
-        "core":       "high",
-        "auth":       "high",
-        "handler":    "medium",
-        "router":     "medium",
-        "engine":     "medium",
-        "template":   "low",
-        "stylesheet": "low",
-        "script":     "low",
-        "config":     "medium",
-        "utility":    "medium",
-        "database":   "high",
-    }.get(role, "low")
+        "question": question,
+        "identified_component": broken_concept[0][0] if broken_concept else "unknown",
+        "failure_points": failure_points,
+        "diagnostic_steps": checks,
+        "log_file": "logs/errors.log",
+    }
 
 
-def run_self_tests() -> dict:
-    """Run Phase 1.5 self-tests: verify the AI can answer file questions."""
-    tests = [
-        ("What file controls the homepage?",              "find_file", "dashboard"),
-        ("What file controls the dashboard?",             "find_file", "dashboard"),
-        ("What CSS controls the colors?",                 "find_file", "style.css"),
-        ("What files should be modified to redesign the homepage?", "find_file", "dashboard.html"),
-        ("What route loads the AI Engineer page?",        "find_file", "ai_engineer"),
-        ("Find the login page",                           "find_file", "access.html"),
-        ("What file handles authentication?",             "find_file", "auth.py"),
-        ("Where is the sidebar?",                         "find_file", "base.html"),
-    ]
+# ═══════════════════════════════════════════════════════════════════════════════
+# ARCHITECTURE INTELLIGENCE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def explain_architecture(query: str = "project") -> dict:
+    """Explain any subsystem of the project."""
+    ql = query.lower()
+
+    if any(kw in ql for kw in ["frontend", "css", "html", "template", "ui", "style"]):
+        key = "frontend"
+    elif any(kw in ql for kw in ["bot", "telegram", "handler", "command", "بوت"]):
+        key = "bots"
+    elif any(kw in ql for kw in ["database", "db", "sqlite", "model", "قاعدة"]):
+        key = "database"
+    elif any(kw in ql for kw in ["panel", "control", "fastapi", "لوحة"]):
+        key = "control_panel"
+    else:
+        key = "project"
+
+    arch = _ARCH_MAP.get(key, _ARCH_MAP["project"])
+
+    lines = [f"🏗️ **معمارية: {key.upper()}**\n", arch["description"], ""]
+    for k, v in arch.items():
+        if k == "description":
+            continue
+        if isinstance(v, list):
+            lines.append(f"**{k}:**")
+            for item in v:
+                lines.append(f"  • {item}")
+        elif isinstance(v, str):
+            lines.append(f"**{k}:** {v}")
+    return {"text": "\n".join(lines), "data": arch}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SELF-TEST SUITE — 8 canonical questions + extras
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_SELF_TESTS = [
+    # (question, expected_intent, expected_keyword_in_answer)
+    ("What file controls the homepage?",                "find_file", "dashboard.html"),
+    ("What file controls the dashboard?",               "find_file", "dashboard.html"),
+    ("What file controls the colors?",                  "find_file", "style.css"),
+    ("What file controls the sidebar?",                 "find_file", "base.html"),
+    ("What file loads the AI Engineer page?",           "find_file", "ai_engineer"),
+    ("What route serves the users page?",               "find_file", "users"),
+    ("What files must change to redesign the homepage?","find_file", "dashboard.html"),
+    ("What files must change to redesign the sidebar?", "find_file", "base.html"),
+    # Extra coverage
+    ("Find the login page",                             "find_file", "access.html"),
+    ("What file handles authentication?",               "find_file", "auth.py"),
+    ("Where is the backup system?",                     "find_file", "backups"),
+    ("What CSS controls the theme?",                    "find_file", "style.css"),
+    ("Where is the AI Workspace?",                      "find_file", "ai_workspace"),
+    ("What file is the bot entry point?",               "find_file", "bot.py"),
+    ("Where is the download handler?",                  "find_file", "download.py"),
+    ("What files handle the support bot?",              "find_file", "support_bot"),
+]
+
+_CANONICAL_TESTS = _SELF_TESTS[:8]  # the 8 required ones
+
+
+def run_self_tests(extended: bool = False) -> dict:
+    """Run the self-test suite. extended=True runs all 16 tests."""
+    tests_to_run = _SELF_TESTS if extended else _CANONICAL_TESTS
     results = []
     passed  = 0
-    for (question, expected_intent, expected_keyword) in tests:
-        intent  = detect_intent(question)
-        answer  = answer_file_question(question)
-        found   = expected_keyword.lower() in answer["text"].lower()
-        intent_ok = intent == expected_intent
-        ok = found and intent_ok
+
+    for question, expected_intent, expected_keyword in tests_to_run:
+        got_intent = detect_intent(question)
+        intent_ok  = (got_intent == expected_intent)
+
+        answer     = answer_file_question(question)
+        ans_text   = answer["text"].lower()
+        ans_files  = " ".join(e["path"].lower() for e in answer.get("data", {}).get("files", []))
+        keyword_found = (
+            expected_keyword.lower() in ans_text or
+            expected_keyword.lower() in ans_files
+        )
+
+        ok = intent_ok and keyword_found
         if ok:
             passed += 1
+
         results.append({
             "question":        question,
             "expected_intent": expected_intent,
-            "got_intent":      intent,
+            "got_intent":      got_intent,
             "intent_ok":       intent_ok,
             "expected_keyword": expected_keyword,
-            "keyword_found":   found,
+            "keyword_found":   keyword_found,
             "passed":          ok,
-            "answer_preview":  answer["text"][:120],
         })
 
+    total = len(tests_to_run)
     return {
-        "ok":           True,
-        "total":        len(tests),
-        "passed":       passed,
-        "failed":       len(tests) - passed,
-        "score":        f"{passed}/{len(tests)}",
-        "pass_rate":    f"{passed/len(tests)*100:.0f}%",
-        "status":       "✅ PASS" if passed == len(tests) else ("⚠️ PARTIAL" if passed >= len(tests)//2 else "❌ FAIL"),
-        "tests":        results,
-        "ran_at":       datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "score":     f"{passed}/{total}",
+        "pass_rate": f"{passed/total*100:.0f}%",
+        "status":    "✅ PASS" if passed == total else ("⚠️ PARTIAL" if passed >= total * 0.75 else "❌ FAIL"),
+        "tests":     results,
+        "passed":    passed,
+        "total":     total,
     }
 
 
-# ─── Project Memory ───────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+# MEMORY SYSTEM
+# ═══════════════════════════════════════════════════════════════════════════════
+
 def load_memory() -> dict:
-    try:
-        with open(MEMORY_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        d = _default_memory()
-        save_memory(d)
-        return d
+    if MEMORY_FILE.exists():
+        try:
+            return json.loads(MEMORY_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    data = _default_memory()
+    save_memory(data)
+    return data
+
 
 def save_memory(data: dict):
-    try:
-        with open(MEMORY_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
+    MEMORY_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
 
 def _default_memory() -> dict:
     return {
-        "project_name": "X Control Center",
-        "version": "5.0",
-        "engine_version": "2.0",
-        "last_updated": datetime.now().isoformat(),
-        "components": {
-            "main_bot":      {"name": "PrimeDownloader Bot",   "file": "bot.py",                                   "status": "active", "description": "البوت الرئيسي لتحميل المحتوى"},
-            "support_bot":   {"name": "Support Bot",           "file": "support_bot/bot.py",                      "status": "active", "description": "بوت الدعم الفني"},
-            "control_panel": {"name": "X Control Center",      "file": "control_panel/app.py",                    "status": "active", "description": "لوحة التحكم الرئيسية FastAPI"},
-            "ai_system":     {"name": "AI Workspace v2",       "file": "control_panel/routers/ai_workspace.py",   "status": "active", "description": "نظام الذكاء الاصطناعي — Intelligence Layer"},
-            "backup_system": {"name": "Backup Center",         "file": "control_panel/routers/backups.py",        "status": "active", "description": "نظام النسخ الاحتياطية"},
-            "github":        {"name": "GitHub Manager",        "file": "control_panel/routers/github_router.py",  "status": "active", "description": "مدير GitHub الذكي"},
-            "system_health": {"name": "System Health",         "file": "control_panel/routers/system.py",        "status": "active", "description": "مراقبة صحة النظام"},
+        "version": "3.0",
+        "project": {
+            "name": "X Control Center",
+            "main_bot": "PrimeDownloader Bot (bot.py)",
+            "support_bot": "Support Bot (support_bot/bot.py)",
+            "panel": "FastAPI control panel — port 5000",
+            "css": "ONE file: control_panel/static/css/style.css",
+            "js": "ONE file: control_panel/static/js/app.js",
+            "templates": "20 HTML files in control_panel/templates/",
+            "databases": ["database/bot.db", "support_bot/database/support.db"],
         },
-        "knowledge_index": {
-            "semantic_concepts": list(_SEMANTIC_MAP.keys()),
-            "total_mapped_files": len({e[0] for entries in _SEMANTIC_MAP.values() for e in entries}),
-            "engine_version": "2.0",
-        },
-        "architecture": {
-            "framework":    "FastAPI + Uvicorn",
-            "bots":         "python-telegram-bot 21.6",
-            "db":           "SQLite (aiosqlite)",
-            "templates":    "Jinja2",
-            "css_file":     "control_panel/static/css/style.css",
-            "js_file":      "control_panel/static/js/app.js",
-            "base_template":"control_panel/templates/base.html",
-            "entry_point":  "control_panel/server.py",
-            "port":         5000,
-        },
+        "stats": {"total_scans": 0, "total_plans": 0, "total_questions": 0, "total_chats": 0},
         "chat_history": [],
-        "analysis_cache": {},
-        "ai_stats": {
-            "total_chats":     0,
-            "total_analyses":  0,
-            "total_backups":   0,
-            "errors_found":    0,
-            "last_scan":       None,
-        },
+        "created": datetime.now().isoformat(),
+        "updated": datetime.now().isoformat(),
     }
 
+
 def update_stats(key: str, val: int = 1):
-    mem = load_memory()
-    mem["ai_stats"][key] = mem["ai_stats"].get(key, 0) + val
-    mem["last_updated"] = datetime.now().isoformat()
-    save_memory(mem)
+    m = load_memory()
+    m["stats"][key] = m["stats"].get(key, 0) + val
+    m["updated"] = datetime.now().isoformat()
+    save_memory(m)
+
 
 def save_chat(role: str, text: str):
-    mem = load_memory()
-    history = mem.get("chat_history", [])
-    history.append({"role": role, "text": text[:1000], "ts": datetime.now().isoformat()})
-    mem["chat_history"] = history[-50:]
-    save_memory(mem)
+    m = load_memory()
+    m.setdefault("chat_history", []).append({"role": role, "text": text[:500], "ts": datetime.now().isoformat()})
+    m["chat_history"] = m["chat_history"][-50:]
+    m["updated"] = datetime.now().isoformat()
+    save_memory(m)
 
-# ─── Backup Manager ───────────────────────────────────────────────────────────
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BACKUP SYSTEM
+# ═══════════════════════════════════════════════════════════════════════════════
+
 def create_backup(description: str = "نسخة يدوية") -> dict:
-    ts      = datetime.now().strftime("%Y%m%d_%H%M%S")
-    bk_id   = f"backup_{ts}"
-    bk_path = BACKUP_DIR / f"{bk_id}.zip"
-    added   = 0
+    ts    = datetime.now().strftime("%Y%m%d_%H%M%S")
+    bk_id = hashlib.md5(ts.encode()).hexdigest()[:8]
+    bk_p  = BACKUP_DIR / f"backup_{ts}_{bk_id}.zip"
+    count = 0
     try:
-        with zipfile.ZipFile(bk_path, "w", zipfile.ZIP_DEFLATED) as zf:
-            for root, dirs, fnames in os.walk(EXTRACTED_DIR):
-                dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
-                for fn in fnames:
-                    fp = os.path.join(root, fn)
-                    arc = os.path.relpath(fp, EXTRACTED_DIR)
-                    try:
-                        zf.write(fp, arc)
-                        added += 1
-                    except Exception:
-                        pass
-        size = bk_path.stat().st_size
-        meta = {
-            "id": bk_id, "timestamp": ts,
-            "datetime": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "description": description, "files": added,
-            "size": size, "size_h": _fmt(size),
-            "path": str(bk_path),
-        }
-        with open(BACKUP_DIR / f"{bk_id}.json", "w", encoding="utf-8") as f:
-            json.dump(meta, f, ensure_ascii=False, indent=2)
-        update_stats("total_backups")
-        return {"ok": True, **meta}
+        with zipfile.ZipFile(bk_p, "w", zipfile.ZIP_DEFLATED) as zf:
+            for root, dirs, files in os.walk(str(EXTRACTED_DIR)):
+                dirs[:] = [d for d in dirs if d not in SKIP_DIRS and ".ai_backups" not in root]
+                for f in files:
+                    fp = Path(root) / f
+                    if fp.suffix in CODE_EXTS:
+                        zf.write(fp, fp.relative_to(EXTRACTED_DIR))
+                        count += 1
+        size = bk_p.stat().st_size
+        m = load_memory(); m.setdefault("backups", []).append({"id": bk_id, "ts": ts, "desc": description, "file": bk_p.name, "size": size, "count": count}); save_memory(m)
+        return {"ok": True, "id": bk_id, "file": bk_p.name, "size": size, "files": count, "description": description}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
 
 def list_backups() -> list:
-    out = []
-    for p in sorted(BACKUP_DIR.glob("*.json"), reverse=True)[:25]:
-        try:
-            with open(p, "r", encoding="utf-8") as f:
-                out.append(json.load(f))
-        except Exception:
-            pass
-    return out
+    m = load_memory()
+    return m.get("backups", [])
+
 
 def restore_backup(bk_id: str) -> dict:
-    bk_path = BACKUP_DIR / f"{bk_id}.zip"
-    if not bk_path.exists():
-        return {"ok": False, "error": "النسخة الاحتياطية غير موجودة"}
+    m = load_memory()
+    bk = next((b for b in m.get("backups", []) if b["id"] == bk_id), None)
+    if not bk:
+        return {"ok": False, "error": "Backup not found"}
+    bk_p = BACKUP_DIR / bk["file"]
+    if not bk_p.exists():
+        return {"ok": False, "error": "Backup file missing"}
     try:
-        safety = create_backup(f"Auto-safety before restore {bk_id}")
-        with zipfile.ZipFile(bk_path, "r") as zf:
-            zf.extractall(EXTRACTED_DIR)
-        return {"ok": True, "msg": f"تم الاستعادة من {bk_id}", "safety_id": safety.get("id")}
+        with zipfile.ZipFile(bk_p, "r") as zf:
+            zf.extractall(str(EXTRACTED_DIR))
+        return {"ok": True, "id": bk_id, "message": "تمت الاستعادة بنجاح"}
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
-# ─── File Walker ──────────────────────────────────────────────────────────────
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROJECT SCANNER (filesystem-level analysis)
+# ═══════════════════════════════════════════════════════════════════════════════
+
 def walk_project() -> list:
     files = []
-    for root, dirs, fnames in os.walk(EXTRACTED_DIR):
+    for root, dirs, fnames in os.walk(str(EXTRACTED_DIR)):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
-        for fn in fnames:
-            fp = os.path.join(root, fn)
-            ext = os.path.splitext(fn)[1].lower()
-            try:
-                stat = os.stat(fp)
-                rel  = os.path.relpath(fp, EXTRACTED_DIR)
-                files.append({
-                    "path": rel, "name": fn, "ext": ext,
-                    "size": stat.st_size, "fp": fp,
-                    "mtime": datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M"),
-                    "is_code": ext in CODE_EXTS,
-                })
-            except Exception:
-                pass
-    return files
+        for f in fnames:
+            fp = Path(root) / f
+            if fp.suffix in CODE_EXTS:
+                files.append(str(fp.relative_to(EXTRACTED_DIR)))
+    return sorted(files)
 
-# ─── Analyzers ────────────────────────────────────────────────────────────────
+
 def analyze_structure() -> dict:
     files = walk_project()
     by_ext: dict = {}
-    total_lines = 0
-    code_files  = []
-    for fi in files:
-        e = fi["ext"] or "other"
-        by_ext[e] = by_ext.get(e, 0) + 1
-        if fi["is_code"]:
-            lc = _count_lines(fi["fp"])
-            total_lines += lc
-            code_files.append({**fi, "lines": lc})
-    top_files = sorted(code_files, key=lambda x: x["lines"], reverse=True)[:10]
-    dirs: dict = {}
-    for fi in files:
-        d = os.path.dirname(fi["path"]) or "."
-        dirs[d] = dirs.get(d, 0) + 1
-    ts = int(time.time())
-    mem = load_memory()
-    mem["analysis_cache"]["structure"] = {"ts": ts, "total_files": len(files), "code_files": len(code_files), "lines": total_lines}
-    mem["ai_stats"]["last_scan"] = datetime.now().isoformat()
-    save_memory(mem)
+    by_dir: dict = {}
+    for f in files:
+        ext = Path(f).suffix
+        by_ext[ext] = by_ext.get(ext, 0) + 1
+        d = str(Path(f).parent)
+        by_dir[d] = by_dir.get(d, 0) + 1
+
+    templates = [f for f in files if f.endswith(".html")]
+    routers   = [f for f in files if "routers" in f and f.endswith(".py")]
+    handlers  = [f for f in files if "handlers" in f and f.endswith(".py")]
+    db_models = [f for f in files if "database" in f and f.endswith(".py")]
+    services  = [f for f in files if "services" in f and f.endswith(".py")]
+    css_files = [f for f in files if f.endswith(".css")]
+    js_files  = [f for f in files if f.endswith(".js")]
+
     return {
-        "total_files": len(files), "code_files": len(code_files),
-        "total_lines": total_lines, "total_size_h": _fmt(sum(f["size"] for f in files)),
-        "by_ext": dict(sorted(by_ext.items(), key=lambda x: x[1], reverse=True)[:12]),
-        "top_files": [{k: v for k, v in f.items() if k != "fp"} for f in top_files],
-        "dirs": dict(sorted(dirs.items(), key=lambda x: x[1], reverse=True)[:10]),
+        "total_files": len(files),
+        "by_type": by_ext,
+        "templates": templates,
+        "routers": routers,
+        "handlers": handlers,
+        "db_models": db_models,
+        "services": services,
+        "css_files": css_files,
+        "js_files": js_files,
+        "top_dirs": sorted(by_dir.items(), key=lambda x: x[1], reverse=True)[:15],
+        "knowledge_graph_routes": len(_ROUTE_GRAPH),
+        "semantic_concepts": len(_SEMANTIC_MAP),
     }
+
 
 def detect_log_errors() -> list:
     errors = []
-    ERROR_PAT = re.compile(r'\b(error|exception|traceback|critical|fatal)\b', re.IGNORECASE)
-    sources = []
     log_dir = EXTRACTED_DIR / "logs"
-    if log_dir.is_dir():
-        sources.extend(list(log_dir.glob("*.log"))[:4])
-    for p in [EXTRACTED_DIR / "bot.log", EXTRACTED_DIR / "error.log"]:
-        if p.exists():
-            sources.append(p)
-    for src in sources[:5]:
+    if not log_dir.exists():
+        return []
+    for lf in log_dir.glob("*.log"):
         try:
-            with open(src, "r", errors="replace") as f:
-                lines = f.readlines()
-            for i, line in enumerate(lines[-200:], max(1, len(lines)-200)):
-                if ERROR_PAT.search(line):
-                    sev = "critical" if re.search(r"critical|fatal|traceback", line, re.IGNORECASE) else "error"
-                    errors.append({"text": line.strip()[:200], "line": i, "source": src.name, "severity": sev})
-                    if len(errors) >= 30:
-                        break
+            lines = lf.read_text(encoding="utf-8", errors="ignore").splitlines()
+            for ln in lines[-200:]:
+                if any(k in ln for k in ["ERROR", "CRITICAL", "Exception", "Traceback"]):
+                    errors.append({"file": lf.name, "line": ln.strip()[:200]})
         except Exception:
             pass
-    return errors
+    return errors[-50:]
+
 
 def detect_code_issues() -> list:
     issues = []
-    PATS = [
-        (r'except\s*:',                           "bare_except",     "⚠️ Bare except — يخفي الأخطاء الحقيقية",          "warning"),
-        (r'\bprint\s*\(',                          "debug_print",     "🖨️ print() داخل الكود — استخدم logging بدلاً",    "info"),
-        (r'(?i)(TODO|FIXME|HACK|XXX)',             "todo",            "📝 ملاحظة TODO غير منجزة",                       "info"),
-        (r'import \*',                             "wildcard_import", "⚠️ Wildcard import — يسبب تعارضات",              "warning"),
-        (r'time\.sleep\(',                         "blocking_sleep",  "⏰ time.sleep() — يحجب البرنامج",                 "warning"),
-        (r'\bos\.system\(',                        "os_system",       "🔒 os.system() — خطر، استخدم subprocess",         "warning"),
-        (r'password\s*=\s*["\'][^"\']{3,}["\']',  "hardcoded_pass",  "🔴 كلمة مرور مكتوبة مباشرة في الكود",             "error"),
-    ]
-    for f in walk_project():
-        if f["ext"] != ".py":
-            continue
-        try:
-            with open(f["fp"], "r", errors="replace") as fh:
-                lines = fh.readlines()
-            for i, line in enumerate(lines, 1):
-                for pat, itype, msg, sev in PATS:
-                    if re.search(pat, line) and len(issues) < 60:
-                        issues.append({"type": itype, "msg": msg, "file": f["path"], "line": i, "severity": sev, "text": line.strip()[:100]})
-        except Exception:
-            pass
-    return issues
+    for root, dirs, files in os.walk(str(EXTRACTED_DIR)):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        for f in files:
+            if not f.endswith(".py"):
+                continue
+            fp = Path(root) / f
+            rel = str(fp.relative_to(EXTRACTED_DIR))
+            try:
+                src = fp.read_text(encoding="utf-8", errors="ignore")
+                try:
+                    ast.parse(src)
+                except SyntaxError as e:
+                    issues.append({"file": rel, "type": "SyntaxError", "detail": str(e)})
+                if "TODO" in src or "FIXME" in src:
+                    for i, ln in enumerate(src.splitlines(), 1):
+                        if "TODO" in ln or "FIXME" in ln:
+                            issues.append({"file": rel, "type": "TODO", "detail": f"Line {i}: {ln.strip()[:100]}"})
+            except Exception:
+                pass
+    return issues[:30]
+
 
 def security_scan() -> list:
     issues = []
-    PATS = [
-        (r'(?i)(?:password|passwd|secret|api_key|token)\s*=\s*["\'][^"\']{4,}["\']', "hardcoded_secret",  "critical"),
-        (r'\beval\s*\(',                                                                "eval_usage",        "high"),
-        (r'\bexec\s*\(',                                                                "exec_usage",        "high"),
-        (r'subprocess\.[a-z]+\(.*shell\s*=\s*True',                                    "shell_injection",   "critical"),
-        (r'pickle\.loads?\(',                                                           "unsafe_pickle",     "medium"),
-        (r'DEBUG\s*=\s*True',                                                           "debug_enabled",     "low"),
-        (r'allow_origins.*\*',                                                          "cors_wildcard",     "medium"),
-        (r'(?i)md5\s*\(',                                                               "weak_hash",         "low"),
-    ]
-    for f in walk_project():
-        if f["ext"] not in {".py", ".js", ".ts"}:
-            continue
-        try:
-            with open(f["fp"], "r", errors="replace") as fh:
-                lines = fh.readlines()
-            for i, line in enumerate(lines, 1):
-                for pat, itype, sev in PATS:
-                    if re.search(pat, line) and "nosec" not in line and len(issues) < 50:
-                        issues.append({"type": itype, "severity": sev, "file": f["path"], "line": i, "text": line.strip()[:120]})
-        except Exception:
-            pass
+    danger = ["eval(", "exec(", "subprocess.call(", "os.system(", "pickle.load", "yaml.load(", "__import__"]
+    for root, dirs, files in os.walk(str(EXTRACTED_DIR)):
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        for f in files:
+            if not f.endswith(".py"):
+                continue
+            fp = Path(root) / f
+            rel = str(fp.relative_to(EXTRACTED_DIR))
+            try:
+                src = fp.read_text(encoding="utf-8", errors="ignore")
+                for pat in danger:
+                    if pat in src:
+                        issues.append({"file": rel, "pattern": pat, "severity": "medium"})
+            except Exception:
+                pass
     return issues
+
 
 def detect_routes() -> list:
     routes = []
-    PAT = re.compile(r'@(?:router|app)\.(?:get|post|put|delete|patch)\(["\']([^"\']+)["\']')
-    for f in walk_project():
-        if f["ext"] != ".py":
-            continue
-        try:
-            with open(f["fp"], "r", errors="replace") as fh:
-                content = fh.read()
-            for m in PAT.finditer(content):
-                routes.append({"path": m.group(1), "file": f["path"]})
-        except Exception:
-            pass
+    for route, info in _ROUTE_GRAPH.items():
+        routes.append({
+            "route": route,
+            "router": info["router"],
+            "template": info["template"],
+            "description": info["description"],
+        })
     return routes
 
+
 def full_analysis() -> dict:
-    update_stats("total_analyses")
-    structure  = analyze_structure()
-    log_errors = detect_log_errors()
-    code_iss   = detect_code_issues()
-    sec_issues = security_scan()
-    routes     = detect_routes()
-    total_issues = len(log_errors) + len(code_iss)
-    update_stats("errors_found", total_issues)
+    update_stats("total_scans")
     return {
-        "structure":   structure,
-        "log_errors":  log_errors,
-        "code_issues": code_iss,
-        "security":    sec_issues,
-        "routes":      routes,
-        "summary": {
-            "total_files":    structure["total_files"],
-            "code_files":     structure["code_files"],
-            "total_lines":    structure["total_lines"],
-            "log_errors":     len(log_errors),
-            "code_issues":    len(code_iss),
-            "security_issues":len(sec_issues),
-            "routes":         len(routes),
-            "health":         "good" if total_issues == 0 else ("warning" if total_issues < 10 else "critical"),
-        }
+        "structure": analyze_structure(),
+        "errors":    detect_log_errors()[:10],
+        "issues":    detect_code_issues()[:10],
+        "routes":    detect_routes(),
+        "security":  security_scan()[:5],
+        "knowledge": {
+            "routes_in_graph": len(_ROUTE_GRAPH),
+            "semantic_concepts": len(_SEMANTIC_MAP),
+            "db_models": len(_DB_MAP),
+            "bots": len(_BOT_MAP),
+        },
+        "timestamp": datetime.now().isoformat(),
     }
 
-# ─── Modification Plan ────────────────────────────────────────────────────────
-def create_plan(description: str) -> dict:
-    """Phase 1.5 upgrade: returns real files, not generic steps."""
-    return create_modification_plan(description)
 
-# ─── Chat Processor ───────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+# CHAT PROCESSOR — routes messages to correct response handler
+# ═══════════════════════════════════════════════════════════════════════════════
+
 def process_chat(msg: str) -> dict:
-    intent = detect_intent(msg)
-    update_stats("total_chats")
+    """Main entry point for AI chat messages."""
     save_chat("user", msg)
+    update_stats("total_chats")
+    intent = detect_intent(msg)
 
-    if intent == "help":
-        r = _r_help()
-    elif intent == "find_file":
-        r = answer_file_question(msg)
-    elif intent == "plan_modify":
-        r = _r_plan_v2(msg)
-    elif intent == "dependency":
-        r = _r_dependency(msg)
-    elif intent == "self_test":
-        r = _r_self_test()
-    elif intent in ("analyze", "stats"):
-        update_stats("total_analyses")
-        r = _r_analyze()
-    elif intent == "errors":
-        update_stats("total_analyses")
-        r = _r_errors()
-    elif intent in ("backup",):
-        r = _r_backup_info()
-    elif intent == "restore":
-        r = _r_restore_info()
-    elif intent == "structure":
-        r = _r_structure()
-    elif intent == "routes":
-        r = _r_routes()
-    elif intent == "security":
-        r = _r_security()
-    elif intent == "improve":
-        r = _r_improve(msg)
-    elif intent == "memory":
-        r = _r_memory()
-    elif intent == "status":
-        r = _r_status()
-    elif intent in ("duplicate", "unused"):
-        r = _r_code_quality()
-    else:
-        r = _r_general(msg)
-
-    save_chat("ai", r["text"][:500])
-    return r
-
-# ─── Response Builders ────────────────────────────────────────────────────────
-def _r_help() -> dict:
-    return {
-        "text": """مرحباً! أنا **مهندس الذكاء الاصطناعي v2.0** لمشروع X Control Center 🤖
-
-**🆕 قدرات Intelligence Layer (Phase 1.5):**
-
-🔍 **"ما الملف الذي يتحكم في الصفحة الرئيسية؟"**
-📍 **"أين صفحة تسجيل الدخول؟"**
-🎨 **"ما الملف الذي يتحكم في الألوان؟"**
-📋 **"أنشئ خطة تعديل الصفحة الرئيسية"** — خطة بأسماء ملفات حقيقية
-🔗 **"ما الملفات المرتبطة بـ dashboard؟"** — خريطة التبعيات
-✅ **"اختبر نفسك"** — self-test للتحقق من الذكاء
-
-**⚡ القدرات السابقة:**
-🔍 "افحص الأخطاء" | 📊 "حلل المشروع" | 🔒 "افحص الأمان"
-🛣️ "اعرض المسارات" | 💾 "أنشئ نسخة احتياطية" | ⚡ "حالة النظام" """,
-        "intent": "help", "type": "info",
-        "actions": [
-            {"label": "🔍 ما الملف الذي يتحكم في الرئيسية؟", "cmd": "ما الملف الذي يتحكم في الصفحة الرئيسية؟"},
-            {"label": "✅ اختبر نفسك",                          "cmd": "اختبر نفسك"},
-            {"label": "📋 خطة تعديل الـ dashboard",             "cmd": "أنشئ خطة تعديل dashboard"},
-            {"label": "🎨 ما الملف الذي يتحكم في الألوان؟",    "cmd": "ما الملف الذي يتحكم في الألوان؟"},
-        ]
+    handlers = {
+        "find_file":   lambda: _r_find_file(msg),
+        "plan_modify": lambda: _r_plan(msg),
+        "dependency":  lambda: _r_dependency(msg),
+        "impact":      lambda: _r_impact(msg),
+        "root_cause":  lambda: _r_root_cause(msg),
+        "arch":        lambda: _r_arch(msg),
+        "self_test":   lambda: _r_self_test(),
+        "errors":      lambda: _r_errors(),
+        "analyze":     lambda: _r_analyze(),
+        "backup":      lambda: _r_backup_info(),
+        "restore":     lambda: _r_restore_info(),
+        "structure":   lambda: _r_structure(),
+        "routes":      lambda: _r_routes(),
+        "security":    lambda: _r_security(),
+        "improve":     lambda: _r_improve(msg),
+        "memory":      lambda: _r_memory(),
+        "status":      lambda: _r_status(),
+        "help":        lambda: _r_help(),
+        "stats":       lambda: _r_stats(),
+        "general":     lambda: _r_general(msg),
     }
 
-def _r_plan_v2(msg: str) -> dict:
+    fn    = handlers.get(intent, handlers["general"])
+    resp  = fn()
+    resp["intent"] = intent
+    save_chat("assistant", resp.get("text", "")[:500])
+    return resp
+
+
+# ─── Response Handlers ────────────────────────────────────────────────────────
+
+def _r_find_file(msg: str) -> dict:
+    update_stats("total_questions")
+    return answer_file_question(msg)
+
+
+def _r_plan(msg: str) -> dict:
+    update_stats("total_plans")
     plan = create_modification_plan(msg)
-    lines = [f"📋 **{plan['title']}**\n",
-             f"⚠️ مستوى الخطورة: {plan['risk_label']}",
-             f"🔄 الاستعادة: {plan.get('rollback', '—')}\n",
-             "**الملفات المتأثرة:**"]
-    for f in plan.get("files_detail", []):
-        icon = {"high": "🔴", "medium": "🟠", "low": "🟡"}.get(f["risk"], "✅")
-        lines.append(f"  {icon} `{f['path']}` — {f['reason']}")
-    lines.append("\n**خطوات التنفيذ:**")
-    for s in plan.get("steps", []):
-        r_icon = {"none": "✅", "low": "🟡", "medium": "🟠", "high": "🔴"}.get(s.get("risk","none"), "✅")
-        lines.append(f"  **{s['n']}.** {s['action']}")
-        lines.append(f"     ↳ {s['desc']} {r_icon}")
-    return {
-        "text": "\n".join(lines), "intent": "plan_modify", "type": "info",
-        "data": plan,
-        "actions": [{"label": "💾 نسخة احتياطية أولاً", "cmd": "أنشئ نسخة احتياطية"}]
-    }
+    lines = [f"📋 **خطة التعديل: {plan['description']}**\n",
+             f"⚠️ **مستوى الخطر:** {plan['risk_label']}",
+             f"📁 **عدد الملفات:** {plan['estimated_files']}\n",
+             "**📂 الملفات المطلوب تعديلها:**"]
+    for d in plan["file_details"]:
+        lines.append(f"  • `{d['file']}` [{d['role'].upper()}] — {d['why']}")
+    lines.append(f"\n**🔄 استراتيجية الاسترجاع:** {plan['rollback_strategy']}")
+    lines.append("\n**📋 الخطوات:**")
+    for step in plan["steps"]:
+        lines.append(f"  {step}")
+    return {"text": "\n".join(lines), "data": plan}
+
 
 def _r_dependency(msg: str) -> dict:
-    dep_map = build_dependency_map()
-    concept = _normalize_query(msg)
-    relevant = {k: v for k, v in dep_map.items() if concept in k.lower()}
-    if not relevant:
-        # Return general overview
-        lines = [f"🔗 **خريطة التبعيات** ({len(dep_map)} route)\n",
-                 "**كل صفحة تعتمد على:**",
-                 "  🎨 CSS:  `control_panel/static/css/style.css`",
-                 "  ⚡ JS:   `control_panel/static/js/app.js`",
-                 "  🏗️ Base: `control_panel/templates/base.html`\n",
-                 "**Routes → Templates:**"]
-        for route, info in list(dep_map.items())[:8]:
-            tmpls = ", ".join(info.get("templates", ["-"])) or "-"
-            lines.append(f"  `{route}` ← `{tmpls}` ({info['file'].split('/')[-1]})")
+    entries = _find_concept(msg)
+    route_info = _route_for_concept(msg)
+    lines = ["🔗 **تحليل التبعيات**\n"]
+    if route_info:
+        lines.append(f"📄 **Template:** `{route_info['template']}`")
+        lines.append(f"  ↳ يرث من: `{route_info.get('base', 'standalone')}`")
+        lines.append(f"⚙️ **Router:** `{route_info['router']}`")
+        for c in route_info.get("css", []):
+            lines.append(f"🎨 **CSS:** `{c}`")
+        for j in route_info.get("js", []):
+            lines.append(f"📜 **JS:** `{j}`")
+        for a in route_info.get("apis", []):
+            lines.append(f"  🔌 API: `{a}`")
+    elif entries:
+        for path, role, desc in entries:
+            impact = analyze_file_impact(path)
+            lines.append(f"• `{path}` [{role}]")
+            for a in impact.get("affects", []):
+                lines.append(f"  ↳ يؤثر على: {a}")
     else:
-        lines = [f"🔗 **تبعيات `{concept}`:**\n"]
-        for route, info in relevant.items():
-            lines.append(f"**Route:** `{route}`")
-            lines.append(f"  📄 File:      `{info['file']}`")
-            lines.append(f"  🎨 Templates: {', '.join(info.get('templates',['-']))}")
-            lines.append(f"  🎨 CSS:       `{', '.join(info.get('css',[]))}`")
-            lines.append(f"  ⚡ JS:        `{', '.join(info.get('js',[]))}`\n")
-    return {"text": "\n".join(lines), "intent": "dependency", "type": "info",
-            "data": {"dep_map": dep_map, "relevant": relevant}}
+        lines.append("لم يتم العثور على معلومات تبعية لهذا الاستعلام.")
+    return {"text": "\n".join(lines), "data": {"entries": entries}}
+
+
+def _r_impact(msg: str) -> dict:
+    entries = _find_concept(msg)
+    if not entries:
+        entries = [("unknown", "unknown", "—")]
+    target = entries[0][0]
+    impact = analyze_file_impact(target)
+    lines  = [f"💥 **تأثير تغيير: `{target}`**\n",
+              f"🚨 **مستوى الخطر:** {impact.get('risk', 'unknown').upper()}"]
+    for a in impact.get("affects", []):
+        lines.append(f"  ⚠️ {a}")
+    return {"text": "\n".join(lines), "data": impact}
+
+
+def _r_root_cause(msg: str) -> dict:
+    analysis = analyze_root_cause(msg)
+    lines    = [f"🔍 **تحليل السبب الجذري**\n"]
+    for fp in analysis["failure_points"]:
+        lines.append(f"• **{fp['layer']}**: `{fp['file']}`")
+        lines.append(f"  → {fp['check']}")
+    lines.append("\n**🛠️ خطوات التشخيص:**")
+    for step in analysis["diagnostic_steps"]:
+        lines.append(f"  {step}")
+    return {"text": "\n".join(lines), "data": analysis}
+
+
+def _r_arch(msg: str) -> dict:
+    return explain_architecture(msg)
+
 
 def _r_self_test() -> dict:
-    results = run_self_tests()
-    lines = [f"✅ **Self-Test Results — AI Engineer v2.0**\n",
-             f"**النتيجة:** {results['score']} — {results['status']}",
-             f"**نسبة النجاح:** {results['pass_rate']}\n",
-             "**التفاصيل:**"]
-    for t in results["tests"]:
+    result = run_self_tests()
+    lines  = [f"🧪 **نتائج الاختبار الذاتي — {result['score']} ({result['pass_rate']})**\n",
+              f"الحالة: {result['status']}\n"]
+    for t in result["tests"]:
         icon = "✅" if t["passed"] else "❌"
-        lines.append(f"  {icon} {t['question'][:60]}")
+        lines.append(f"{icon} {t['question']}")
         if not t["passed"]:
-            lines.append(f"     ↳ بحث عن `{t['expected_keyword']}` — {'وجد' if t['keyword_found'] else 'لم يجد'}")
-    return {
-        "text": "\n".join(lines), "intent": "self_test",
-        "type": "success" if results["passed"] == results["total"] else "warning",
-        "data": results,
-    }
+            lines.append(f"   → Expected intent: `{t['expected_intent']}` | Got: `{t['got_intent']}`")
+            lines.append(f"   → Keyword `{t['expected_keyword']}` found: {t['keyword_found']}")
+    return {"text": "\n".join(lines), "data": result}
+
 
 def _r_analyze() -> dict:
-    files  = walk_project()
-    code_f = [f for f in files if f["is_code"]]
-    tlines = sum(_count_lines(f["fp"]) for f in code_f)
-    by_ext: dict = {}
-    for f in files:
-        e = f["ext"] or "other"
-        by_ext[e] = by_ext.get(e, 0) + 1
-    top3 = sorted(by_ext.items(), key=lambda x: x[1], reverse=True)[:3]
-    return {
-        "text": f"""✅ **تحليل المشروع مكتمل**
+    analysis = full_analysis()
+    s = analysis["structure"]
+    lines = ["🔬 **تحليل المشروع الكامل**\n",
+             f"📁 إجمالي الملفات: {s['total_files']}",
+             f"🌐 المسارات المعروفة: {s['knowledge_graph_routes']}",
+             f"🧠 المفاهيم الدلالية: {s['semantic_concepts']}",
+             f"🎨 القوالب: {len(s['templates'])}",
+             f"⚙️ الـ Routers: {len(s['routers'])}",
+             f"🤖 المعالجات: {len(s['handlers'])}",
+             f"🗄️ نماذج DB: {len(s['db_models'])}",
+             ""]
+    if analysis["errors"]:
+        lines.append(f"⚠️ {len(analysis['errors'])} أخطاء في السجلات")
+    if analysis["issues"]:
+        lines.append(f"🔧 {len(analysis['issues'])} مشاكل في الكود")
+    return {"text": "\n".join(lines), "data": analysis}
 
-📊 **الإحصائيات الكاملة:**
-- إجمالي الملفات: **{len(files):,}** ملف
-- ملفات الكود: **{len(code_f):,}** ملف
-- إجمالي الأسطر: **{tlines:,}** سطر
-
-📂 **أكثر الأنواع شيوعاً:**
-{chr(10).join(f"  `{e}` ← {c} ملف" for e,c in top3)}
-
-💡 المشروع يحتوي على بنية منظمة. اكتب **"افحص الأخطاء"** للكشف عن المشاكل.""",
-        "intent": "analyze", "type": "success",
-        "data": {"total_files": len(files), "code_files": len(code_f), "total_lines": tlines, "by_ext": by_ext},
-        "actions": [
-            {"label": "🔍 فحص الأخطاء",   "cmd": "افحص الأخطاء"},
-            {"label": "🔒 فحص الأمان",     "cmd": "افحص الأمان"},
-        ]
-    }
 
 def _r_errors() -> dict:
-    log_e  = detect_log_errors()
-    code_i = detect_code_issues()
-    total  = len(log_e) + len(code_i)
-    update_stats("errors_found", total)
-    L = [f"🔍 **نتائج فحص الأخطاء** (إجمالي: **{total}** مشكلة)\n"]
-    if log_e:
-        L.append(f"🔴 **أخطاء السجلات:** {len(log_e)}")
-        for e in log_e[:2]:
-            L.append(f"  · `{e['source']}` سطر {e['line']}: {e['text'][:70]}...")
-    else:
-        L.append("✅ **السجلات:** نظيفة")
-    L.append("")
-    if code_i:
-        by: dict = {}
-        for i in code_i:
-            k = i["msg"].split("—")[0].strip()
-            by[k] = by.get(k, 0) + 1
-        L.append(f"⚠️ **مشاكل الكود:** {len(code_i)}")
-        for m, c in list(by.items())[:4]:
-            L.append(f"  · {m}: **{c}x**")
-    else:
-        L.append("✅ **الكود:** نظيف")
-    if total == 0:
-        L.append("\n🎉 **المشروع في حالة ممتازة!**")
-    else:
-        L.append(f"\n💡 اذهب إلى **مهندس الذكاء** `/ai/engineer` للتقرير الكامل.")
-    return {
-        "text": "\n".join(L), "intent": "errors",
-        "type": "warning" if total > 0 else "success",
-        "data": {"log_errors": log_e[:10], "code_issues": code_i[:10], "total": total},
-        "actions": [{"label": "🤖 تقرير مفصل ← مهندس الذكاء", "link": "/ai/engineer"}]
-    }
+    errors = detect_log_errors()
+    if not errors:
+        return {"text": "✅ لا توجد أخطاء في السجلات", "data": {"errors": []}}
+    lines = [f"⚠️ **{len(errors)} أخطاء في السجلات:**\n"]
+    for e in errors[:15]:
+        lines.append(f"• `{e['file']}`: {e['line'][:100]}")
+    return {"text": "\n".join(lines), "data": {"errors": errors}}
+
 
 def _r_backup_info() -> dict:
     bks = list_backups()
-    last = f"✅ آخر نسخة: **{bks[0]['datetime']}** — {bks[0]['description']}" if bks else "⚠️ لا توجد نسخ احتياطية بعد"
-    return {
-        "text": f"""💾 **نظام النسخ الاحتياطية**
+    lines = [f"💾 **النسخ الاحتياطية: {len(bks)} نسخة**\n"]
+    for b in bks[-5:]:
+        lines.append(f"• `{b['id']}` — {b['desc']} — {b['ts']}")
+    lines.append("\n🔗 إدارة النسخ: `/backups`")
+    return {"text": "\n".join(lines), "data": {"backups": bks}}
 
-النسخ المتوفرة: **{len(bks)}** نسخة
-{last}
-
-💡 اكتب **"أنشئ نسخة احتياطية الآن"** أو اضغط الزر:""",
-        "intent": "backup", "type": "info",
-        "data": {"backups": bks[:5], "count": len(bks)},
-        "actions": [{"label": "💾 إنشاء نسخة الآن", "cmd": "create_backup"}]
-    }
 
 def _r_restore_info() -> dict:
     bks = list_backups()
-    if not bks:
-        return {"text": "⚠️ لا توجد نسخ احتياطية للاستعادة.", "intent": "restore", "type": "warning"}
-    return {
-        "text": f"""🔄 **استعادة نسخة احتياطية**
+    lines = ["🔄 **استعادة نسخة احتياطية**\n",
+             "استخدم `/backups` في لوحة التحكم لاستعادة أي نسخة احتياطية.\n",
+             f"النسخ المتاحة: {len(bks)}"]
+    return {"text": "\n".join(lines), "data": {"backups": bks}}
 
-⚠️ **تحذير:** الاستعادة تُعيد الملفات لحالة النسخة المختارة.
-(سيتم إنشاء نسخة أمان تلقائياً قبل الاستعادة)
-
-**النسخ المتاحة:** {len(bks)}
-**آخر نسخة:** {bks[0]['datetime']} ({bks[0]['files']} ملف)
-
-اذهب إلى **النسخ الاحتياطية** للاستعادة.""",
-        "intent": "restore", "type": "warning",
-        "data": {"backups": bks[:3]},
-        "actions": [{"label": "📋 صفحة النسخ", "link": "/backups"}]
-    }
 
 def _r_structure() -> dict:
-    files = walk_project()
-    dirs: dict = {}
-    for f in files:
-        d = os.path.dirname(f["path"]) or "."
-        dirs[d] = dirs.get(d, 0) + 1
-    top = sorted(dirs.items(), key=lambda x: x[1], reverse=True)[:6]
-    return {
-        "text": f"""📁 **هيكل المشروع** ({len(files)} ملف إجمالاً)
+    s = analyze_structure()
+    lines = ["📂 **هيكل المشروع**\n",
+             f"الملفات الكلية: {s['total_files']}",
+             f"المسارات في الجراف: {s['knowledge_graph_routes']}",
+             f"المفاهيم الدلالية: {s['semantic_concepts']}",
+             ""]
+    for ext, count in sorted(s["by_type"].items(), key=lambda x: x[1], reverse=True):
+        lines.append(f"  {ext}: {count} ملف")
+    return {"text": "\n".join(lines), "data": s}
 
-**المجلدات الرئيسية:**
-{chr(10).join(f"  `{d}/` — {c} ملف" for d,c in top)}
-
-**المكونات:**
-  🤖 `bot.py` — البوت الرئيسي (PrimeDownloader)
-  🆘 `support_bot/` — بوت الدعم الفني
-  🖥️ `control_panel/` — لوحة التحكم (FastAPI)
-  🧠 `control_panel/routers/` — مسارات API (11 router)
-  🎨 `control_panel/templates/` — واجهات المستخدم
-
-💡 اكتب **"ما الملف الذي يتحكم في X؟"** لأي صفحة أو ميزة.""",
-        "intent": "structure", "type": "info",
-        "data": {"dirs": top, "total": len(files)},
-    }
 
 def _r_routes() -> dict:
     routes = detect_routes()
-    by_file: dict = {}
+    lines  = [f"🌐 **{len(routes)} مسار في لوحة التحكم:**\n"]
     for r in routes:
-        by_file.setdefault(r["file"], []).append(r["path"])
-    L = [f"🛣️ **المسارات في المشروع** (إجمالي: **{len(routes)}**)\n"]
-    for file, paths in list(by_file.items())[:7]:
-        L.append(f"**`{file}`:**")
-        for p in paths[:5]:
-            L.append(f"  `{p}`")
-        if len(paths) > 5:
-            L.append(f"  _...و {len(paths)-5} مسار آخر_")
-    return {
-        "text": "\n".join(L), "intent": "routes", "type": "info",
-        "data": {"routes": routes[:40], "total": len(routes)},
-    }
+        lines.append(f"• `{r['route']}` → `{r['template']}` — {r['description']}")
+    return {"text": "\n".join(lines), "data": {"routes": routes}}
+
 
 def _r_security() -> dict:
-    iss      = security_scan()
-    critical = [i for i in iss if i["severity"] == "critical"]
-    high     = [i for i in iss if i["severity"] == "high"]
-    medium   = [i for i in iss if i["severity"] == "medium"]
-    L = ["🔒 **تقرير فحص الأمان**\n"]
-    if not iss:
-        L.append("✅ **ممتاز!** لا توجد ثغرات أمنية مكتشفة.")
-    else:
-        L.append(f"🔴 حرجة: **{len(critical)}** | 🟠 عالية: **{len(high)}** | 🟡 متوسطة: **{len(medium)}**\n")
-        for i in (critical + high)[:5]:
-            L.append(f"  · **{i['type']}** في `{i['file']}` سطر {i['line']}")
-        if len(iss) > 5:
-            L.append(f"\n_...و {len(iss)-5} مشكلة أخرى_")
-    return {
-        "text": "\n".join(L), "intent": "security",
-        "type": "error" if critical else ("warning" if iss else "success"),
-        "data": {"issues": iss[:20], "total": len(iss), "critical": len(critical)},
-    }
+    issues = security_scan()
+    if not issues:
+        return {"text": "🔒 لم يتم العثور على مشاكل أمنية واضحة", "data": {"issues": []}}
+    lines = [f"🔐 **{len(issues)} ملاحظات أمنية:**\n"]
+    for i in issues[:10]:
+        lines.append(f"• `{i['file']}` — النمط: `{i['pattern']}`")
+    return {"text": "\n".join(lines), "data": {"issues": issues}}
+
 
 def _r_improve(msg: str) -> dict:
-    plan = create_modification_plan(msg)
-    files_list = "\n".join(f"  · `{f}`" for f in plan.get("files_affected", [])[:5]) or "  · غير محدد"
-    return {
-        "text": f"""✨ **خطة التحسين**
+    entries = _find_concept(msg)
+    route_info = _route_for_concept(msg)
+    lines = ["💡 **اقتراحات التحسين**\n"]
+    if route_info:
+        lines.append(f"للتحسين يجب تعديل:")
+        lines.append(f"• `{route_info['template']}` — HTML structure")
+        for c in route_info.get("css", []):
+            lines.append(f"• `{c}` — Styling")
+        for j in route_info.get("js", []):
+            lines.append(f"• `{j}` — Interactivity")
+    elif entries:
+        for path, role, desc in entries[:4]:
+            lines.append(f"• `{path}` [{role}] — {desc}")
+    else:
+        lines.append("حدد الجزء الذي تريد تحسينه (homepage, sidebar, colors, users, bots...)")
+    return {"text": "\n".join(lines), "data": {"entries": entries}}
 
-**الملفات التي تحتاج تعديل:**
-{files_list}
-
-**المستوى:** {plan['risk_label']}
-
-💡 اكتب **"أنشئ خطة تعديل [اسم الصفحة]"** للحصول على خطة تفصيلية بأسماء الملفات الحقيقية.""",
-        "intent": "improve", "type": "info",
-        "data": plan,
-        "actions": [
-            {"label": "📋 خطة تفصيلية",         "cmd": f"أنشئ خطة تعديل {msg[:40]}"},
-            {"label": "💾 نسخة احتياطية أولاً", "cmd": "أنشئ نسخة احتياطية"},
-        ]
-    }
 
 def _r_memory() -> dict:
-    mem   = load_memory()
-    stats = mem.get("ai_stats", {})
-    comps = mem.get("components", {})
-    ki    = mem.get("knowledge_index", {})
-    L = [f"🧠 **ذاكرة الذكاء الاصطناعي v2.0**\n",
-         f"📌 المشروع: **{mem.get('project_name')}** v{mem.get('version')}",
-         f"🤖 محرك الذكاء: **v{mem.get('engine_version', '1.0')}**",
-         f"🕐 آخر تحديث: {mem.get('last_updated','?')[:19]}\n",
-         f"**المكونات المعروفة ({len(comps)}):**"]
-    for v in list(comps.values())[:5]:
-        L.append(f"  · **{v['name']}** — {v['description']}")
-    L.append(f"\n**قاعدة المعرفة (Intelligence Layer):**")
-    L.append(f"  🗺️ مفاهيم مُفهرسة: {len(_SEMANTIC_MAP)} مفهوم")
-    L.append(f"  📁 ملفات مُعيَّنة:  {len({e[0] for entries in _SEMANTIC_MAP.values() for e in entries})} ملف")
-    L.append(f"\n**الإحصائيات:**")
-    L.append(f"  محادثات: {stats.get('total_chats',0)} | تحليلات: {stats.get('total_analyses',0)} | نسخ: {stats.get('total_backups',0)}")
-    return {"text": "\n".join(L), "intent": "memory", "type": "info", "data": mem}
+    m = load_memory()
+    lines = ["🧠 **ذاكرة المشروع**\n",
+             f"الإصدار: {m.get('version', '3.0')}",
+             f"المشروع: {m['project'].get('name')}",
+             f"إجمالي المحادثات: {m['stats'].get('total_chats', 0)}",
+             f"إجمالي الأسئلة: {m['stats'].get('total_questions', 0)}",
+             f"إجمالي الخطط: {m['stats'].get('total_plans', 0)}",
+             f"آخر تحديث: {m.get('updated', '—')}"]
+    return {"text": "\n".join(lines), "data": m}
+
 
 def _r_status() -> dict:
+    m     = load_memory()
+    tests = run_self_tests()
+    lines = ["📊 **حالة نظام الذكاء الاصطناعي**\n",
+             f"🧠 المحرك: v3.0 — Project Knowledge System",
+             f"🗺️ الجراف: {len(_ROUTE_GRAPH)} مسار | {len(_SEMANTIC_MAP)} مفهوم | {len(_DB_MAP)} نموذج DB",
+             f"🧪 الاختبار الذاتي: {tests['score']} {tests['status']}",
+             f"💾 النسخ الاحتياطية: {len(m.get('backups', []))}",
+             f"🔌 المسارات في لوحة التحكم: {len(_ROUTE_GRAPH)}",
+             "✅ جميع الأنظمة تعمل"]
+    return {"text": "\n".join(lines), "data": {"version": "3.0", "self_test": tests}}
+
+
+def _r_stats() -> dict:
+    s = analyze_structure()
+    lines = ["📊 **إحصائيات المشروع**\n",
+             f"📁 إجمالي الملفات: {s['total_files']}",
+             f"🎨 القوالب HTML: {len(s['templates'])}",
+             f"⚙️ الـ Routers: {len(s['routers'])}",
+             f"🤖 معالجات البوت: {len(s['handlers'])}",
+             f"🗄️ نماذج قاعدة البيانات: {len(s['db_models'])}",
+             f"🔧 الخدمات: {len(s['services'])}",
+             f"🎨 ملفات CSS: {len(s['css_files'])}",
+             f"📜 ملفات JS: {len(s['js_files'])}",
+             f"🌐 المسارات: {len(_ROUTE_GRAPH)}",
+             f"🧠 المفاهيم الدلالية: {len(_SEMANTIC_MAP)}",
+             ]
+    return {"text": "\n".join(lines), "data": s}
+
+
+def _r_help() -> dict:
     return {
-        "text": """⚡ **حالة نظام X Control Center**
+        "text": """🤖 **X AI Operator v3.0 — Project Knowledge System**
 
-🤖 **PrimeDownloader Bot** — ✅ يعمل
-🆘 **Support Bot** — ✅ يعمل
-🖥️ **لوحة التحكم (Port 5000)** — ✅ تعمل
-🧠 **محرك الذكاء الاصطناعي v2.0** — ✅ جاهز (Intelligence Layer نشط)
-💾 **نظام النسخ الاحتياطية** — ✅ جاهز
+**📍 أسئلة الملفات:**
+• What file controls the homepage?
+• What CSS controls the colors?
+• What file loads the AI Engineer page?
+• What route serves the users page?
+• Where is the sidebar?
+• Find the login page
 
-✅ **جميع الأنظمة تعمل بشكل طبيعي**
+**📋 التخطيط:**
+• What files must change to redesign the homepage?
+• What files must change to redesign the sidebar?
+• Plan: redesign the login page
 
-💡 اذهب إلى **صحة النظام** `/system` للمعلومات المباشرة.""",
-        "intent": "status", "type": "success",
-        "actions": [{"label": "📊 صحة النظام", "link": "/system"}]
+**🔗 التبعيات والتأثير:**
+• What depends on base.html?
+• What breaks if I change style.css?
+
+**🔍 تشخيص الأخطاء:**
+• Why is the dashboard broken?
+
+**🏗️ المعمارية:**
+• Explain the frontend architecture
+• How does the bot work?
+• Explain the database architecture
+
+**🧪 اختبر نفسك:** اكتب "اختبر نفسك" أو "self test"
+""",
+        "data": {"capabilities": ["find_file", "plan_modify", "dependency", "root_cause", "arch", "self_test"]},
     }
 
-def _r_code_quality() -> dict:
-    issues = detect_code_issues()
-    dup    = [i for i in issues if i["type"] == "todo"]
-    unused = [i for i in issues if i["type"] == "debug_print"]
-    return {
-        "text": f"""🔎 **جودة الكود**
-
-📝 **TODO غير منجزة:** {len(dup)}
-🖨️ **print() debug:** {len(unused)}
-⚠️ **مشاكل أخرى:** {len(issues) - len(dup) - len(unused)}
-
-إجمالي الملاحظات: **{len(issues)}**
-
-💡 اذهب إلى **مهندس الذكاء** للتقرير الكامل مع مواضع الأسطر.""",
-        "intent": "code_quality", "type": "warning" if issues else "success",
-        "data": {"issues": issues[:15]},
-        "actions": [{"label": "🤖 مهندس الذكاء", "link": "/ai/engineer"}]
-    }
 
 def _r_general(msg: str) -> dict:
-    return {
-        "text": f"""🤔 لم أفهم الطلب بشكل كامل.
+    entries = _find_concept(msg)
+    if entries:
+        return answer_file_question(msg)
+    lines = ["🤖 لم أفهم السؤال بوضوح.\n",
+             "جرب: 'What file controls the homepage?' أو 'اختبر نفسك'"]
+    return {"text": "\n".join(lines), "data": {}}
 
-كتبت: **"{msg}"**
 
-حاول أحد هذه الأوامر:
-  · **"ما الملف الذي يتحكم في الصفحة الرئيسية؟"**
-  · **"افحص الأخطاء"**
-  · **"حلل المشروع"**
-  · **"أنشئ نسخة احتياطية"**
-  · **"افحص الأمان"**
-  · **"مساعدة"** — لقائمة كاملة بقدراتي""",
-        "intent": "unknown", "type": "info",
-        "actions": [{"label": "❓ المساعدة", "cmd": "مساعدة"}]
-    }
+# ─── Utility ─────────────────────────────────────────────────────────────────
 
-# ─── Helpers ──────────────────────────────────────────────────────────────────
 def _count_lines(fp: str) -> int:
     try:
-        with open(fp, "r", errors="replace") as f:
-            return sum(1 for _ in f)
+        return len(Path(fp).read_text(encoding="utf-8", errors="ignore").splitlines())
     except Exception:
         return 0
 
+
 def _fmt(b: int) -> str:
-    if b < 1024:      return f"{b} B"
-    if b < 1024**2:   return f"{b/1024:.1f} KB"
-    if b < 1024**3:   return f"{b/1024**2:.1f} MB"
-    return f"{b/1024**3:.2f} GB"
+    for unit in ["B", "KB", "MB", "GB"]:
+        if b < 1024:
+            return f"{b:.1f} {unit}"
+        b /= 1024
+    return f"{b:.1f} TB"
+
+
+# ─── Alias for backward compatibility ────────────────────────────────────────
+def create_plan(description: str) -> dict:
+    return create_modification_plan(description)
