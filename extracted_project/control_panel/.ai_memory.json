@@ -110,56 +110,6 @@
   "chat_history": [
     {
       "role": "user",
-      "text": "كيف تطور المشروع",
-      "ts": "2026-06-19T18:03:34.557545"
-    },
-    {
-      "role": "assistant",
-      "text": "💡 **أفضل تطويرات للمشروع — بالأولوية**\n\n**1. إصلاح 8 خطأ في السجلات**\n   🟠 التأثير: HIGH | الجهد: LOW\n   خطأ مثال: `errors.log` — [2026-06-19 16:48:12] [CRITICAL] [errors] BOT CRASH: TimedOut: Timed o\n\n**2. إضافة Unit Tests بـ pytest**\n   🟠 التأثير: HIGH | الجهد: MEDIUM\n   يحمي التعديلات المستقبلية ويكتشف الأخطاء فور حدوثها.\n\n**3. معالجة 8 ملاحظة أمنية**\n   🟡 التأثير: MEDIUM | الجهد: LOW\n   مثال: `control_panel/ai_engine.py` — النمط `eval(`\n\n**4. إضافة نظام Database Migration (Alembic)**\n   🟠 ال",
-      "ts": "2026-06-19T18:03:34.557545"
-    },
-    {
-      "role": "user",
-      "text": "لو أضفت بوت جديد ماذا سيتأثر؟",
-      "ts": "2026-06-19T18:03:34.562586"
-    },
-    {
-      "role": "assistant",
-      "text": "💥 **تحليل التأثير الكامل: `control_panel/routers/bots.py`** — من قراءة مباشرة للكود\n\n⚪ **مستوى الخطر:** NONE\n📥 **يستورده مباشرة:** 0 ملف",
-      "ts": "2026-06-19T18:03:34.562586"
-    },
-    {
-      "role": "user",
-      "text": "خطة تطوير المشروع",
-      "ts": "2026-06-19T18:03:34.565405"
-    },
-    {
-      "role": "assistant",
-      "text": "🧠 **رؤية استراتيجية — لو كنت مسؤولاً عن هذا المشروع**\n\nبناءً على تحليل المشروع الحالي (145 ملف · 119 Python):\n\n**🚨 الأسبوع الأول — إصلاح الأساس:**\n  · مراجعة كل `try/except` فارغة أو تُعيد `pass` — مصدر أخطاء صامتة\n  · إضافة logging موحّد (structlog أو logging.getLogger) على كل handler\n  · توثيق كل environment variable مطلوب في `.env.example`\n\n**⚡ الأسبوع الثاني — تحسين الموثوقية:**\n  · إضافة health-check endpoint يراقب DB + Telegram + HF\n  · تفعيل connection pool في db_utils مع timeout صريح\n  ·",
-      "ts": "2026-06-19T18:03:34.565405"
-    },
-    {
-      "role": "user",
-      "text": "هل بنية المشروع جيدة؟",
-      "ts": "2026-06-19T18:03:34.568618"
-    },
-    {
-      "role": "assistant",
-      "text": "🏗️ **معمارية: PROJECT**\n\nX Control Center — نظام بوت Telegram مع لوحة تحكم FastAPI\n\n**components:**\n  • PrimeDownloader Bot (bot.py) — بوت التحميل الرئيسي\n  • Support Bot (support_bot/bot.py) — بوت الدعم الفني\n  • Control Panel (control_panel/app.py) — لوحة تحكم FastAPI على بورت 5000\n  • Database (database/) — SQLite (bot.db) + Support (support.db)\n  • AI Engine (control_panel/ai_engine.py) — نظام الذكاء الاصطناعي",
-      "ts": "2026-06-19T18:03:34.568618"
-    },
-    {
-      "role": "user",
-      "text": "حلل المشروع",
-      "ts": "2026-06-19T18:03:34.979900"
-    },
-    {
-      "role": "assistant",
-      "text": "🔬 **تحليل المشروع الكامل**\n\n📁 إجمالي الملفات: 145\n🌐 المسارات المعروفة: 20\n🧠 المفاهيم الدلالية: 68\n🎨 القوالب: 20\n⚙️ الـ Routers: 15\n🤖 المعالجات: 39\n🗄️ نماذج DB: 17\n\n⚠️ 8 أخطاء في السجلات\n🔧 10 مشاكل في الكود",
-      "ts": "2026-06-19T18:03:34.979900"
-    },
-    {
-      "role": "user",
       "text": "ما الفرق بين FastAPI و Flask",
       "ts": "2026-06-19T18:03:34.982756"
     },
@@ -357,6 +307,56 @@
       "role": "assistant",
       "text": "🧠 **X AI Operator** · X Control Center\n\nلم أستطع تحديد نوع طلبك بدقة كافية.\n\n**أعد الصياغة بإحدى هذه الطرق:**\n  • **سؤال تقني** — \"اشرح FastAPI\" · \"الفرق بين Python و JavaScript\"\n  • **تحليل تأثير** — \"لو عدلت style.css ماذا سيحدث؟\"\n  • **إنشاء ميزة** — \"كيف أضيف بوت إشعارات؟\"\n  • **تقييم المشروع** — \"هل بنية المشروع جيدة؟\"\n  • **إصلاح مشكلة** — \"إصلاح خطأ في صفحة الإعدادات\"",
       "ts": "2026-06-19T19:30:30.738673"
+    },
+    {
+      "role": "user",
+      "text": "ما تبعيات config.py؟",
+      "ts": "2026-06-19T21:14:09.591338"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **X AI Operator** · X Control Center\n\nلم أستطع تحديد نوع طلبك بدقة كافية.\n\n**أعد الصياغة بإحدى هذه الطرق:**\n  • **سؤال تقني** — \"اشرح FastAPI\" · \"الفرق بين Python و JavaScript\"\n  • **تحليل تأثير** — \"لو عدلت style.css ماذا سيحدث؟\"\n  • **إنشاء ميزة** — \"كيف أضيف بوت إشعارات؟\"\n  • **تقييم المشروع** — \"هل بنية المشروع جيدة؟\"\n  • **إصلاح مشكلة** — \"إصلاح خطأ في صفحة الإعدادات\"",
+      "ts": "2026-06-19T21:14:09.591338"
+    },
+    {
+      "role": "user",
+      "text": "ما تبعيات config.py؟",
+      "ts": "2026-06-19T21:15:44.780955"
+    },
+    {
+      "role": "assistant",
+      "text": "🔗 **تحليل التبعيات — قراءة مباشرة من الكود**\n\n\n📁 `config/settings.py` [config] — إعدادات البوت الرئيسي\n  📥 **يستورده (33 ملف):**\n    ↳ `admin_bot/bot.py`\n    ↳ `admin_bot/database/db.py`\n    ↳ `admin_bot/handlers/auth.py`\n    ↳ `admin_bot/handlers/settings_h.py`\n    ↳ `admin_bot/handlers/support.py`\n    ↳ `bot.py`\n    ↳ `config/__init__.py`\n    ↳ `database/achievements.py`\n    ↳ `database/db.py`\n    ↳ `database/users.py`\n    ... و 23 ملف آخر\n  🔴 **التأثير الإجمالي:** 65 ملف — خطر: CRITICAL\n\n📁 `c",
+      "ts": "2026-06-19T21:15:44.780955"
+    },
+    {
+      "role": "user",
+      "text": "من يستورد database/db.py",
+      "ts": "2026-06-19T21:15:44.787720"
+    },
+    {
+      "role": "assistant",
+      "text": "🔗 **سلسلة التبعيات: `database/db.py`** — قراءة مباشرة من الكود\n\n🔴 **مستوى الخطر إذا حُذف:** CRITICAL\n📥 **المستوردون المباشرون (38 ملف):**\n  ↳ `admin_bot/handlers/broadcast.py`\n  ↳ `admin_bot/handlers/dashboard.py`\n  ↳ `admin_bot/handlers/downloads.py`\n  ↳ `admin_bot/handlers/security.py`\n  ↳ `admin_bot/handlers/settings_h.py`\n  ↳ `admin_bot/handlers/stats.py`\n  ↳ `admin_bot/handlers/support.py`\n  ↳ `admin_bot/handlers/users.py`\n  ↳ `admin_bot/handlers/vodafone_cash.py`\n  ↳ `bot.py`\n  ↳ `database",
+      "ts": "2026-06-19T21:15:44.787720"
+    },
+    {
+      "role": "user",
+      "text": "ما تبعيات config.py؟",
+      "ts": "2026-06-19T21:16:52.340700"
+    },
+    {
+      "role": "assistant",
+      "text": "🔗 **تحليل التبعيات — قراءة مباشرة من الكود**\n\n\n📁 `config/settings.py` [config] — إعدادات البوت الرئيسي\n  📥 **يستورده (33 ملف):**\n    ↳ `admin_bot/bot.py`\n    ↳ `admin_bot/database/db.py`\n    ↳ `admin_bot/handlers/auth.py`\n    ↳ `admin_bot/handlers/settings_h.py`\n    ↳ `admin_bot/handlers/support.py`\n    ↳ `bot.py`\n    ↳ `config/__init__.py`\n    ↳ `database/achievements.py`\n    ↳ `database/db.py`\n    ↳ `database/users.py`\n    ... و 23 ملف آخر\n  🔴 **التأثير الإجمالي:** 65 ملف — خطر: CRITICAL\n\n📁 `c",
+      "ts": "2026-06-19T21:16:52.340700"
+    },
+    {
+      "role": "user",
+      "text": "ما تبعيات config.py؟",
+      "ts": "2026-06-19T21:17:57.760813"
+    },
+    {
+      "role": "assistant",
+      "text": "🔗 **تحليل التبعيات — قراءة مباشرة من الكود**\n\n\n📁 `config/settings.py` [config] — إعدادات البوت الرئيسي\n  📥 **يستورده (33 ملف):**\n    ↳ `admin_bot/bot.py`\n    ↳ `admin_bot/database/db.py`\n    ↳ `admin_bot/handlers/auth.py`\n    ↳ `admin_bot/handlers/settings_h.py`\n    ↳ `admin_bot/handlers/support.py`\n    ↳ `bot.py`\n    ↳ `config/__init__.py`\n    ↳ `database/achievements.py`\n    ↳ `database/db.py`\n    ↳ `database/users.py`\n    ... و 23 ملف آخر\n  🔴 **التأثير الإجمالي:** 65 ملف — خطر: CRITICAL\n\n📁 `c",
+      "ts": "2026-06-19T21:17:57.760813"
     }
   ],
   "analysis_cache": {},
@@ -367,7 +367,7 @@
     "errors_found": 57,
     "last_scan": null
   },
-  "updated": "2026-06-19T19:30:30.738673",
+  "updated": "2026-06-19T21:17:57.760813",
   "project": {
     "name": "X Control Center",
     "main_bot": "PrimeDownloader Bot (bot.py)",
@@ -385,7 +385,7 @@
     "total_scans": 74,
     "total_plans": 14,
     "total_questions": 8,
-    "total_chats": 366
+    "total_chats": 371
   },
   "created": "2026-06-19T09:05:02.173299",
   "decisions": [],

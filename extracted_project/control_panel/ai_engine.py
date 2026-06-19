@@ -14,6 +14,24 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional
 
+# ─── Engineering Agent Core Modules (fail-safe import) ───────────────────────
+# These modules are loaded lazily at import time.  Any failure leaves the rest
+# of ai_engine.py fully functional — all callers guard with _CALL_GRAPH_OK /
+# _KG_OK before touching the objects.
+try:
+    from control_panel.call_graph import CallGraph as _CallGraph
+    _CALL_GRAPH_OK = True
+except Exception:
+    _CallGraph = None          # type: ignore
+    _CALL_GRAPH_OK = False
+try:
+    from control_panel.knowledge_graph import KnowledgeGraph as _KG, FileOwnership as _FO
+    _KG_OK = True
+except Exception:
+    _KG = None                 # type: ignore
+    _FO = None                 # type: ignore
+    _KG_OK = False
+
 # ─── Arabic Text Normalizer ───────────────────────────────────────────────────
 def _normalize_ar(text: str) -> str:
     """Normalize Arabic text before regex matching.
@@ -1702,7 +1720,8 @@ class AgentReasoningChain:
     @classmethod
     def _step4_deps(cls, files: list) -> dict:
         if not files:
-            return {"callers": [], "callees": [], "critical": False}
+            return {"callers": [], "callees": [], "critical": False,
+                    "func_calls": [], "kg_trace": {}, "circular": []}
         g         = ProjectDependencyGraph.get()
         forward   = g.get("forward", {})
         callers:  list = []
@@ -1713,7 +1732,35 @@ class AgentReasoningChain:
             callees.extend(forward.get(key, []))
         callers = list(dict.fromkeys(callers))[:20]
         callees = list(dict.fromkeys(callees))[:20]
-        return {"callers": callers, "callees": callees, "critical": len(callers) >= 5}
+
+        # ── Call Graph enrichment (Phase 4) ───────────────────────────────────
+        func_calls: list = []
+        circular:   list = []
+        if _CALL_GRAPH_OK and _CallGraph is not None:
+            try:
+                for f in files[:3]:
+                    func_calls.extend(_CallGraph.who_calls_file(f))
+                func_calls = func_calls[:15]
+                circular   = _CallGraph.circular_imports()[:5]
+            except Exception:
+                pass
+
+        # ── Knowledge Graph cross-type trace (Phase 1/2) ──────────────────────
+        kg_trace: dict = {}
+        if _KG_OK and _KG is not None and files:
+            try:
+                kg_trace = _KG.full_trace(files[0])
+            except Exception:
+                pass
+
+        return {
+            "callers":    callers,
+            "callees":    callees,
+            "critical":   len(callers) >= 5,
+            "func_calls": func_calls,
+            "circular":   circular,
+            "kg_trace":   kg_trace,
+        }
 
     @classmethod
     def _step5_impact(cls, files: list) -> dict:
@@ -3090,6 +3137,7 @@ INTENTS: dict = {
     "plan_modify": [r"plan", r"خطة", r"what.*modify", r"what.*change", r"ماذا.*أعدل",
                     r"redesign", r"إعادة تصميم", r"modify plan", r"how to.*change"],
     "dependency":  [r"depend", r"uses", r"loads", r"import", r"related",
+                    r"تبعيات", r"تبعية", r"يعتمد",
                     r"يستخدم", r"يحمل", r"علاقة", r"ارتباط", r"مرتبط"],
     "arch":        [r"architecture", r"how does.{0,20}work", r"explain.{0,20}system",
                     r"معمارية", r"كيف يعمل", r"اشرح", r"هيكل المشروع"],
@@ -3179,8 +3227,37 @@ def detect_intent(msg: str) -> str:
     _re_mode = ReasoningEngine.classify(msg)
     if _re_mode == "greeting":
         return "greeting"
+
+    # ── PROJECT_FIRST ENFORCEMENT (Phase 13/14) ───────────────────────────────
+    # If ReasoningEngine classified as "conversational", check whether the message
+    # contains explicit project entity keywords.  If yes, fall through to full
+    # project intent matching.  If no, return generic conversation immediately.
+    #
+    # Two-tier check:
+    #   • Short English tokens → \b word-boundary regex (prevents "fastapi" from
+    #     matching the "api" token, "classic" from matching "class", etc.)
+    #   • Long strings / Arabic terms → plain substring match (safe for these)
+    _PF_REGEX = [                       # require whole-word match
+        r"\bapi\b", r"\bdb\b", r"\bclass\b", r"\bpage\b", r"\bbot\b",
+        r"\bservice\b", r"\brouter\b", r"\bhandler\b", r"\btemplate\b",
+        r"\bbutton\b", r"\bmenu\b", r"\bcallback\b", r"\bcommand\b",
+        r"\bkeyboard\b", r"\bimport\b", r"\bfunction\b", r"\bdecorator\b",
+        r"\broute\b", r"\bendpoint\b", r"\bdatabase\b",
+    ]
+    _PF_SUB = {                         # substring match is safe for these
+        "bot.py", "settings.py", "config.py", "auth.py", "style.css",
+        "app.js", "app.py", "ai_engine", "callback_data", "inline_keyboard",
+        "زر", "قائمة", "صفحة", "قاعدة", "أمر", "خدمة", "دالة", "راوتر", "ملف",
+        "كول", "callback",
+    }
     if _re_mode == "conversational":
-        return "conversation"
+        _pf_hit = (
+            any(re.search(p, ml) for p in _PF_REGEX)
+            or any(kw in ml for kw in _PF_SUB)
+        )
+        if not _pf_hit:
+            return "conversation"
+    # Project entity detected → fall through to project intent patterns
 
     # ── Priority -1: Conversational / identity (absolute top priority) ─────────
     # These must NEVER return file lists
@@ -3410,6 +3487,19 @@ def detect_intent(msg: str) -> str:
     if any(re.search(p, ml) for p in _REUSE_P):
         return "reuse_systems"
 
+    # ── Dependency query — Arabic "ما تبعيات X؟" / "تبعيات config.py" ─────────
+    _DEP_P = [
+        r"تبعيات", r"تبعية\b",
+        r"ما\s+(?:التبعيات|تبعيات)",
+        r"اعرض\s+(?:التبعيات|تبعيات)",
+        r"تحليل\s+(?:التبعيات|التبعية)",
+        r"(?:show|list|analyze)\s+dependenc",
+        r"dependencies\s+of",
+        r"what\s+does\s+[\w/]+(?:\.py)?\s+(?:import|depend)",
+    ]
+    if any(re.search(p, ml) for p in _DEP_P):
+        return "dependency"
+
     # ── Priority 1: file-awareness patterns (must run first) ──────────────────
     _FILE_Q = [
         r"what file.{0,25}control",
@@ -3438,6 +3528,8 @@ def detect_intent(msg: str) -> str:
         r"locate.{0,25}(?:page|file|route)",
         r"أي ملف.{0,25}يتحكم",
         r"ما الملف.{0,25}(?:يتحكم|يعالج|المسؤول)",
+        r"ما الروتر.{0,35}(?:المسؤول|يعالج|يتحكم|يخدم|يعرض)",
+        r"أي روتر.{0,35}(?:المسؤول|يعالج|يتحكم|يخدم|يعرض)",
         r"أين.{0,25}(?:الصفحة|الملف|الكود|المسار)",
         r"ما.{0,5}(?:ملف|صفحة).{0,20}(?:يتحكم|يعرض|يعالج)",
     ]
@@ -5477,6 +5569,70 @@ def _r_dependency(msg: str) -> dict:
         else:
             lines.append("⚠️ لم يتم العثور على ملف بالاسم المحدد.")
             lines.append("💡 جرب: 'تبعيات config/settings.py' أو 'تبعيات database/db.py' أو 'تبعيات ai_engine.py'")
+
+    # ── Call Graph — function-level cross-file callers (Phase 4) ─────────────
+    if _CALL_GRAPH_OK and _CallGraph is not None and entries:
+        try:
+            cg_hits: list = []
+            for path, _, _ in entries[:2]:
+                cg_hits.extend(_CallGraph.who_calls_file(path))
+            if cg_hits:
+                lines.append("\n📞 **Call Graph — دوال تستدعي من هذا الملف:**")
+                seen_cg: set = set()
+                for caller_file, caller_func, callee_func in cg_hits[:8]:
+                    key = f"{caller_file}::{caller_func}"
+                    if key not in seen_cg:
+                        seen_cg.add(key)
+                        lines.append(
+                            f"  `{caller_file}` → `{caller_func}()` → `{callee_func}()`"
+                        )
+            circulars = _CallGraph.circular_imports()
+            if circulars:
+                lines.append(f"\n⚠️ **استيرادات دائرية مكتشفة ({len(circulars)}):**")
+                for c in circulars[:4]:
+                    lines.append(f"  🔄 {' → '.join(c)}")
+        except Exception:
+            pass
+
+    # ── File Ownership (Phase 2) ──────────────────────────────────────────────
+    if _KG_OK and _FO is not None and entries:
+        try:
+            lines.append("\n🏷️ **File Ownership:**")
+            for path, _, _ in entries[:3]:
+                own = _FO.get(path)
+                if own and own.get("purpose") != "Unknown — file not indexed":
+                    risk_icon = {"CRITICAL": "🔴", "HIGH": "🟠",
+                                 "MEDIUM": "🟡", "LOW": "🟢"}.get(own["risk_level"], "⚪")
+                    lines.append(
+                        f"  {risk_icon} `{path}` — {own['purpose']}"
+                    )
+                    if own.get("spof"):
+                        lines.append(
+                            f"    ⚠️ نقطة فشل واحدة — يعتمد عليه "
+                            f"{own['dependent_count']} ملف"
+                        )
+        except Exception:
+            pass
+
+    # ── Knowledge Graph cross-type trace (Phase 1) ───────────────────────────
+    if _KG_OK and _KG is not None and entries:
+        try:
+            path = entries[0][0]
+            trace = _KG.full_trace(path)
+            kg_items: list = []
+            if trace.get("renders"):
+                kg_items.append(f"  🖥️ يرندر: {', '.join(f'`{t}`' for t in trace['renders'][:4])}")
+            if trace.get("uses_db"):
+                kg_items.append(f"  🗄️ قاعدة بيانات: {', '.join(f'`{d}`' for d in trace['uses_db'][:3])}")
+            if trace.get("configures"):
+                kg_items.append(f"  ⚙️ يُهيئ: {', '.join(f'`{c}`' for c in trace['configures'][:4])}")
+            if trace.get("handles_cmds"):
+                kg_items.append(f"  🤖 أوامر: {', '.join(f'`{cmd}`' for cmd in trace['handles_cmds'][:5])}")
+            if kg_items:
+                lines.append("\n🕸️ **Knowledge Graph Trace:**")
+                lines.extend(kg_items)
+        except Exception:
+            pass
 
     return {"text": "\n".join(lines), "data": {"entries": entries}}
 
