@@ -232,6 +232,27 @@ async def ai_page(request: Request, session: dict = Depends(require_owner)):
     })
 
 
+@router.get("/engineer", response_class=HTMLResponse)
+async def ai_engineer_page(request: Request, session: dict = Depends(require_owner)):
+    return templates.TemplateResponse(request, "ai_engineer.html", {
+        "active_page": "ai_engineer"
+    })
+
+
+@router.get("/memory", response_class=HTMLResponse)
+async def ai_memory_page(request: Request, session: dict = Depends(require_owner)):
+    return templates.TemplateResponse(request, "ai_memory.html", {
+        "active_page": "ai_memory"
+    })
+
+
+@router.get("/review", response_class=HTMLResponse)
+async def ai_review_page(request: Request, session: dict = Depends(require_owner)):
+    return templates.TemplateResponse(request, "ai_review.html", {
+        "active_page": "ai_review"
+    })
+
+
 @router.get("/api/structure")
 async def api_structure(session: dict = Depends(require_owner)):
     return _analyze_structure()
