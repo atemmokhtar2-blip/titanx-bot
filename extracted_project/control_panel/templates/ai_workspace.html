@@ -1,426 +1,346 @@
 {% extends "base.html" %}
-{% block title %}مساحة الذكاء — X{% endblock %}
-{% block page_title %}🧠 مساحة الذكاء الاصطناعي{% endblock %}
+{% block title %}X AI — مركز الذكاء الاصطناعي{% endblock %}
+{% block page_title %}🧠 X AI Operator{% endblock %}
 
 {% block content %}
+<div class="ai-chat-wrap">
 
-<!-- Header -->
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
-  <div>
-    <div class="page-title" style="margin-bottom:4px">🧠 مساحة الذكاء الاصطناعي</div>
-    <div style="color:var(--text2);font-size:.875rem">تحليل المشروع · كشف الأخطاء · مراجعة الكود · اقتراحات التحسين</div>
-  </div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <button class="btn btn-primary" onclick="runFullAnalysis()">
-      🔬 تحليل شامل
+  <!-- Sidebar -->
+  <aside class="ai-chat-sidebar">
+    <button class="ai-new-chat-btn" onclick="newChat()">
+      <span>✦</span> محادثة جديدة
     </button>
-    <button class="btn btn-ghost" onclick="loadSuggestions()">
-      💡 الاقتراحات
-    </button>
-  </div>
-</div>
 
-<!-- AI Status Banner -->
-<div class="ai-banner mb-3" id="ai-banner">
-  <div class="ai-banner-icon">🧠</div>
-  <div class="ai-banner-content">
-    <div class="ai-banner-title">محرك التحليل جاهز</div>
-    <div class="ai-banner-sub">اضغط "تحليل شامل" لفحص المشروع الآن</div>
-  </div>
-  <div class="ai-banner-badge">AI v1.0</div>
-</div>
-
-<!-- Stats Strip -->
-<div class="metrics-strip mb-3" id="ai-metrics-strip">
-  <div class="metric-pill">
-    <div class="metric-pill-label">📄 الملفات الكلية</div>
-    <div class="metric-pill-value" id="ai-total-files">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="ai-files-bar" style="width:0%;background:var(--accent)"></div></div>
-  </div>
-  <div class="metric-pill">
-    <div class="metric-pill-label">💻 ملفات الكود</div>
-    <div class="metric-pill-value" id="ai-code-files">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="ai-code-bar" style="width:0%;background:var(--purple)"></div></div>
-  </div>
-  <div class="metric-pill">
-    <div class="metric-pill-label">📝 أسطر الكود</div>
-    <div class="metric-pill-value" id="ai-lines" style="font-size:.9rem">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="ai-lines-bar" style="width:0%;background:var(--green)"></div></div>
-  </div>
-  <div class="metric-pill">
-    <div class="metric-pill-label">⚠️ مشاكل مكتشفة</div>
-    <div class="metric-pill-value" id="ai-issues" style="color:var(--yellow)">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="ai-issues-bar" style="width:0%;background:var(--yellow)"></div></div>
-  </div>
-</div>
-
-<!-- MAIN GRID -->
-<div class="grid-2 mb-3">
-
-  <!-- Project Structure / Project Memory -->
-  <div class="card card-glow-blue" id="section-memory">
-    <div class="card-title" style="justify-content:space-between;margin-bottom:16px">
-      <span>📁 هيكل المشروع</span>
-      <button class="btn btn-ghost btn-sm" onclick="loadStructure()">🔄 تحليل</button>
-    </div>
-
-    <!-- Loading state -->
-    <div id="struct-loading" style="text-align:center;padding:30px;color:var(--text3)">
-      <div style="font-size:2rem;margin-bottom:8px">📊</div>
-      <div style="font-size:.85rem">اضغط "تحليل" لفحص هيكل الملفات</div>
-    </div>
-
-    <!-- Results -->
-    <div id="struct-result" style="display:none">
-      <!-- File type breakdown -->
-      <div style="margin-bottom:14px">
-        <div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">توزيع أنواع الملفات</div>
-        <div id="ext-bars"></div>
-      </div>
-      <!-- Top files -->
-      <div>
-        <div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">أكبر الملفات</div>
-        <div id="top-files-list" class="scroll-list" style="max-height:200px;overflow-y:auto"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Error Detector / AI Engineer -->
-  <div class="card card-glow-red" id="section-engineer">
-    <div class="card-title" style="justify-content:space-between;margin-bottom:16px">
-      <span>🔴 كاشف الأخطاء</span>
-      <button class="btn btn-ghost btn-sm" onclick="loadErrors()">🔄 فحص</button>
-    </div>
-
-    <div id="errors-loading" style="text-align:center;padding:30px;color:var(--text3)">
-      <div style="font-size:2rem;margin-bottom:8px">🔍</div>
-      <div style="font-size:.85rem">اضغط "فحص" للكشف عن الأخطاء</div>
-    </div>
-
-    <div id="errors-result" style="display:none">
-      <!-- Summary -->
-      <div class="grid-2" style="gap:10px;margin-bottom:14px">
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center">
-          <div style="font-size:1.6rem;font-weight:900;color:var(--red)" id="err-log-count">0</div>
-          <div style="font-size:.72rem;color:var(--text2);font-weight:600">أخطاء السجلات</div>
+    <div class="ai-sidebar-section">
+      <div class="ai-sidebar-label">الإمكانيات</div>
+      <div class="ai-cap-grid">
+        <div class="ai-cap-card" onclick="sendQuick('افحص الأخطاء في المشروع')">
+          <div class="ai-cap-icon">🔍</div>
+          <div class="ai-cap-name">كشف الأخطاء</div>
         </div>
-        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center">
-          <div style="font-size:1.6rem;font-weight:900;color:var(--yellow)" id="err-code-count">0</div>
-          <div style="font-size:.72rem;color:var(--text2);font-weight:600">تحذيرات الكود</div>
+        <div class="ai-cap-card" onclick="sendQuick('افحص الثغرات الأمنية')">
+          <div class="ai-cap-icon">🔒</div>
+          <div class="ai-cap-name">فحص الأمان</div>
+        </div>
+        <div class="ai-cap-card" onclick="sendQuick('حلل المشروع وأعطني الإحصائيات')">
+          <div class="ai-cap-icon">📊</div>
+          <div class="ai-cap-name">تحليل المشروع</div>
+        </div>
+        <div class="ai-cap-card" onclick="sendQuick('أنشئ نسخة احتياطية الآن')">
+          <div class="ai-cap-icon">💾</div>
+          <div class="ai-cap-name">نسخة احتياطية</div>
+        </div>
+        <div class="ai-cap-card" onclick="sendQuick('اعرض المسارات في المشروع')">
+          <div class="ai-cap-icon">🛣️</div>
+          <div class="ai-cap-name">المسارات</div>
+        </div>
+        <div class="ai-cap-card" onclick="sendQuick('حالة النظام')">
+          <div class="ai-cap-icon">⚡</div>
+          <div class="ai-cap-name">حالة النظام</div>
         </div>
       </div>
-      <!-- Error list -->
-      <div id="log-errors-list" class="scroll-list" style="max-height:160px;overflow-y:auto;margin-bottom:10px"></div>
-      <!-- Code issues -->
-      <div id="code-issues-list" class="scroll-list" style="max-height:120px;overflow-y:auto"></div>
     </div>
-  </div>
 
+    <div class="ai-sidebar-section">
+      <div class="ai-sidebar-label">إحصائيات الذكاء</div>
+      <div class="ai-mini-stat"><span>محادثات</span><strong id="sb-chats">—</strong></div>
+      <div class="ai-mini-stat"><span>تحليلات</span><strong id="sb-analyses">—</strong></div>
+      <div class="ai-mini-stat"><span>نسخ احتياطية</span><strong id="sb-backups">—</strong></div>
+    </div>
+
+    <div class="ai-sidebar-section" style="margin-top:auto">
+      <div class="ai-sidebar-label">صفحات الذكاء</div>
+      <a href="/ai/engineer" class="ai-nav-link">🤖 مهندس الذكاء</a>
+      <a href="/ai/memory"   class="ai-nav-link">🧠 ذاكرة المشروع</a>
+      <a href="/ai/review"   class="ai-nav-link">📋 مراجعة التعديلات</a>
+    </div>
+  </aside>
+
+  <!-- Main Chat -->
+  <main class="ai-chat-main">
+
+    <!-- Header -->
+    <div class="ai-chat-header">
+      <div class="ai-chat-header-left">
+        <div class="ai-avatar-lg">
+          <div class="ai-avatar-pulse"></div>
+          🧠
+        </div>
+        <div>
+          <div class="ai-chat-title">X AI Operator</div>
+          <div class="ai-chat-sub">مهندس ذكاء متخصص في مشروع X Control Center</div>
+        </div>
+      </div>
+      <div class="ai-chat-header-right">
+        <div class="ai-status-dot"></div>
+        <span style="font-size:.75rem;color:var(--green)">جاهز</span>
+        <button class="ai-icon-btn" onclick="clearChat()" title="مسح المحادثة">🗑️</button>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="ai-messages" id="ai-messages">
+      <!-- Welcome -->
+      <div class="ai-msg ai-msg-bot ai-msg-appear" id="welcome-msg">
+        <div class="ai-msg-avatar">🧠</div>
+        <div class="ai-msg-bubble">
+          <div class="ai-msg-content" id="welcome-content"></div>
+          <div class="ai-msg-time">الآن</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Typing Indicator -->
+    <div class="ai-typing" id="ai-typing" style="display:none">
+      <div class="ai-msg-avatar" style="width:32px;height:32px;font-size:.9rem">🧠</div>
+      <div class="ai-typing-bubble">
+        <div class="ai-typing-dot"></div>
+        <div class="ai-typing-dot"></div>
+        <div class="ai-typing-dot"></div>
+      </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="ai-input-wrap">
+      <div class="ai-input-box">
+        <textarea class="ai-textarea" id="ai-input"
+          placeholder="اكتب رسالتك... مثال: افحص الأخطاء في المشروع"
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="autoResize(this)"></textarea>
+        <div class="ai-input-actions">
+          <button class="ai-send-btn" id="ai-send-btn" onclick="sendMessage()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="ai-quick-chips" id="ai-quick-chips">
+        <button class="ai-chip" onclick="sendQuick('مساعدة')">❓ المساعدة</button>
+        <button class="ai-chip" onclick="sendQuick('افحص الأخطاء')">🔍 الأخطاء</button>
+        <button class="ai-chip" onclick="sendQuick('أنشئ نسخة احتياطية الآن')">💾 نسخة احتياطية</button>
+        <button class="ai-chip" onclick="sendQuick('افحص الأمان')">🔒 الأمان</button>
+        <button class="ai-chip" onclick="sendQuick('هيكل المشروع')">📁 الهيكل</button>
+      </div>
+    </div>
+
+  </main>
 </div>
-
-<!-- SECOND ROW -->
-<div class="grid-2 mb-3">
-
-  <!-- Suggestions -->
-  <div class="card card-glow-green">
-    <div class="card-title" style="justify-content:space-between;margin-bottom:16px">
-      <span>💡 اقتراحات التحسين</span>
-      <button class="btn btn-ghost btn-sm" onclick="loadSuggestions()">🔄 تحديث</button>
-    </div>
-
-    <div id="suggestions-loading" style="text-align:center;padding:30px;color:var(--text3)">
-      <div style="font-size:2rem;margin-bottom:8px">💡</div>
-      <div style="font-size:.85rem">اضغط "تحديث" لتحليل الاقتراحات</div>
-    </div>
-
-    <div id="suggestions-list" style="display:none"></div>
-
-    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-      <button class="btn btn-danger btn-sm" onclick="clearTemp()" id="clear-temp-btn">
-        🗑️ حذف الملفات المؤقتة
-      </button>
-    </div>
-  </div>
-
-  <!-- File Code Review / Review Changes -->
-  <div class="card card-glow-purple" id="section-review">
-    <div class="card-title" style="margin-bottom:16px">
-      <span>🔎 مراجعة ملف</span>
-    </div>
-
-    <div class="form-group" style="margin-bottom:12px">
-      <div class="form-label">مسار الملف (نسبي من مجلد المشروع)</div>
-      <div style="display:flex;gap:8px">
-        <input type="text" class="form-control" id="review-path"
-               placeholder="مثال: bot.py  أو  control_panel/app.py"
-               style="font-family:'JetBrains Mono',monospace;font-size:.82rem">
-        <button class="btn btn-primary btn-sm" onclick="reviewFile()" style="white-space:nowrap">
-          🔬 مراجعة
-        </button>
-      </div>
-    </div>
-
-    <div id="review-loading" style="display:none;text-align:center;padding:20px;color:var(--text3)">
-      <div class="loading-spinner" style="width:30px;height:30px;border-width:2px;margin:0 auto 8px"></div>
-      <div style="font-size:.8rem">جاري التحليل...</div>
-    </div>
-
-    <div id="review-result" style="display:none">
-      <!-- File info -->
-      <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-        <span class="badge badge-blue" id="rv-ext">—</span>
-        <span class="badge badge-gray" id="rv-lines">—</span>
-        <span class="badge badge-purple" id="rv-size">—</span>
-      </div>
-      <!-- Issues -->
-      <div id="rv-issues-wrap" style="margin-bottom:10px;display:none">
-        <div style="font-size:.75rem;font-weight:700;color:var(--red);margin-bottom:6px">⚠️ مشاكل مكتشفة</div>
-        <div id="rv-issues"></div>
-      </div>
-      <!-- Suggestions -->
-      <div id="rv-sug-wrap" style="margin-bottom:10px;display:none">
-        <div style="font-size:.75rem;font-weight:700;color:var(--green);margin-bottom:6px">💡 اقتراحات</div>
-        <div id="rv-suggestions"></div>
-      </div>
-      <!-- Code snippet -->
-      <details>
-        <summary style="cursor:pointer;font-size:.78rem;color:var(--text2);font-weight:600;margin-bottom:6px">📄 عرض الكود</summary>
-        <div class="code-block" id="rv-snippet" style="max-height:200px;overflow-y:auto;font-size:.74rem"></div>
-      </details>
-    </div>
-  </div>
-
-</div>
-
-<!-- Full Analysis Log -->
-<div class="card" id="analysis-log-card" style="display:none">
-  <div class="card-title" style="justify-content:space-between">
-    <span>📊 نتيجة التحليل الشامل</span>
-    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('analysis-log-card').style.display='none'">✕ إغلاق</button>
-  </div>
-  <div class="code-block" id="analysis-log" style="max-height:300px;overflow-y:auto;font-size:.78rem"></div>
-</div>
-
 {% endblock %}
 
 {% block scripts %}
 <script>
+var _busy   = false;
+var _chatEl = document.getElementById('ai-messages');
 
-async function loadStructure() {
-  document.getElementById('struct-loading').innerHTML = '<div style="text-align:center;padding:30px;color:var(--text3)"><div class="loading-spinner" style="width:30px;height:30px;border-width:2px;margin:0 auto 10px"></div><div style="font-size:.8rem">جاري التحليل...</div></div>';
-  document.getElementById('struct-result').style.display = 'none';
-  try {
-    var d = await apiGet('/ai/api/structure');
-    document.getElementById('ai-total-files').textContent = d.total_files || 0;
-    document.getElementById('ai-code-files').textContent  = d.code_files || 0;
-    var linesK = d.total_lines > 1000 ? (d.total_lines/1000).toFixed(1)+'K' : d.total_lines;
-    document.getElementById('ai-lines').textContent = linesK;
-    _ubarColor('ai-files-bar', Math.min(d.total_files/5, 100), 'var(--accent)');
-    _ubarColor('ai-code-bar',  Math.min(d.code_files/3, 100),  'var(--purple)');
-    _ubarColor('ai-lines-bar', Math.min(d.total_lines/1000*10, 100), 'var(--green)');
-
-    // Ext bars
-    var extHtml = '';
-    var maxExt = Math.max(...Object.values(d.by_ext));
-    Object.entries(d.by_ext).slice(0,8).forEach(function([ext, cnt]) {
-      var pct = maxExt > 0 ? (cnt/maxExt*100).toFixed(0) : 0;
-      var color = ext==='.py'?'var(--accent)':ext==='.js'?'var(--yellow)':ext==='.html'?'var(--orange)':ext==='.css'?'var(--purple)':'var(--cyan)';
-      extHtml += '<div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;font-size:.74rem;font-weight:600;margin-bottom:3px"><span style="color:var(--text2);font-family:monospace">'+(ext||'other')+'</span><span style="color:var(--text)">'+cnt+' ملف</span></div><div class="progress"><div class="progress-bar" style="width:'+pct+'%;background:'+color+'"></div></div></div>';
-    });
-    document.getElementById('ext-bars').innerHTML = extHtml;
-
-    // Top files
-    var topHtml = '';
-    (d.top_files||[]).slice(0,8).forEach(function(f) {
-      topHtml += '<div class="scroll-list-item" style="cursor:pointer" onclick="setReviewPath(\''+f.path+'\')">'
-        +'<div style="display:flex;justify-content:space-between;align-items:center">'
-        +'<div><span style="font-family:monospace;font-size:.76rem;color:var(--accent2)">'+f.path+'</span></div>'
-        +'<div style="display:flex;gap:6px;align-items:center;flex-shrink:0"><span class="badge badge-gray">'+f.lines+' سطر</span></div>'
-        +'</div></div>';
-    });
-    document.getElementById('top-files-list').innerHTML = topHtml || '<div style="padding:12px;text-align:center;color:var(--text3)">لا توجد ملفات</div>';
-
-    document.getElementById('struct-result').style.display = 'block';
-    document.getElementById('struct-loading').style.display = 'none';
-
-    updateBanner('✅ تم تحليل '+d.total_files+' ملف — '+d.code_files+' ملف كود · '+linesK+' سطر', 'اكتمل التحليل الهيكلي', 'success');
-  } catch(e) {
-    document.getElementById('struct-loading').innerHTML = '<div style="text-align:center;padding:20px;color:var(--red)">❌ فشل تحميل البيانات</div>';
-  }
-}
-
-async function loadErrors() {
-  document.getElementById('errors-loading').innerHTML = '<div style="text-align:center;padding:30px;color:var(--text3)"><div class="loading-spinner" style="width:30px;height:30px;border-width:2px;margin:0 auto 10px"></div><div style="font-size:.8rem">جاري فحص الأخطاء...</div></div>';
-  document.getElementById('errors-result').style.display = 'none';
-  try {
-    var d = await apiGet('/ai/api/errors');
-    document.getElementById('err-log-count').textContent  = d.total_log_errors  || 0;
-    document.getElementById('err-code-count').textContent = d.total_code_issues || 0;
-    var totalIssues = (d.total_log_errors||0) + (d.total_code_issues||0);
-    document.getElementById('ai-issues').textContent = totalIssues;
-    _ubarColor('ai-issues-bar', Math.min(totalIssues*5, 100), totalIssues>10?'var(--red)':'var(--yellow)');
-
-    // Log errors
-    var logHtml = '';
-    (d.log_errors||[]).slice(0,10).forEach(function(e) {
-      var color = e.severity==='critical'?'var(--red)':'var(--yellow)';
-      logHtml += '<div class="scroll-list-item">'
-        +'<div style="font-size:.72rem;font-family:monospace;color:'+color+';margin-bottom:2px">'+escHtml(e.text.substring(0,120))+'</div>'
-        +'<div style="font-size:.65rem;color:var(--text3)">📄 '+e.source+' · سطر '+e.line+'</div>'
-        +'</div>';
-    });
-    document.getElementById('log-errors-list').innerHTML = logHtml || '<div style="padding:10px;text-align:center;color:var(--green);font-size:.8rem">✅ لا توجد أخطاء في السجلات</div>';
-
-    // Code issues
-    var codeHtml = '';
-    (d.code_issues||[]).slice(0,8).forEach(function(i) {
-      var color = i.type==='security'?'var(--red)':i.type==='warning'?'var(--yellow)':'var(--text3)';
-      var icon  = i.type==='security'?'🔒':i.type==='warning'?'⚠️':'ℹ️';
-      codeHtml += '<div class="scroll-list-item">'
-        +'<div style="font-size:.75rem;color:'+color+'">'+icon+' '+escHtml(i.msg)+'</div>'
-        +'<div style="font-size:.65rem;color:var(--text3);font-family:monospace">'+i.file+'</div>'
-        +'</div>';
-    });
-    document.getElementById('code-issues-list').innerHTML = codeHtml || '<div style="padding:10px;text-align:center;color:var(--green);font-size:.8rem">✅ لا توجد مشاكل في الكود</div>';
-
-    document.getElementById('errors-result').style.display = 'block';
-    document.getElementById('errors-loading').style.display = 'none';
-  } catch(e) {
-    document.getElementById('errors-loading').innerHTML = '<div style="text-align:center;padding:20px;color:var(--red)">❌ فشل الفحص</div>';
-  }
-}
-
-async function loadSuggestions() {
-  document.getElementById('suggestions-loading').style.display = 'block';
-  document.getElementById('suggestions-list').style.display = 'none';
-  try {
-    var items = await apiGet('/ai/api/suggestions');
-    var html = '';
-    items.forEach(function(s) {
-      var colors = {warning:'var(--yellow)',info:'var(--accent2)',error:'var(--red)',success:'var(--green)'};
-      var icons  = {warning:'⚠️',info:'💡',error:'🔴',success:'✅'};
-      var color  = colors[s.priority] || 'var(--text2)';
-      var icon   = icons[s.priority]  || '💡';
-      html += '<div class="ai-suggestion-item" style="padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;border-right:3px solid '+color+'">'
-        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
-        +'<span style="font-size:.72rem;font-weight:800;color:'+color+';background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:99px">'+s.category+'</span>'
-        +'</div>'
-        +'<div style="font-size:.84rem;font-weight:700;color:var(--text);margin-bottom:3px">'+icon+' '+escHtml(s.title)+'</div>'
-        +'<div style="font-size:.76rem;color:var(--text2)">'+escHtml(s.detail)+'</div>'
-        +(s.action==='clear_temp'?'<button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="clearTemp()">🗑️ تنظيف الآن</button>':'')
-        +'</div>';
-    });
-    document.getElementById('suggestions-list').innerHTML = html || '<div style="text-align:center;color:var(--green);padding:20px">✅ لا توجد اقتراحات — المشروع في حالة جيدة!</div>';
-    document.getElementById('suggestions-list').style.display = 'block';
-    document.getElementById('suggestions-loading').style.display = 'none';
-  } catch(e) {
-    document.getElementById('suggestions-loading').innerHTML = '<div style="color:var(--red);font-size:.8rem">❌ فشل التحميل</div>';
-  }
-}
-
-async function reviewFile() {
-  var path = document.getElementById('review-path').value.trim();
-  if (!path) { showToast('أدخل مسار الملف أولاً', 'warning'); return; }
-  document.getElementById('review-loading').style.display = 'block';
-  document.getElementById('review-result').style.display  = 'none';
-  try {
-    var d = await apiPost('/ai/api/review', { path: path });
-    document.getElementById('review-loading').style.display = 'none';
-    if (!d.ok) { showToast(d.error || 'فشل المراجعة', 'error'); return; }
-
-    document.getElementById('rv-ext').textContent   = d.ext || '—';
-    document.getElementById('rv-lines').textContent = d.lines + ' سطر';
-    document.getElementById('rv-size').textContent  = d.chars.toLocaleString() + ' حرف';
-
-    // Issues
-    if (d.issues && d.issues.length) {
-      document.getElementById('rv-issues').innerHTML = d.issues.map(i=>'<div style="padding:5px 8px;background:rgba(239,68,68,0.1);border-radius:var(--radius-xs);font-size:.78rem;margin-bottom:4px;color:var(--red)">⚠️ '+escHtml(i)+'</div>').join('');
-      document.getElementById('rv-issues-wrap').style.display = 'block';
-    } else {
-      document.getElementById('rv-issues-wrap').style.display = 'none';
-    }
-    // Suggestions
-    if (d.suggestions && d.suggestions.length) {
-      document.getElementById('rv-suggestions').innerHTML = d.suggestions.map(s=>'<div style="padding:5px 8px;background:rgba(34,197,94,0.1);border-radius:var(--radius-xs);font-size:.78rem;margin-bottom:4px;color:var(--green)">💡 '+escHtml(s)+'</div>').join('');
-      document.getElementById('rv-sug-wrap').style.display = 'block';
-    } else {
-      document.getElementById('rv-sug-wrap').style.display = 'none';
-    }
-    // Snippet
-    document.getElementById('rv-snippet').textContent = d.snippet + (d.truncated ? '\n\n... (مقتطع — الملف أكبر)' : '');
-    document.getElementById('review-result').style.display = 'block';
-  } catch(e) {
-    document.getElementById('review-loading').style.display = 'none';
-    showToast('فشل تحليل الملف', 'error');
-  }
-}
-
-function setReviewPath(path) {
-  document.getElementById('review-path').value = path;
-  document.getElementById('review-result').style.display = 'none';
-  showToast('تم تحديد الملف: '+path, 'info', 2000);
-}
-
-async function clearTemp() {
-  var btn = document.getElementById('clear-temp-btn');
-  if (btn) { btn.disabled=true; btn.textContent='⏳ جاري الحذف...'; }
-  try {
-    var d = await apiPost('/ai/api/clear_temp', {});
-    showToast(d.msg || (d.ok?'تم التنظيف ✅':'فشل'), d.ok?'success':'error');
-    if (d.ok) loadSuggestions();
-  } catch(e) {
-    showToast('فشل الاتصال', 'error');
-  }
-  if (btn) { btn.disabled=false; btn.textContent='🗑️ حذف الملفات المؤقتة'; }
-}
-
-async function runFullAnalysis() {
-  updateBanner('🔬 جاري التحليل الشامل...', 'يتم الآن فحص كل مكونات المشروع', 'running');
-  var logCard = document.getElementById('analysis-log-card');
-  var logEl   = document.getElementById('analysis-log');
-  logCard.style.display = 'block';
-  logEl.textContent = '⏳ جاري التحليل الشامل...\n';
-  logCard.scrollIntoView({ behavior: 'smooth' });
-
-  var steps = [
-    { fn: loadStructure, label: 'تحليل هيكل الملفات' },
-    { fn: loadErrors,    label: 'كشف الأخطاء' },
-    { fn: loadSuggestions, label: 'توليد الاقتراحات' },
-  ];
-
-  for (var i=0; i<steps.length; i++) {
-    logEl.textContent += '⟳ ' + steps[i].label + '...\n';
-    try {
-      await steps[i].fn();
-      logEl.textContent += '✅ ' + steps[i].label + ' — اكتمل\n';
-    } catch(e) {
-      logEl.textContent += '❌ ' + steps[i].label + ' — فشل\n';
-    }
-    logEl.scrollTop = logEl.scrollHeight;
-  }
-
-  var ts = new Date().toLocaleTimeString('ar-SA');
-  logEl.textContent += '\n🎉 اكتمل التحليل الشامل في ' + ts;
-  logEl.scrollTop = logEl.scrollHeight;
-  updateBanner('✅ اكتمل التحليل الشامل', 'تم فحص المشروع بالكامل', 'success');
-  showToast('اكتمل التحليل الشامل ✅', 'success');
-}
-
-function updateBanner(title, sub, state) {
-  var banner = document.getElementById('ai-banner');
-  var titleEl = banner.querySelector('.ai-banner-title');
-  var subEl   = banner.querySelector('.ai-banner-sub');
-  if (titleEl) titleEl.textContent = title;
-  if (subEl)   subEl.textContent   = sub;
-  banner.className = 'ai-banner mb-3 ai-banner-' + (state||'');
-}
-
-function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
+// ── Welcome message ──────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-  startStatsPolling(8000);
+  var welcome = [
+    'مرحباً! أنا **X AI Operator** — مهندس الذكاء المتخصص في مشروع X Control Center. 🧠',
+    '',
+    'أستطيع تحليل الملفات الفعلية، كشف الأخطاء، فحص الأمان، وإنشاء نسخ احتياطية.',
+    '',
+    'اكتب رسالتك أو اختر أحد الأوامر السريعة أدناه.'
+  ].join('\n');
+  document.getElementById('welcome-content').innerHTML = renderMd(welcome);
+  loadStats();
+  startStatsPolling(15000);
 });
+
+// ── Load sidebar stats ───────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    var d = await apiGet('/ai/api/memory');
+    var s = d.ai_stats || {};
+    setText('sb-chats',    s.total_chats    || 0);
+    setText('sb-analyses', s.total_analyses || 0);
+    setText('sb-backups',  s.total_backups  || 0);
+  } catch(e) {}
+}
+
+// ── Send / receive ───────────────────────────────────────────────────────────
+async function sendMessage() {
+  if (_busy) return;
+  var inp = document.getElementById('ai-input');
+  var msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = '';
+  autoResize(inp);
+
+  _busy = true;
+  document.getElementById('ai-send-btn').disabled = true;
+  document.getElementById('ai-quick-chips').style.opacity = '.5';
+
+  appendUserMsg(msg);
+  showTyping(true);
+
+  // Handle built-in actions
+  if (msg === 'create_backup') {
+    await doCreateBackup();
+    return;
+  }
+  if (msg === 'list_backups') {
+    await doListBackups();
+    return;
+  }
+
+  try {
+    var d = await apiPost('/ai/api/chat', { message: msg });
+    showTyping(false);
+    if (d.ok) {
+      appendBotMsg(d.text, d.type, d.actions || []);
+    } else {
+      appendBotMsg('❌ ' + (d.error || 'حدث خطأ'), 'error', []);
+    }
+  } catch(e) {
+    showTyping(false);
+    appendBotMsg('❌ تعذّر الاتصال بمحرك الذكاء. تحقق من أن الخادم يعمل.', 'error', []);
+  }
+
+  _busy = false;
+  document.getElementById('ai-send-btn').disabled = false;
+  document.getElementById('ai-quick-chips').style.opacity = '1';
+  loadStats();
+}
+
+async function doCreateBackup() {
+  showTyping(true);
+  try {
+    var d = await apiPost('/ai/api/backup/create', { description: 'نسخة من مركز الذكاء الاصطناعي' });
+    showTyping(false);
+    if (d.ok) {
+      appendBotMsg('✅ **تم إنشاء النسخة الاحتياطية بنجاح!**\n\n📦 المعرف: `' + d.id + '`\n📄 الملفات: ' + d.files + '\n💾 الحجم: ' + d.size_h + '\n🕐 التوقيت: ' + d.datetime, 'success', []);
+    } else {
+      appendBotMsg('❌ فشل إنشاء النسخة: ' + (d.error||''), 'error', []);
+    }
+  } catch(e) {
+    showTyping(false);
+    appendBotMsg('❌ فشل الاتصال', 'error', []);
+  }
+  _busy = false;
+  document.getElementById('ai-send-btn').disabled = false;
+  document.getElementById('ai-quick-chips').style.opacity = '1';
+  loadStats();
+}
+
+async function doListBackups() {
+  showTyping(true);
+  try {
+    var bks = await apiGet('/ai/api/backup/list');
+    showTyping(false);
+    var txt = '💾 **النسخ الاحتياطية** (' + bks.length + ')\n\n';
+    if (!bks.length) {
+      txt += 'لا توجد نسخ احتياطية بعد.';
+    } else {
+      bks.slice(0,5).forEach(function(b,i) {
+        txt += (i+1)+'. `'+b.id+'`\n   📅 '+b.datetime+' · '+b.files+' ملف · '+b.size_h+'\n   '+b.description+'\n\n';
+      });
+    }
+    appendBotMsg(txt, 'info', []);
+  } catch(e) {
+    showTyping(false);
+    appendBotMsg('❌ فشل التحميل', 'error', []);
+  }
+  _busy = false;
+  document.getElementById('ai-send-btn').disabled = false;
+  document.getElementById('ai-quick-chips').style.opacity = '1';
+}
+
+function sendQuick(cmd) {
+  document.getElementById('ai-input').value = cmd;
+  sendMessage();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+}
+
+// ── DOM helpers ───────────────────────────────────────────────────────────────
+function appendUserMsg(text) {
+  var el = document.createElement('div');
+  el.className = 'ai-msg ai-msg-user ai-msg-appear';
+  el.innerHTML = '<div class="ai-msg-bubble ai-msg-bubble-user"><div class="ai-msg-content">' + escHtml(text) + '</div><div class="ai-msg-time">' + nowStr() + '</div></div>';
+  _chatEl.appendChild(el);
+  scrollChat();
+}
+
+function appendBotMsg(text, type, actions) {
+  var el = document.createElement('div');
+  el.className = 'ai-msg ai-msg-bot ai-msg-appear';
+  var typeClass = type === 'error' ? 'ai-bubble-error' : type === 'warning' ? 'ai-bubble-warn' : type === 'success' ? 'ai-bubble-success' : '';
+  var actHtml = '';
+  if (actions && actions.length) {
+    actHtml = '<div class="ai-msg-actions">';
+    actions.forEach(function(a) {
+      if (a.link) {
+        actHtml += '<a href="'+a.link+'" class="ai-action-btn">'+escHtml(a.label)+'</a>';
+      } else {
+        actHtml += '<button class="ai-action-btn" onclick="sendQuick(\''+a.cmd.replace(/'/g,"\\'")+'\')" >'+escHtml(a.label)+'</button>';
+      }
+    });
+    actHtml += '</div>';
+  }
+  var copyBtn = '<button class="ai-copy-btn" onclick="copyMsg(this)" title="نسخ">⧉</button>';
+  el.innerHTML = '<div class="ai-msg-avatar">🧠</div><div class="ai-msg-bubble '+typeClass+'"><div class="ai-msg-content">'+renderMd(text)+'</div>'+actHtml+'<div class="ai-msg-footer"><div class="ai-msg-time">'+nowStr()+'</div>'+copyBtn+'</div></div>';
+  _chatEl.appendChild(el);
+  scrollChat();
+}
+
+function showTyping(v) {
+  document.getElementById('ai-typing').style.display = v ? 'flex' : 'none';
+  if (v) scrollChat();
+}
+
+function scrollChat() {
+  setTimeout(function() { _chatEl.scrollTop = _chatEl.scrollHeight; }, 60);
+}
+
+function newChat() {
+  _chatEl.innerHTML = '';
+  document.getElementById('ai-input').value = '';
+}
+
+function clearChat() {
+  if (confirm('مسح المحادثة الحالية؟')) newChat();
+}
+
+function copyMsg(btn) {
+  var txt = btn.closest('.ai-msg-bubble').querySelector('.ai-msg-content').innerText;
+  navigator.clipboard.writeText(txt).then(function() { showToast('تم النسخ ✅','success',2000); });
+}
+
+function nowStr() {
+  return new Date().toLocaleTimeString('ar-SA', {hour:'2-digit',minute:'2-digit'});
+}
+
+function setText(id, v) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = v;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── Markdown renderer (minimal) ───────────────────────────────────────────────
+function renderMd(text) {
+  var h = escHtml(text);
+  h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/`([^`]+)`/g, '<code class="ai-inline-code">$1</code>');
+  h = h.replace(/^  ·\s+(.+)$/gm, '<div class="ai-list-item"><span class="ai-list-dot">·</span>$1</div>');
+  h = h.replace(/^  ·([^·].+)$/gm, '<div class="ai-list-item"><span class="ai-list-dot">·</span>$1</div>');
+  h = h.replace(/\n/g, '<br>');
+  return h;
+}
 </script>
 {% endblock %}

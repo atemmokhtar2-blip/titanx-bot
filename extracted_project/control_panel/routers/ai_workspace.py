@@ -1,4 +1,4 @@
-"""AI Workspace — project analyzer, code reviewer, error detector."""
+"""AI Workspace — project analyzer, code reviewer, error detector, AI chat operator."""
 import os
 import json
 import time
@@ -9,6 +9,11 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from ..auth import require_owner
 from ..config import CONTROL_PANEL_DIR, EXTRACTED_DIR, PROJECT_ROOT, LOGS_DIR
+from ..ai_engine import (
+    process_chat, create_plan, create_backup, list_backups, restore_backup,
+    load_memory, save_memory, full_analysis, analyze_structure as _eng_structure,
+    detect_log_errors, detect_code_issues, security_scan, detect_routes,
+)
 
 router = APIRouter(prefix="/ai")
 templates = Jinja2Templates(directory=os.path.join(CONTROL_PANEL_DIR, "templates"))
@@ -297,3 +302,104 @@ async def api_clear_temp(session: dict = Depends(require_owner)):
         return {"ok": True, "removed": removed, "msg": f"تم حذف {removed} ملف مؤقت"}
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  AI ENGINE API  — Real operator endpoints
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/api/chat")
+async def api_chat(request: Request, session: dict = Depends(require_owner)):
+    try:
+        body = await request.json()
+        msg  = str(body.get("message", "")).strip()
+        if not msg:
+            return JSONResponse({"ok": False, "error": "الرسالة فارغة"}, status_code=400)
+        if len(msg) > 2000:
+            return JSONResponse({"ok": False, "error": "الرسالة طويلة جداً"}, status_code=400)
+        result = process_chat(msg)
+        return {"ok": True, **result}
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@router.post("/api/plan")
+async def api_plan(request: Request, session: dict = Depends(require_owner)):
+    try:
+        body = await request.json()
+        desc = str(body.get("description", "")).strip()
+        if not desc:
+            return JSONResponse({"ok": False, "error": "الوصف فارغ"}, status_code=400)
+        result = create_plan(desc)
+        return result
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@router.get("/api/backup/list")
+async def api_backup_list(session: dict = Depends(require_owner)):
+    return list_backups()
+
+
+@router.post("/api/backup/create")
+async def api_backup_create(request: Request, session: dict = Depends(require_owner)):
+    try:
+        body = await request.json()
+        desc = str(body.get("description", "نسخة يدوية")).strip() or "نسخة يدوية"
+        result = create_backup(desc)
+        return result
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@router.post("/api/backup/restore")
+async def api_backup_restore(request: Request, session: dict = Depends(require_owner)):
+    try:
+        body  = await request.json()
+        bk_id = str(body.get("id", "")).strip()
+        if not bk_id or ".." in bk_id or "/" in bk_id:
+            return JSONResponse({"ok": False, "error": "معرف النسخة غير صالح"}, status_code=400)
+        result = restore_backup(bk_id)
+        return result
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@router.get("/api/memory")
+async def api_memory(session: dict = Depends(require_owner)):
+    return load_memory()
+
+
+@router.get("/api/full_analysis")
+async def api_full_analysis(session: dict = Depends(require_owner)):
+    return full_analysis()
+
+
+@router.get("/api/security")
+async def api_security(session: dict = Depends(require_owner)):
+    issues   = security_scan()
+    critical = [i for i in issues if i["severity"] == "critical"]
+    high     = [i for i in issues if i["severity"] == "high"]
+    medium   = [i for i in issues if i["severity"] == "medium"]
+    low      = [i for i in issues if i["severity"] == "low"]
+    return {
+        "issues": issues, "total": len(issues),
+        "critical": len(critical), "high": len(high),
+        "medium": len(medium), "low": len(low),
+        "score": max(0, 100 - len(critical)*25 - len(high)*10 - len(medium)*5 - len(low)*2),
+    }
+
+
+@router.get("/api/routes")
+async def api_routes(session: dict = Depends(require_owner)):
+    routes = detect_routes()
+    by_file: dict = {}
+    for r in routes:
+        by_file.setdefault(r["file"], []).append(r["path"])
+    return {"routes": routes, "total": len(routes), "by_file": by_file}
+
+
+@router.get("/api/chat_history")
+async def api_chat_history(session: dict = Depends(require_owner)):
+    mem = load_memory()
+    return mem.get("chat_history", [])

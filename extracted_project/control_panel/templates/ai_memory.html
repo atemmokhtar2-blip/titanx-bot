@@ -4,91 +4,70 @@
 
 {% block content %}
 
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+<div class="mem-header">
   <div>
-    <div class="page-title" style="margin-bottom:4px">🧠 ذاكرة المشروع</div>
-    <div style="color:var(--text2);font-size:.875rem">هيكل الملفات · إحصائيات الكود · خريطة المشروع · التفاصيل التقنية</div>
+    <div class="page-title">🧠 ذاكرة المشروع</div>
+    <div class="eng-subtitle">ما يعرفه الذكاء عن المشروع · هيكل الملفات · إحصائيات الكود · خريطة المكونات</div>
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <button class="btn btn-primary" onclick="loadAll()">🔬 تحليل كامل</button>
-    <button class="btn btn-ghost" onclick="loadStructure()">📁 الهيكل</button>
-    <button class="btn btn-ghost" onclick="loadFiles()">📄 الملفات</button>
+    <button class="btn btn-primary" onclick="loadAll()">🔬 تحديث الكل</button>
+    <button class="btn btn-ghost" onclick="refreshMemory()">🧠 تحديث الذاكرة</button>
   </div>
 </div>
 
-<!-- Status Banner -->
-<div class="ai-banner mb-3" id="mem-banner">
-  <div class="ai-banner-icon">🧠</div>
-  <div class="ai-banner-content">
-    <div class="ai-banner-title">ذاكرة المشروع جاهزة</div>
-    <div class="ai-banner-sub">اضغط "تحليل كامل" لفحص هيكل المشروع وملفاته</div>
+<!-- AI Memory Status Banner -->
+<div class="mem-status-banner" id="mem-banner">
+  <div class="mem-banner-icon">🧠</div>
+  <div class="mem-banner-body">
+    <div class="mem-banner-title" id="mem-banner-title">جاري تحميل الذاكرة...</div>
+    <div class="mem-banner-sub" id="mem-banner-sub">يتم تحليل المشروع وتحديث المعرفة</div>
   </div>
-  <div class="ai-banner-badge">AI v1.0</div>
-</div>
-
-<!-- Stats Strip -->
-<div class="metrics-strip mb-3">
-  <div class="metric-pill">
-    <div class="metric-pill-label">📄 إجمالي الملفات</div>
-    <div class="metric-pill-value" id="mem-total-files">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="mem-files-bar" style="width:0%;background:var(--accent)"></div></div>
-  </div>
-  <div class="metric-pill">
-    <div class="metric-pill-label">💻 ملفات الكود</div>
-    <div class="metric-pill-value" id="mem-code-files">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="mem-code-bar" style="width:0%;background:var(--purple)"></div></div>
-  </div>
-  <div class="metric-pill">
-    <div class="metric-pill-label">📝 أسطر الكود</div>
-    <div class="metric-pill-value" id="mem-lines" style="font-size:.9rem">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="mem-lines-bar" style="width:0%;background:var(--green)"></div></div>
-  </div>
-  <div class="metric-pill">
-    <div class="metric-pill-label">💾 الحجم الكلي</div>
-    <div class="metric-pill-value" id="mem-size" style="font-size:.9rem">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="mem-size-bar" style="width:0%;background:var(--cyan)"></div></div>
+  <div class="mem-banner-stats">
+    <div class="mem-bstat"><strong id="m-chats">—</strong><span>محادثات</span></div>
+    <div class="mem-bstat"><strong id="m-analyses">—</strong><span>تحليلات</span></div>
+    <div class="mem-bstat"><strong id="m-backups">—</strong><span>نسخ</span></div>
   </div>
 </div>
 
-<div class="grid-2 mb-3">
+<!-- Component Cards Grid -->
+<div class="mem-comp-grid" id="mem-comp-grid">
+  <div class="mem-loading"><div class="loading-spinner" style="width:28px;height:28px;border-width:2px;margin:0 auto 10px"></div>جاري تحميل المكونات...</div>
+</div>
 
-  <!-- File Type Breakdown -->
-  <div class="card card-glow-blue">
-    <div class="card-title" style="justify-content:space-between;margin-bottom:16px">
-      <span>📁 هيكل المشروع وأنواع الملفات</span>
-      <button class="btn btn-ghost btn-sm" onclick="loadStructure()">🔄 تحليل</button>
+<!-- Stats Row -->
+<div class="mem-stats-row">
+
+  <!-- File Type Distribution -->
+  <div class="card mem-stat-card">
+    <div class="card-title" style="margin-bottom:16px">📊 توزيع أنواع الملفات</div>
+    <div id="mem-ext-loading" style="text-align:center;padding:20px;color:var(--text3)">
+      <div class="loading-spinner" style="width:22px;height:22px;border-width:2px;margin:0 auto 8px"></div>
+      جاري التحليل...
     </div>
-    <div id="mem-struct-loading" style="text-align:center;padding:30px;color:var(--text3)">
-      <div style="font-size:2rem;margin-bottom:8px">📊</div>
-      <div style="font-size:.85rem">اضغط "تحليل" لفحص هيكل الملفات</div>
-    </div>
-    <div id="mem-struct-result" style="display:none">
-      <div style="margin-bottom:14px">
-        <div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">توزيع أنواع الملفات</div>
-        <div id="mem-ext-bars"></div>
-      </div>
-      <div>
-        <div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">أكبر الملفات</div>
-        <div id="mem-top-files" class="scroll-list" style="max-height:200px;overflow-y:auto"></div>
-      </div>
-    </div>
+    <div id="mem-ext-bars" style="display:none"></div>
   </div>
 
-  <!-- All Files List -->
-  <div class="card card-glow-purple">
-    <div class="card-title" style="justify-content:space-between;margin-bottom:16px">
-      <span>📄 قائمة الملفات الكاملة</span>
-      <button class="btn btn-ghost btn-sm" onclick="loadFiles()">🔄 تحديث</button>
+  <!-- Top Files -->
+  <div class="card mem-stat-card">
+    <div class="card-title" style="margin-bottom:16px">📄 أكبر الملفات (بالأسطر)</div>
+    <div id="mem-topfiles-loading" style="text-align:center;padding:20px;color:var(--text3)">
+      <div class="loading-spinner" style="width:22px;height:22px;border-width:2px;margin:0 auto 8px"></div>
+      جاري التحليل...
     </div>
-    <div id="mem-files-loading" style="text-align:center;padding:30px;color:var(--text3)">
-      <div style="font-size:2rem;margin-bottom:8px">🗂️</div>
-      <div style="font-size:.85rem">اضغط "تحديث" لعرض قائمة الملفات</div>
+    <div id="mem-topfiles-list" style="display:none"></div>
+  </div>
+
+  <!-- File Browser -->
+  <div class="card mem-stat-card">
+    <div class="card-title" style="justify-content:space-between;margin-bottom:12px">
+      <span>🗂️ قائمة الملفات</span>
+      <span id="mem-file-count" style="font-size:.75rem;color:var(--text3)"></span>
     </div>
-    <div id="mem-files-result" style="display:none">
-      <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center">
-        <input type="text" class="form-control" id="mem-filter" placeholder="🔍 تصفية الملفات..." style="font-size:.82rem" oninput="filterFiles()">
-      </div>
-      <div id="mem-file-list" class="scroll-list" style="max-height:290px;overflow-y:auto"></div>
+    <div style="margin-bottom:8px">
+      <input type="text" class="form-control" id="mem-filter" placeholder="🔍 تصفية..." style="font-size:.8rem" oninput="filterMemFiles()">
+    </div>
+    <div id="mem-file-list" class="scroll-list" style="max-height:260px;overflow-y:auto">
+      <div style="padding:20px;text-align:center;color:var(--text3)">اضغط "تحديث الكل" لعرض الملفات</div>
     </div>
   </div>
 
@@ -98,97 +77,125 @@
 
 {% block scripts %}
 <script>
-var _allFiles = [];
+var _memFiles = [];
 
-async function loadStructure() {
-  setBanner('📊 جاري تحليل الهيكل...','يتم الآن فحص ملفات المشروع','running');
-  document.getElementById('mem-struct-loading').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)"><div class="loading-spinner" style="width:28px;height:28px;border-width:2px;margin:0 auto 8px"></div><div style="font-size:.8rem">جاري التحليل...</div></div>';
-  document.getElementById('mem-struct-result').style.display = 'none';
-  try {
-    var d = await apiGet('/ai/api/structure');
-    document.getElementById('mem-total-files').textContent = d.total_files || 0;
-    document.getElementById('mem-code-files').textContent  = d.code_files  || 0;
-    var linesK = d.total_lines > 1000 ? (d.total_lines/1000).toFixed(1)+'K' : d.total_lines;
-    document.getElementById('mem-lines').textContent = linesK;
-    document.getElementById('mem-size').textContent  = d.total_size_h || '—';
-    _ubarColor('mem-files-bar', Math.min((d.total_files||0)/5, 100), 'var(--accent)');
-    _ubarColor('mem-code-bar',  Math.min((d.code_files||0)/3, 100),  'var(--purple)');
-    _ubarColor('mem-lines-bar', Math.min((d.total_lines||0)/1000*10,100), 'var(--green)');
-    _ubarColor('mem-size-bar',  50, 'var(--cyan)');
-
-    var extHtml = '';
-    var maxExt = Math.max(...Object.values(d.by_ext||{1:1}));
-    Object.entries(d.by_ext||{}).slice(0,8).forEach(function([ext,cnt]) {
-      var pct = (cnt/maxExt*100).toFixed(0);
-      var color = ext==='.py'?'var(--accent)':ext==='.js'?'var(--yellow)':ext==='.html'?'var(--orange)':ext==='.css'?'var(--purple)':'var(--cyan)';
-      extHtml += '<div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;font-size:.74rem;font-weight:600;margin-bottom:3px"><span style="color:var(--text2);font-family:monospace">'+(ext||'other')+'</span><span style="color:var(--text)">'+cnt+' ملف</span></div><div class="progress"><div class="progress-bar" style="width:'+pct+'%;background:'+color+'"></div></div></div>';
-    });
-    document.getElementById('mem-ext-bars').innerHTML = extHtml;
-
-    var topHtml = '';
-    (d.top_files||[]).slice(0,10).forEach(function(f) {
-      topHtml += '<div class="scroll-list-item"><div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:monospace;font-size:.75rem;color:var(--accent2)">'+f.path+'</span><span class="badge badge-gray">'+f.lines+' سطر</span></div></div>';
-    });
-    document.getElementById('mem-top-files').innerHTML = topHtml || '<div style="padding:12px;text-align:center;color:var(--text3)">لا توجد ملفات</div>';
-
-    document.getElementById('mem-struct-loading').style.display = 'none';
-    document.getElementById('mem-struct-result').style.display = 'block';
-    setBanner('✅ تم تحليل '+d.total_files+' ملف — '+d.code_files+' كود · '+linesK+' سطر','اكتمل التحليل الهيكلي','success');
-  } catch(e) {
-    document.getElementById('mem-struct-loading').innerHTML = '<div style="text-align:center;padding:20px;color:var(--red)">❌ فشل التحليل</div>';
-  }
-}
-
-async function loadFiles() {
-  document.getElementById('mem-files-loading').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)"><div class="loading-spinner" style="width:28px;height:28px;border-width:2px;margin:0 auto 8px"></div><div style="font-size:.8rem">جاري التحميل...</div></div>';
-  document.getElementById('mem-files-result').style.display = 'none';
-  try {
-    _allFiles = await apiGet('/ai/api/files');
-    renderFiles(_allFiles);
-    document.getElementById('mem-files-loading').style.display = 'none';
-    document.getElementById('mem-files-result').style.display = 'block';
-  } catch(e) {
-    document.getElementById('mem-files-loading').innerHTML = '<div style="text-align:center;padding:20px;color:var(--red)">❌ فشل التحميل</div>';
-  }
-}
-
-function renderFiles(files) {
-  var html = '';
-  files.slice(0,80).forEach(function(f) {
-    var extColors = {'.py':'var(--accent)','.js':'var(--yellow)','.html':'var(--orange)','.css':'var(--purple)','.json':'var(--cyan)','.md':'var(--green)'};
-    var color = extColors[f.ext] || 'var(--text3)';
-    var icon  = f.is_code ? '💻' : '📄';
-    html += '<div class="scroll-list-item"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="min-width:0"><span style="font-size:.72rem;margin-left:4px">'+icon+'</span><span style="font-family:monospace;font-size:.73rem;color:var(--text2)">'+escHtml(f.path)+'</span></div><div style="display:flex;gap:6px;flex-shrink:0"><span style="font-size:.65rem;font-weight:700;color:'+color+';background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:99px">'+f.ext+'</span><span style="font-size:.65rem;color:var(--text3)">'+f.mtime+'</span></div></div></div>';
-  });
-  if (files.length > 80) html += '<div style="padding:8px;text-align:center;color:var(--text3);font-size:.75rem">و '+(files.length-80)+' ملف آخر...</div>';
-  document.getElementById('mem-file-list').innerHTML = html || '<div style="padding:20px;text-align:center;color:var(--text3)">لا توجد ملفات</div>';
-}
-
-function filterFiles() {
-  var q = document.getElementById('mem-filter').value.toLowerCase();
-  renderFiles(q ? _allFiles.filter(function(f){ return f.path.toLowerCase().includes(q) || f.ext.toLowerCase().includes(q); }) : _allFiles);
-}
+document.addEventListener('DOMContentLoaded', function() {
+  loadAll();
+  startStatsPolling(8000);
+});
 
 async function loadAll() {
-  setBanner('🔬 جاري التحليل الكامل...','يتم فحص الهيكل وقائمة الملفات','running');
-  await Promise.all([loadStructure(), loadFiles()]);
-  setBanner('✅ اكتمل التحليل الكامل','تم تحميل هيكل المشروع وقائمة الملفات','success');
-  showToast('اكتمل التحليل الكامل ✅','success');
+  await Promise.all([loadMemory(), loadStructure(), loadFileList()]);
 }
 
-function setBanner(title, sub, state) {
-  var b = document.getElementById('mem-banner');
-  var t = b.querySelector('.ai-banner-title');
-  var s = b.querySelector('.ai-banner-sub');
-  if (t) t.textContent = title;
-  if (s) s.textContent = sub;
-  b.className = 'ai-banner mb-3 ai-banner-'+(state||'');
+async function refreshMemory() {
+  await loadMemory();
+  showToast('تم تحديث الذاكرة ✅','success');
 }
 
-function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+async function loadMemory() {
+  try {
+    var d = await apiGet('/ai/api/memory');
+    var s = d.ai_stats || {};
+    document.getElementById('m-chats').textContent    = s.total_chats    || 0;
+    document.getElementById('m-analyses').textContent = s.total_analyses || 0;
+    document.getElementById('m-backups').textContent  = s.total_backups  || 0;
+    document.getElementById('mem-banner-title').textContent = '✅ ذاكرة الذكاء مُحدَّثة — ' + d.project_name + ' v' + d.version;
+    document.getElementById('mem-banner-sub').textContent   = 'آخر تحديث: ' + (d.last_updated||'').substring(0,19) + ' · ' + Object.keys(d.components||{}).length + ' مكونات معروفة';
+    renderComponents(d.components || {});
+  } catch(e) {
+    document.getElementById('mem-banner-title').textContent = '⚠️ فشل تحميل الذاكرة';
+  }
 }
 
-document.addEventListener('DOMContentLoaded', function() { startStatsPolling(8000); });
+function renderComponents(comps) {
+  var icons = {main_bot:'🤖',support_bot:'🆘',control_panel:'🖥️',ai_system:'🧠',backup_system:'💾',github:'🐙',system_health:'📊'};
+  var colors = {main_bot:'var(--accent)',support_bot:'var(--green)',control_panel:'var(--purple)',ai_system:'var(--cyan)',backup_system:'var(--yellow)',github:'var(--pink)',system_health:'var(--orange)'};
+  var h = '';
+  Object.entries(comps).forEach(function([key,c]) {
+    var ico  = icons[key]  || '📦';
+    var col  = colors[key] || 'var(--accent)';
+    var stat = c.status==='active'?'<span class="mem-comp-active">● مُشغَّل</span>':'<span style="color:var(--text3);font-size:.7rem">⬤ متوقف</span>';
+    h += '<div class="mem-comp-card" style="--comp-color:'+col+'">'
+       + '<div class="mem-comp-icon" style="background:'+col+'22;color:'+col+'">'+ico+'</div>'
+       + '<div class="mem-comp-body">'
+       + '<div class="mem-comp-name">'+c.name+'</div>'
+       + '<div class="mem-comp-desc">'+c.description+'</div>'
+       + '<div class="mem-comp-file"><code>'+c.file+'</code></div>'
+       + '</div>'
+       + '<div class="mem-comp-status">'+stat+'</div>'
+       + '</div>';
+  });
+  document.getElementById('mem-comp-grid').innerHTML = h || '<div style="padding:20px;color:var(--text3)">لا توجد مكونات</div>';
+}
+
+async function loadStructure() {
+  try {
+    var d = await apiGet('/ai/api/structure');
+    var maxExt = Math.max(1, ...Object.values(d.by_ext||{1:1}));
+    var extColors = {'.py':'var(--accent)','.js':'var(--yellow)','.html':'var(--orange)','.css':'var(--purple)','.json':'var(--cyan)','.md':'var(--green)','.sh':'var(--pink)'};
+    var h = '';
+    Object.entries(d.by_ext||{}).slice(0,8).forEach(function([ext,cnt]) {
+      var pct  = (cnt/maxExt*100).toFixed(0);
+      var col  = extColors[ext] || 'var(--text2)';
+      h += '<div style="margin-bottom:8px">'
+         + '<div style="display:flex;justify-content:space-between;font-size:.75rem;font-weight:600;margin-bottom:3px">'
+         + '<span style="color:var(--text2);font-family:monospace">'+ext+'</span>'
+         + '<span style="color:var(--text)">'+cnt+' ملف</span>'
+         + '</div>'
+         + '<div class="progress"><div class="progress-bar" style="width:'+pct+'%;background:'+col+'"></div></div>'
+         + '</div>';
+    });
+    document.getElementById('mem-ext-bars').innerHTML = h;
+    document.getElementById('mem-ext-loading').style.display = 'none';
+    document.getElementById('mem-ext-bars').style.display = 'block';
+
+    var th = '';
+    (d.top_files||[]).slice(0,8).forEach(function(f,i) {
+      var pct = Math.max(15, (f.lines/((d.top_files[0]||{}).lines||1)*100)).toFixed(0);
+      th += '<div style="margin-bottom:7px">'
+          + '<div style="display:flex;justify-content:space-between;font-size:.73rem;margin-bottom:2px">'
+          + '<span style="color:var(--accent2);font-family:monospace">'+(i+1)+'. '+f.path+'</span>'
+          + '<span class="badge badge-gray">'+f.lines.toLocaleString()+' سطر</span>'
+          + '</div>'
+          + '<div class="progress"><div class="progress-bar" style="width:'+pct+'%;background:var(--accent)"></div></div>'
+          + '</div>';
+    });
+    document.getElementById('mem-topfiles-list').innerHTML = th;
+    document.getElementById('mem-topfiles-loading').style.display = 'none';
+    document.getElementById('mem-topfiles-list').style.display = 'block';
+  } catch(e) {
+    document.getElementById('mem-ext-loading').innerHTML = '<div style="color:var(--red);font-size:.8rem">❌ فشل</div>';
+    document.getElementById('mem-topfiles-loading').innerHTML = '<div style="color:var(--red);font-size:.8rem">❌ فشل</div>';
+  }
+}
+
+async function loadFileList() {
+  try {
+    _memFiles = await apiGet('/ai/api/files');
+    document.getElementById('mem-file-count').textContent = _memFiles.length + ' ملف';
+    renderMemFiles(_memFiles);
+  } catch(e) {}
+}
+
+function renderMemFiles(files) {
+  var extColors = {'.py':'var(--accent)','.js':'var(--yellow)','.html':'var(--orange)','.css':'var(--purple)','.json':'var(--cyan)','.md':'var(--green)'};
+  var h = '';
+  files.slice(0,100).forEach(function(f) {
+    var col = extColors[f.ext] || 'var(--text3)';
+    h += '<div class="scroll-list-item">'
+       + '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
+       + '<span style="font-family:monospace;font-size:.72rem;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(f.is_code?'💻':'📄')+' '+f.path+'</span>'
+       + '<span style="font-size:.65rem;font-weight:700;color:'+col+';background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:99px;flex-shrink:0">'+f.ext+'</span>'
+       + '</div></div>';
+  });
+  if (files.length > 100) h += '<div style="padding:6px;text-align:center;color:var(--text3);font-size:.72rem">و '+(files.length-100)+' ملف آخر...</div>';
+  document.getElementById('mem-file-list').innerHTML = h || '<div style="padding:12px;text-align:center;color:var(--text3)">لا توجد ملفات</div>';
+}
+
+function filterMemFiles() {
+  var q = document.getElementById('mem-filter').value.toLowerCase();
+  renderMemFiles(q ? _memFiles.filter(function(f){ return f.path.toLowerCase().includes(q)||f.ext.includes(q); }) : _memFiles);
+}
 </script>
 {% endblock %}

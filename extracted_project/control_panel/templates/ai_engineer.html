@@ -1,233 +1,329 @@
 {% extends "base.html" %}
-{% block title %}مهندس الذكاء الاصطناعي — X{% endblock %}
+{% block title %}مهندس الذكاء — X{% endblock %}
 {% block page_title %}🤖 مهندس الذكاء الاصطناعي{% endblock %}
 
 {% block content %}
 
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+<!-- Page Header -->
+<div class="eng-header">
   <div>
-    <div class="page-title" style="margin-bottom:4px">🤖 مهندس الذكاء الاصطناعي</div>
-    <div style="color:var(--text2);font-size:.875rem">كشف الأخطاء · تحليل الكود · تحذيرات الأمان · اقتراحات التحسين</div>
+    <div class="page-title">🤖 مهندس الذكاء الاصطناعي</div>
+    <div class="eng-subtitle">تحليل حقيقي للملفات · كشف الأخطاء · فحص الأمان · اكتشاف المسارات</div>
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <button class="btn btn-primary" onclick="runFullScan()">🔬 فحص شامل</button>
-    <button class="btn btn-ghost" onclick="loadErrors()">🔴 الأخطاء</button>
-    <button class="btn btn-ghost" onclick="loadSuggestions()">💡 الاقتراحات</button>
+    <button class="btn btn-primary eng-scan-btn" id="main-scan-btn" onclick="runFullScan()">
+      <span id="scan-btn-ico">🔬</span> <span id="scan-btn-txt">تشغيل الفحص الشامل</span>
+    </button>
+    <button class="btn btn-ghost" onclick="exportReport()">📤 تصدير التقرير</button>
   </div>
 </div>
 
-<!-- Status Banner -->
-<div class="ai-banner mb-3" id="eng-banner">
-  <div class="ai-banner-icon">🤖</div>
-  <div class="ai-banner-content">
-    <div class="ai-banner-title">مهندس الذكاء جاهز</div>
-    <div class="ai-banner-sub">اضغط "فحص شامل" للكشف عن الأخطاء والمشاكل</div>
+<!-- Score Cards -->
+<div class="eng-score-row">
+  <div class="eng-score-card" id="sc-health">
+    <div class="eng-score-ring" id="sc-ring">
+      <svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/><circle id="sc-arc" cx="40" cy="40" r="34" fill="none" stroke="var(--green)" stroke-width="6" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" transform="rotate(-90 40 40)"/></svg>
+      <div class="eng-score-val" id="sc-score">—</div>
+    </div>
+    <div class="eng-score-label">نقاط الصحة</div>
   </div>
-  <div class="ai-banner-badge">AI v1.0</div>
-</div>
-
-<!-- Stats Strip -->
-<div class="metrics-strip mb-3">
-  <div class="metric-pill">
-    <div class="metric-pill-label">🔴 أخطاء السجلات</div>
-    <div class="metric-pill-value" id="eng-log-errors" style="color:var(--red)">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="eng-log-bar" style="width:0%;background:var(--red)"></div></div>
+  <div class="eng-kpi" id="kpi-lerr">
+    <div class="eng-kpi-val" style="color:var(--red)" id="kv-lerr">—</div>
+    <div class="eng-kpi-label">أخطاء السجلات</div>
+    <div class="eng-kpi-bar"><div class="eng-kpi-fill" id="kb-lerr" style="background:var(--red)"></div></div>
   </div>
-  <div class="metric-pill">
-    <div class="metric-pill-label">⚠️ تحذيرات الكود</div>
-    <div class="metric-pill-value" id="eng-code-issues" style="color:var(--yellow)">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="eng-code-bar" style="width:0%;background:var(--yellow)"></div></div>
+  <div class="eng-kpi" id="kpi-cerr">
+    <div class="eng-kpi-val" style="color:var(--yellow)" id="kv-cerr">—</div>
+    <div class="eng-kpi-label">مشاكل الكود</div>
+    <div class="eng-kpi-bar"><div class="eng-kpi-fill" id="kb-cerr" style="background:var(--yellow)"></div></div>
   </div>
-  <div class="metric-pill">
-    <div class="metric-pill-label">🔒 مشاكل أمنية</div>
-    <div class="metric-pill-value" id="eng-sec-issues" style="color:var(--orange)">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="eng-sec-bar" style="width:0%;background:var(--orange)"></div></div>
+  <div class="eng-kpi" id="kpi-sec">
+    <div class="eng-kpi-val" style="color:var(--orange)" id="kv-sec">—</div>
+    <div class="eng-kpi-label">مشاكل أمنية</div>
+    <div class="eng-kpi-bar"><div class="eng-kpi-fill" id="kb-sec" style="background:var(--orange)"></div></div>
   </div>
-  <div class="metric-pill">
-    <div class="metric-pill-label">💡 اقتراحات</div>
-    <div class="metric-pill-value" id="eng-suggestions" style="color:var(--green)">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="eng-sug-bar" style="width:0%;background:var(--green)"></div></div>
+  <div class="eng-kpi" id="kpi-routes">
+    <div class="eng-kpi-val" style="color:var(--cyan)" id="kv-routes">—</div>
+    <div class="eng-kpi-label">المسارات</div>
+    <div class="eng-kpi-bar"><div class="eng-kpi-fill" id="kb-routes" style="background:var(--cyan)"></div></div>
   </div>
 </div>
 
-<div class="grid-2 mb-3">
+<!-- Scan Progress -->
+<div id="eng-progress-wrap" style="display:none;margin-bottom:16px">
+  <div class="eng-progress-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:.82rem;font-weight:700;color:var(--accent2)" id="prog-label">جاري الفحص...</span>
+      <span style="font-size:.75rem;color:var(--text3)" id="prog-pct">0%</span>
+    </div>
+    <div class="eng-prog-bar"><div class="eng-prog-fill" id="eng-prog-fill"></div></div>
+  </div>
+</div>
 
-  <!-- Log Error Detector -->
-  <div class="card card-glow-red">
-    <div class="card-title" style="justify-content:space-between;margin-bottom:16px">
-      <span>🔴 أخطاء السجلات</span>
-      <button class="btn btn-ghost btn-sm" onclick="loadErrors()">🔄 فحص</button>
+<div class="eng-grid">
+
+  <!-- Log Errors -->
+  <div class="card eng-card" id="card-log">
+    <div class="eng-card-hd">
+      <div class="eng-card-title"><span class="eng-sev-dot sev-critical"></span>🔴 أخطاء السجلات</div>
+      <button class="btn btn-ghost btn-sm" onclick="loadLogErrors()">🔄</button>
     </div>
-    <div id="eng-errors-loading" style="text-align:center;padding:30px;color:var(--text3)">
-      <div style="font-size:2rem;margin-bottom:8px">🔍</div>
-      <div style="font-size:.85rem">اضغط "فحص" للكشف عن أخطاء السجلات</div>
+    <div id="log-placeholder" class="eng-placeholder">
+      <div class="eng-ph-icon">📋</div>
+      <div>اضغط "فحص شامل" لبدء التحليل</div>
     </div>
-    <div id="eng-log-list" style="display:none">
-      <div id="eng-log-errors-list" class="scroll-list" style="max-height:260px;overflow-y:auto"></div>
-    </div>
+    <div id="log-list" style="display:none;max-height:280px;overflow-y:auto"></div>
+    <div id="log-empty" style="display:none" class="eng-empty">✅ لا توجد أخطاء في السجلات</div>
   </div>
 
   <!-- Code Issues -->
-  <div class="card card-glow-yellow" style="--glow-color:rgba(234,179,8,0.12)">
-    <div class="card-title" style="justify-content:space-between;margin-bottom:16px">
-      <span>⚠️ مشاكل الكود</span>
-      <button class="btn btn-ghost btn-sm" onclick="loadErrors()">🔄 فحص</button>
+  <div class="card eng-card" id="card-code">
+    <div class="eng-card-hd">
+      <div class="eng-card-title"><span class="eng-sev-dot sev-warning"></span>⚠️ مشاكل الكود</div>
+      <button class="btn btn-ghost btn-sm" onclick="loadCodeIssues()">🔄</button>
     </div>
-    <div id="eng-code-loading" style="text-align:center;padding:30px;color:var(--text3)">
-      <div style="font-size:2rem;margin-bottom:8px">🧐</div>
-      <div style="font-size:.85rem">اضغط "فحص" للكشف عن مشاكل الكود</div>
+    <div id="code-placeholder" class="eng-placeholder">
+      <div class="eng-ph-icon">🧐</div>
+      <div>اضغط "فحص شامل" لبدء التحليل</div>
     </div>
-    <div id="eng-code-list" style="display:none">
-      <div id="eng-code-issues-list" class="scroll-list" style="max-height:260px;overflow-y:auto"></div>
+    <div id="code-filter-wrap" style="display:none;margin-bottom:8px">
+      <select class="form-control" id="code-filter" onchange="filterCode()" style="font-size:.78rem">
+        <option value="">جميع الأنواع</option>
+        <option value="error">🔴 أخطاء</option>
+        <option value="warning">⚠️ تحذيرات</option>
+        <option value="info">ℹ️ معلومات</option>
+      </select>
     </div>
+    <div id="code-list" style="display:none;max-height:240px;overflow-y:auto"></div>
+    <div id="code-empty" style="display:none" class="eng-empty">✅ الكود نظيف</div>
+  </div>
+
+  <!-- Security -->
+  <div class="card eng-card" id="card-sec">
+    <div class="eng-card-hd">
+      <div class="eng-card-title"><span class="eng-sev-dot sev-high"></span>🔒 تقرير الأمان</div>
+      <button class="btn btn-ghost btn-sm" onclick="loadSecurity()">🔄</button>
+    </div>
+    <div id="sec-placeholder" class="eng-placeholder">
+      <div class="eng-ph-icon">🛡️</div>
+      <div>اضغط "فحص شامل" لبدء التحليل</div>
+    </div>
+    <div id="sec-score-banner" style="display:none;margin-bottom:10px"></div>
+    <div id="sec-list" style="display:none;max-height:240px;overflow-y:auto"></div>
+    <div id="sec-empty" style="display:none" class="eng-empty">✅ لا توجد ثغرات أمنية</div>
+  </div>
+
+  <!-- Routes -->
+  <div class="card eng-card" id="card-routes">
+    <div class="eng-card-hd">
+      <div class="eng-card-title"><span class="eng-sev-dot sev-info"></span>🛣️ المسارات المكتشفة</div>
+      <button class="btn btn-ghost btn-sm" onclick="loadRoutes()">🔄</button>
+    </div>
+    <div id="routes-placeholder" class="eng-placeholder">
+      <div class="eng-ph-icon">🗺️</div>
+      <div>اضغط "فحص شامل" لبدء التحليل</div>
+    </div>
+    <div id="routes-list" style="display:none;max-height:280px;overflow-y:auto"></div>
   </div>
 
 </div>
 
-<!-- Suggestions -->
-<div class="card mb-3">
-  <div class="card-title" style="justify-content:space-between;margin-bottom:16px">
-    <span>💡 اقتراحات التحسين</span>
-    <button class="btn btn-ghost btn-sm" onclick="loadSuggestions()">🔄 تحديث</button>
+<!-- Full Report -->
+<div id="eng-report-card" style="display:none;margin-top:16px" class="card">
+  <div class="eng-card-hd">
+    <div class="eng-card-title">📊 سجل الفحص الشامل</div>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('eng-report-card').style.display='none'">✕</button>
   </div>
-  <div id="eng-sug-loading" style="text-align:center;padding:30px;color:var(--text3)">
-    <div style="font-size:2rem;margin-bottom:8px">💡</div>
-    <div style="font-size:.85rem">اضغط "تحديث" لعرض الاقتراحات</div>
-  </div>
-  <div id="eng-sug-list" style="display:none">
-    <div id="eng-suggestions-list"></div>
-    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-      <button class="btn btn-danger btn-sm" onclick="clearTemp()" id="eng-clear-btn">🗑️ حذف الملفات المؤقتة</button>
-    </div>
-  </div>
-</div>
-
-<!-- Full Scan Log -->
-<div class="card" id="eng-log-card" style="display:none">
-  <div class="card-title" style="justify-content:space-between">
-    <span>📊 نتيجة الفحص الشامل</span>
-    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('eng-log-card').style.display='none'">✕</button>
-  </div>
-  <div class="code-block" id="eng-scan-log" style="max-height:260px;overflow-y:auto;font-size:.78rem"></div>
+  <div class="code-block" id="eng-report-log" style="max-height:200px;overflow-y:auto;font-size:.76rem"></div>
 </div>
 
 {% endblock %}
 
 {% block scripts %}
 <script>
-async function loadErrors() {
-  setBanner('🔍 جاري فحص الأخطاء...', 'يتم الآن فحص السجلات والكود', 'running');
-  document.getElementById('eng-errors-loading').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)"><div class="loading-spinner" style="width:28px;height:28px;border-width:2px;margin:0 auto 8px"></div><div style="font-size:.8rem">جاري الفحص...</div></div>';
-  document.getElementById('eng-log-list').style.display = 'none';
-  document.getElementById('eng-code-loading').innerHTML = document.getElementById('eng-errors-loading').innerHTML;
-  document.getElementById('eng-code-list').style.display = 'none';
-  try {
-    var d = await apiGet('/ai/api/errors');
-    var logErrors = d.log_errors || [];
-    var codeIssues = d.code_issues || [];
-    var secIssues = codeIssues.filter(i => i.type === 'security');
-
-    document.getElementById('eng-log-errors').textContent  = d.total_log_errors  || 0;
-    document.getElementById('eng-code-issues').textContent = d.total_code_issues || 0;
-    document.getElementById('eng-sec-issues').textContent  = secIssues.length;
-    _ubarColor('eng-log-bar',  Math.min((d.total_log_errors||0)*5,100),  'var(--red)');
-    _ubarColor('eng-code-bar', Math.min((d.total_code_issues||0)*5,100), 'var(--yellow)');
-    _ubarColor('eng-sec-bar',  Math.min(secIssues.length*15,100),        'var(--orange)');
-
-    var logHtml = '';
-    logErrors.slice(0,15).forEach(function(e) {
-      var color = e.severity==='critical'?'var(--red)':'var(--yellow)';
-      logHtml += '<div class="scroll-list-item"><div style="font-size:.72rem;font-family:monospace;color:'+color+';margin-bottom:2px">'+escHtml(e.text.substring(0,150))+'</div><div style="font-size:.65rem;color:var(--text3)">📄 '+e.source+' · سطر '+e.line+'</div></div>';
-    });
-    document.getElementById('eng-log-errors-list').innerHTML = logHtml || '<div style="padding:16px;text-align:center;color:var(--green);font-size:.85rem">✅ لا توجد أخطاء في السجلات</div>';
-    document.getElementById('eng-errors-loading').style.display = 'none';
-    document.getElementById('eng-log-list').style.display = 'block';
-
-    var codeHtml = '';
-    codeIssues.slice(0,15).forEach(function(i) {
-      var color = i.type==='security'?'var(--red)':i.type==='warning'?'var(--yellow)':'var(--text3)';
-      var icon  = i.type==='security'?'🔒':i.type==='warning'?'⚠️':'ℹ️';
-      codeHtml += '<div class="scroll-list-item"><div style="font-size:.75rem;color:'+color+'">'+icon+' '+escHtml(i.msg)+'</div><div style="font-size:.65rem;color:var(--text3);font-family:monospace">'+i.file+'</div></div>';
-    });
-    document.getElementById('eng-code-issues-list').innerHTML = codeHtml || '<div style="padding:16px;text-align:center;color:var(--green);font-size:.85rem">✅ لا توجد مشاكل في الكود</div>';
-    document.getElementById('eng-code-loading').style.display = 'none';
-    document.getElementById('eng-code-list').style.display = 'block';
-
-    var total = (d.total_log_errors||0)+(d.total_code_issues||0);
-    setBanner(total>0?'⚠️ تم اكتشاف '+total+' مشكلة':'✅ لا توجد مشاكل مكتشفة', total>0?'يُنصح بمراجعة الأخطاء أعلاه':'الكود نظيف', total>0?'warning':'success');
-  } catch(e) {
-    document.getElementById('eng-errors-loading').innerHTML = '<div style="text-align:center;color:var(--red);padding:20px">❌ فشل الفحص</div>';
-    document.getElementById('eng-code-loading').innerHTML   = '<div style="text-align:center;color:var(--red);padding:20px">❌ فشل الفحص</div>';
-  }
-}
-
-async function loadSuggestions() {
-  document.getElementById('eng-sug-loading').style.display = 'block';
-  document.getElementById('eng-sug-list').style.display = 'none';
-  try {
-    var items = await apiGet('/ai/api/suggestions');
-    document.getElementById('eng-suggestions').textContent = items.length;
-    _ubarColor('eng-sug-bar', Math.min(items.length*20,100), 'var(--green)');
-    var html = '';
-    items.forEach(function(s) {
-      var colors={warning:'var(--yellow)',info:'var(--accent2)',error:'var(--red)',success:'var(--green)'};
-      var icons={warning:'⚠️',info:'💡',error:'🔴',success:'✅'};
-      html += '<div style="padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;border-right:3px solid '+(colors[s.priority]||'var(--text2)')+'"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:.72rem;font-weight:800;color:'+(colors[s.priority]||'var(--text2)')+';background:rgba(255,255,255,0.06);padding:2px 8px;border-radius:99px">'+s.category+'</span></div><div style="font-size:.84rem;font-weight:700;color:var(--text);margin-bottom:3px">'+(icons[s.priority]||'💡')+' '+escHtml(s.title)+'</div><div style="font-size:.76rem;color:var(--text2)">'+escHtml(s.detail)+'</div>'+(s.action==='clear_temp'?'<button class="btn btn-danger btn-sm" style="margin-top:8px" onclick="clearTemp()">🗑️ تنظيف الآن</button>':'')+'</div>';
-    });
-    document.getElementById('eng-suggestions-list').innerHTML = html || '<div style="text-align:center;color:var(--green);padding:20px">✅ المشروع في حالة جيدة</div>';
-    document.getElementById('eng-sug-loading').style.display = 'none';
-    document.getElementById('eng-sug-list').style.display = 'block';
-  } catch(e) {
-    document.getElementById('eng-sug-loading').innerHTML = '<div style="color:var(--red);font-size:.8rem;padding:16px">❌ فشل التحميل</div>';
-  }
-}
-
-async function clearTemp() {
-  var btn = document.getElementById('eng-clear-btn');
-  if (btn) { btn.disabled=true; btn.textContent='⏳ جاري الحذف...'; }
-  try {
-    var d = await apiPost('/ai/api/clear_temp', {});
-    showToast(d.msg||(d.ok?'تم التنظيف ✅':'فشل'), d.ok?'success':'error');
-    if (d.ok) loadSuggestions();
-  } catch(e) { showToast('فشل الاتصال','error'); }
-  if (btn) { btn.disabled=false; btn.textContent='🗑️ حذف الملفات المؤقتة'; }
-}
+var _codeAll = [];
 
 async function runFullScan() {
-  var logCard = document.getElementById('eng-log-card');
-  var logEl   = document.getElementById('eng-scan-log');
-  logCard.style.display = 'block';
-  logEl.textContent = '⏳ جاري الفحص الشامل...\n';
-  logCard.scrollIntoView({ behavior:'smooth' });
-  setBanner('🔬 جاري الفحص الشامل...','يتم فحص الأخطاء والاقتراحات','running');
+  var btn = document.getElementById('main-scan-btn');
+  document.getElementById('scan-btn-txt').textContent = 'جاري الفحص...';
+  document.getElementById('scan-btn-ico').textContent = '⏳';
+  btn.disabled = true;
+  showProgress(true);
+
+  var log = document.getElementById('eng-report-log');
+  document.getElementById('eng-report-card').style.display = 'block';
+  log.textContent = '🚀 بدأ الفحص الشامل: ' + new Date().toLocaleTimeString('ar-SA') + '\n';
+
   var steps = [
-    { fn: loadErrors,      label: 'كشف الأخطاء' },
-    { fn: loadSuggestions, label: 'توليد الاقتراحات' },
+    {fn: loadLogErrors,  label: 'أخطاء السجلات',  pct: 25},
+    {fn: loadCodeIssues, label: 'مشاكل الكود',     pct: 50},
+    {fn: loadSecurity,   label: 'فحص الأمان',      pct: 75},
+    {fn: loadRoutes,     label: 'المسارات',         pct: 100},
   ];
   for (var i=0; i<steps.length; i++) {
-    logEl.textContent += '⟳ '+steps[i].label+'...\n';
-    try { await steps[i].fn(); logEl.textContent += '✅ '+steps[i].label+' — اكتمل\n'; }
-    catch(e) { logEl.textContent += '❌ '+steps[i].label+' — فشل\n'; }
-    logEl.scrollTop = logEl.scrollHeight;
+    var s = steps[i];
+    setProgress(s.pct - 20, '⟳ ' + s.label + '...');
+    log.textContent += '⟳ ' + s.label + '...\n';
+    try {
+      await s.fn();
+      log.textContent += '✅ ' + s.label + ' — اكتمل\n';
+    } catch(e) {
+      log.textContent += '❌ ' + s.label + ' — فشل\n';
+    }
+    setProgress(s.pct, null);
+    log.scrollTop = log.scrollHeight;
   }
-  logEl.textContent += '\n🎉 اكتمل الفحص الشامل في '+new Date().toLocaleTimeString('ar-SA');
-  logEl.scrollTop = logEl.scrollHeight;
-  setBanner('✅ اكتمل الفحص الشامل','تم فحص المشروع بالكامل','success');
+
+  log.textContent += '\n🎉 اكتمل الفحص الشامل في ' + new Date().toLocaleTimeString('ar-SA');
+  showProgress(false);
+  document.getElementById('scan-btn-txt').textContent = 'تشغيل الفحص الشامل';
+  document.getElementById('scan-btn-ico').textContent = '🔬';
+  btn.disabled = false;
   showToast('اكتمل الفحص الشامل ✅','success');
 }
 
-function setBanner(title, sub, state) {
-  var b = document.getElementById('eng-banner');
-  var t = b.querySelector('.ai-banner-title');
-  var s = b.querySelector('.ai-banner-sub');
-  if (t) t.textContent = title;
-  if (s) s.textContent = sub;
-  b.className = 'ai-banner mb-3 ai-banner-'+(state||'');
+async function loadLogErrors() {
+  show('log-placeholder',false); show('log-list',false); show('log-empty',false);
+  try {
+    var d = await apiGet('/ai/api/errors');
+    var errors = d.log_errors || [];
+    document.getElementById('kv-lerr').textContent = d.total_log_errors || 0;
+    _ubarColor('kb-lerr', Math.min((d.total_log_errors||0)*5,100), 'var(--red)');
+    if (!errors.length) { show('log-empty',true); return; }
+    var h = '';
+    errors.forEach(function(e) {
+      var col = e.severity==='critical'?'var(--red)':'var(--yellow)';
+      h += '<div class="eng-issue-row"><div class="eng-issue-sev" style="color:'+col+'">'+badge(e.severity)+'</div><div class="eng-issue-body"><div class="eng-issue-text">'+esc(e.text.substring(0,140))+'</div><div class="eng-issue-meta">📄 '+e.source+' · سطر '+e.line+'</div></div></div>';
+    });
+    document.getElementById('log-list').innerHTML = h;
+    show('log-list',true);
+    updateHealth();
+  } catch(e) { show('log-placeholder',true); }
 }
 
-function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+async function loadCodeIssues() {
+  show('code-placeholder',false); show('code-list',false); show('code-empty',false); show('code-filter-wrap',false);
+  try {
+    var d = await apiGet('/ai/api/errors');
+    _codeAll = d.code_issues || [];
+    document.getElementById('kv-cerr').textContent = d.total_code_issues || 0;
+    _ubarColor('kb-cerr', Math.min((d.total_code_issues||0)*3,100),'var(--yellow)');
+    if (!_codeAll.length) { show('code-empty',true); return; }
+    show('code-filter-wrap',true);
+    renderCodeList(_codeAll);
+  } catch(e) { show('code-placeholder',true); }
 }
+
+function filterCode() {
+  var f = document.getElementById('code-filter').value;
+  renderCodeList(f ? _codeAll.filter(function(i){return i.severity===f;}) : _codeAll);
+}
+
+function renderCodeList(items) {
+  var icons = {error:'🔴',warning:'⚠️',info:'ℹ️'};
+  var cols  = {error:'var(--red)',warning:'var(--yellow)',info:'var(--text3)'};
+  var h = '';
+  items.slice(0,30).forEach(function(i) {
+    h += '<div class="eng-issue-row"><div class="eng-issue-sev" style="color:'+(cols[i.severity]||'var(--text3)')+'">'+badge(i.severity)+'</div><div class="eng-issue-body"><div class="eng-issue-text">'+esc(i.msg)+'</div><div class="eng-issue-meta">📄 '+i.file+' · سطر '+i.line+'</div></div></div>';
+  });
+  if (items.length > 30) h += '<div style="padding:8px;font-size:.72rem;color:var(--text3);text-align:center">و '+(items.length-30)+' مشكلة أخرى...</div>';
+  document.getElementById('code-list').innerHTML = h;
+  show('code-list',true);
+  updateHealth();
+}
+
+async function loadSecurity() {
+  show('sec-placeholder',false); show('sec-score-banner',false); show('sec-list',false); show('sec-empty',false);
+  try {
+    var d = await apiGet('/ai/api/security');
+    document.getElementById('kv-sec').textContent  = d.total || 0;
+    _ubarColor('kb-sec', Math.min((d.critical||0)*25+(d.high||0)*10,100),'var(--orange)');
+    var score = d.score || 100;
+    var scol  = score>=80?'var(--green)':score>=50?'var(--yellow)':'var(--red)';
+    document.getElementById('sc-score').textContent = score;
+    document.getElementById('sc-score').style.color = scol;
+    var arc = document.getElementById('sc-arc');
+    if (arc) {
+      arc.style.stroke = scol;
+      arc.style.strokeDashoffset = 213.6 * (1 - score/100);
+    }
+    var banner = document.getElementById('sec-score-banner');
+    banner.innerHTML = '<div class="sec-score-row"><div class="sec-badge sec-badge-'+sevClass(d.critical)+'">🔴 حرجة: '+d.critical+'</div><div class="sec-badge sec-badge-high">🟠 عالية: '+d.high+'</div><div class="sec-badge sec-badge-med">🟡 متوسطة: '+d.medium+'</div><div class="sec-badge sec-badge-low">⚪ منخفضة: '+d.low+'</div></div>';
+    show('sec-score-banner',true);
+    if (!d.total) { show('sec-empty',true); return; }
+    var h = '';
+    d.issues.slice(0,15).forEach(function(i) {
+      var sevCol = {critical:'var(--red)',high:'var(--orange)',medium:'var(--yellow)',low:'var(--text3)'}[i.severity]||'var(--text3)';
+      h += '<div class="eng-issue-row"><div class="eng-issue-sev" style="color:'+sevCol+'">'+badge(i.severity)+'</div><div class="eng-issue-body"><div class="eng-issue-text">🔒 '+esc(i.type.replace(/_/g,' '))+'</div><div class="eng-issue-meta" style="font-family:monospace;font-size:.68rem">'+esc(i.file)+' · سطر '+i.line+'</div><div style="font-size:.7rem;color:var(--text3);font-family:monospace;margin-top:2px">'+esc(i.text.substring(0,100))+'</div></div></div>';
+    });
+    document.getElementById('sec-list').innerHTML = h;
+    show('sec-list',true);
+  } catch(e) { show('sec-placeholder',true); }
+}
+
+async function loadRoutes() {
+  show('routes-placeholder',false); show('routes-list',false);
+  try {
+    var d = await apiGet('/ai/api/routes');
+    document.getElementById('kv-routes').textContent = d.total || 0;
+    _ubarColor('kb-routes', Math.min((d.total||0)*3,100),'var(--cyan)');
+    var h = '';
+    Object.entries(d.by_file||{}).slice(0,10).forEach(function([file,paths]) {
+      h += '<div style="margin-bottom:10px"><div style="font-size:.72rem;font-weight:700;color:var(--text2);margin-bottom:4px;font-family:monospace">'+esc(file)+'</div>';
+      paths.slice(0,8).forEach(function(p) {
+        h += '<div class="eng-route-item"><span class="eng-route-badge">GET</span><code class="eng-route-path">'+esc(p)+'</code></div>';
+      });
+      if (paths.length > 8) h += '<div style="font-size:.68rem;color:var(--text3);padding:2px 8px">...و '+(paths.length-8)+' مسار آخر</div>';
+      h += '</div>';
+    });
+    document.getElementById('routes-list').innerHTML = h || '<div style="padding:12px;color:var(--text3)">لا توجد مسارات مكتشفة</div>';
+    show('routes-list',true);
+  } catch(e) { show('routes-placeholder',true); }
+}
+
+function updateHealth() {
+  var lerr   = parseInt(document.getElementById('kv-lerr').textContent)||0;
+  var cerr   = parseInt(document.getElementById('kv-cerr').textContent)||0;
+  var sec    = parseInt(document.getElementById('kv-sec').textContent)||0;
+  var score  = Math.max(0, 100 - lerr*10 - cerr*2 - sec*15);
+  var scol   = score>=80?'var(--green)':score>=50?'var(--yellow)':'var(--red)';
+  document.getElementById('sc-score').textContent = score;
+  document.getElementById('sc-score').style.color = scol;
+  var arc = document.getElementById('sc-arc');
+  if (arc) { arc.style.stroke=scol; arc.style.strokeDashoffset=213.6*(1-score/100); }
+}
+
+function exportReport() {
+  var parts = ['=== X AI Engineer — تقرير الفحص ===\n', 'التاريخ: '+new Date().toLocaleString('ar-SA')+'\n'];
+  parts.push('\nأخطاء السجلات: '+document.getElementById('kv-lerr').textContent);
+  parts.push('\nمشاكل الكود: '+document.getElementById('kv-cerr').textContent);
+  parts.push('\nمشاكل الأمان: '+document.getElementById('kv-sec').textContent);
+  parts.push('\nالمسارات: '+document.getElementById('kv-routes').textContent);
+  var blob = new Blob([parts.join('\n')], {type:'text/plain;charset=utf-8'});
+  var a    = document.createElement('a');
+  a.href   = URL.createObjectURL(blob);
+  a.download = 'ai_engineer_report_'+Date.now()+'.txt';
+  a.click();
+}
+
+function showProgress(v) {
+  document.getElementById('eng-progress-wrap').style.display = v ? 'block' : 'none';
+}
+function setProgress(pct, label) {
+  document.getElementById('eng-prog-fill').style.width = pct + '%';
+  if (label) document.getElementById('prog-label').textContent = label;
+  document.getElementById('prog-pct').textContent = pct + '%';
+}
+function sevClass(n) { return n>0?'critical':'ok'; }
+function badge(s) {
+  var labels={critical:'حرجة',high:'عالية',warning:'تحذير',error:'خطأ',info:'معلومة',low:'منخفضة'};
+  return '<span class="eng-badge eng-badge-'+s+'">'+(labels[s]||s)+'</span>';
+}
+function show(id,v) {
+  var el=document.getElementById(id);
+  if(el) el.style.display=v?'':' none'.trim();
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 document.addEventListener('DOMContentLoaded', function() { startStatsPolling(8000); });
 </script>

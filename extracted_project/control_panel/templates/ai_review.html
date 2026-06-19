@@ -4,124 +4,122 @@
 
 {% block content %}
 
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+<div class="rev-header">
   <div>
-    <div class="page-title" style="margin-bottom:4px">📋 مراجعة التعديلات</div>
-    <div style="color:var(--text2);font-size:.875rem">مراجعة ملفات الكود · تحليل الجودة · الكشف عن المشاكل · اقتراحات التحسين</div>
-  </div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <button class="btn btn-primary" onclick="reviewFile()">🔬 مراجعة الملف</button>
-    <button class="btn btn-ghost" onclick="loadFileList()">📂 قائمة الملفات</button>
+    <div class="page-title">📋 مراجعة التعديلات</div>
+    <div class="eng-subtitle">خطة التعديل · مستوى الخطورة · نسخ احتياطية تلقائية · موافقة أو رفض</div>
   </div>
 </div>
 
-<!-- Status Banner -->
-<div class="ai-banner mb-3" id="rev-banner">
-  <div class="ai-banner-icon">📋</div>
-  <div class="ai-banner-content">
-    <div class="ai-banner-title">محرر المراجعة جاهز</div>
-    <div class="ai-banner-sub">اختر ملفاً من القائمة أو أدخل مساره ثم اضغط "مراجعة الملف"</div>
-  </div>
-  <div class="ai-banner-badge">AI v1.0</div>
-</div>
+<div class="rev-layout">
 
-<!-- Stats Strip -->
-<div class="metrics-strip mb-3">
-  <div class="metric-pill">
-    <div class="metric-pill-label">📄 الملف المُراجَع</div>
-    <div class="metric-pill-value" id="rev-filename" style="font-size:.75rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="rev-fn-bar" style="width:0%;background:var(--purple)"></div></div>
-  </div>
-  <div class="metric-pill">
-    <div class="metric-pill-label">📝 عدد الأسطر</div>
-    <div class="metric-pill-value" id="rev-lines">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="rev-lines-bar" style="width:0%;background:var(--accent)"></div></div>
-  </div>
-  <div class="metric-pill">
-    <div class="metric-pill-label">⚠️ مشاكل مكتشفة</div>
-    <div class="metric-pill-value" id="rev-issues" style="color:var(--red)">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="rev-issues-bar" style="width:0%;background:var(--red)"></div></div>
-  </div>
-  <div class="metric-pill">
-    <div class="metric-pill-label">💡 اقتراحات</div>
-    <div class="metric-pill-value" id="rev-sug-count" style="color:var(--green)">—</div>
-    <div class="metric-pill-bar"><div class="metric-pill-fill" id="rev-sug-bar" style="width:0%;background:var(--green)"></div></div>
-  </div>
-</div>
+  <!-- Left: Plan Creator + Backups -->
+  <div class="rev-left">
 
-<div class="grid-2 mb-3">
-
-  <!-- File Selector -->
-  <div class="card card-glow-blue">
-    <div class="card-title" style="justify-content:space-between;margin-bottom:16px">
-      <span>📂 اختيار الملف</span>
-      <button class="btn btn-ghost btn-sm" onclick="loadFileList()">🔄 تحديث</button>
+    <!-- Plan Creator -->
+    <div class="card rev-plan-card">
+      <div class="card-title" style="margin-bottom:16px">
+        <span>✦ إنشاء خطة تعديل</span>
+      </div>
+      <div class="form-group">
+        <div class="form-label">صف ما تريد تعديله</div>
+        <textarea class="form-control" id="rev-desc" rows="3"
+          placeholder="مثال: تحسين واجهة الصفحة الرئيسية&#10;أو: إضافة نظام تسجيل الأحداث&#10;أو: تحسين الأمان في مسارات API"
+          style="font-size:.84rem;resize:vertical"></textarea>
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="createPlan()" id="create-plan-btn">
+        🔬 إنشاء خطة التعديل
+      </button>
     </div>
 
-    <div class="form-group" style="margin-bottom:12px">
-      <div class="form-label">مسار الملف (نسبي من مجلد المشروع)</div>
-      <div style="display:flex;gap:8px">
-        <input type="text" class="form-control" id="rev-path"
-               placeholder="مثال: bot.py أو control_panel/app.py"
-               style="font-family:'JetBrains Mono',monospace;font-size:.82rem"
-               onkeydown="if(event.key==='Enter') reviewFile()">
-        <button class="btn btn-primary btn-sm" onclick="reviewFile()" style="white-space:nowrap">
-          🔬 مراجعة
-        </button>
+    <!-- File Code Review -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-title" style="margin-bottom:14px">📄 مراجعة ملف</div>
+      <div class="form-group">
+        <div class="form-label">مسار الملف</div>
+        <div style="display:flex;gap:8px">
+          <input type="text" class="form-control" id="rev-path" placeholder="bot.py أو control_panel/app.py" style="font-family:monospace;font-size:.8rem" onkeydown="if(event.key==='Enter') reviewFile()">
+          <button class="btn btn-primary btn-sm" onclick="reviewFile()" style="white-space:nowrap">🔬</button>
+        </div>
+      </div>
+      <div id="file-review-loading" style="display:none;padding:12px;text-align:center;color:var(--text3)">
+        <div class="loading-spinner" style="width:20px;height:20px;border-width:2px;margin:0 auto 6px"></div>
+        جاري التحليل...
+      </div>
+      <div id="file-review-result" style="display:none"></div>
+    </div>
+
+    <!-- Backup Manager -->
+    <div class="card" style="margin-top:14px">
+      <div class="card-title" style="justify-content:space-between;margin-bottom:14px">
+        <span>💾 النسخ الاحتياطية</span>
+        <button class="btn btn-primary btn-sm" onclick="createBackup()" id="create-bk-btn">+ إنشاء نسخة</button>
+      </div>
+      <div id="bk-list-loading" style="padding:12px;text-align:center;color:var(--text3)">
+        <div class="loading-spinner" style="width:20px;height:20px;border-width:2px;margin:0 auto 6px"></div>
+        جاري التحميل...
+      </div>
+      <div id="bk-list" style="display:none;max-height:240px;overflow-y:auto"></div>
+      <div id="bk-empty" style="display:none;padding:16px;text-align:center;color:var(--text3);font-size:.82rem">⚠️ لا توجد نسخ احتياطية بعد</div>
+    </div>
+
+  </div>
+
+  <!-- Right: Plan Display -->
+  <div class="rev-right">
+
+    <!-- Empty state -->
+    <div id="rev-empty-state" class="rev-empty-state">
+      <div class="rev-empty-icon">📋</div>
+      <div class="rev-empty-title">لا توجد خطة بعد</div>
+      <div class="rev-empty-sub">أنشئ خطة تعديل من الجانب الأيسر، أو راجع ملفاً مباشرة</div>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;justify-content:center">
+        <button class="btn btn-ghost btn-sm" onclick="quickPlan('تحسين واجهة المستخدم')">✨ تحسين الواجهة</button>
+        <button class="btn btn-ghost btn-sm" onclick="quickPlan('فحص وإصلاح الأخطاء')">🔍 إصلاح الأخطاء</button>
+        <button class="btn btn-ghost btn-sm" onclick="quickPlan('تحسين الأمان')">🔒 تحسين الأمان</button>
       </div>
     </div>
 
-    <div id="rev-files-loading" style="text-align:center;padding:20px;color:var(--text3)">
-      <div style="font-size:1.5rem;margin-bottom:6px">📁</div>
-      <div style="font-size:.8rem">اضغط "تحديث" لعرض قائمة الملفات</div>
-    </div>
-    <div id="rev-file-browser" style="display:none">
-      <div style="margin-bottom:8px">
-        <input type="text" class="form-control" id="rev-filter" placeholder="🔍 تصفية..." style="font-size:.8rem" oninput="filterRevFiles()">
-      </div>
-      <div id="rev-file-list" class="scroll-list" style="max-height:260px;overflow-y:auto"></div>
-    </div>
-  </div>
+    <!-- Plan Display -->
+    <div id="rev-plan-wrap" style="display:none">
 
-  <!-- Review Results -->
-  <div class="card card-glow-purple">
-    <div class="card-title" style="margin-bottom:16px">
-      <span>🔎 نتائج المراجعة</span>
-    </div>
-    <div id="rev-placeholder" style="text-align:center;padding:40px;color:var(--text3)">
-      <div style="font-size:3rem;margin-bottom:10px">📋</div>
-      <div style="font-size:.875rem;font-weight:600">اختر ملفاً وابدأ المراجعة</div>
-      <div style="font-size:.78rem;margin-top:6px">سيظهر التحليل هنا بعد مراجعة الملف</div>
-    </div>
-    <div id="rev-loading" style="display:none;text-align:center;padding:30px;color:var(--text3)">
-      <div class="loading-spinner" style="width:32px;height:32px;border-width:2px;margin:0 auto 10px"></div>
-      <div style="font-size:.8rem">جاري تحليل الملف...</div>
-    </div>
-    <div id="rev-result" style="display:none">
-      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <span class="badge badge-blue" id="rv-ext">—</span>
-        <span class="badge badge-gray" id="rv-lines-badge">—</span>
-        <span class="badge badge-purple" id="rv-chars">—</span>
+      <!-- Plan Header -->
+      <div class="rev-plan-header">
+        <div>
+          <div class="rev-plan-title" id="plan-title">—</div>
+          <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+            <span class="rev-risk-badge" id="plan-risk-badge">—</span>
+            <span class="badge badge-gray" id="plan-time">—</span>
+            <span class="badge badge-gray" id="plan-date">—</span>
+          </div>
+        </div>
+        <div class="rev-plan-actions">
+          <button class="btn btn-success" id="approve-btn" onclick="approvePlan()">✅ موافقة</button>
+          <button class="btn btn-danger"  id="reject-btn"  onclick="rejectPlan()">❌ رفض</button>
+        </div>
       </div>
 
-      <div id="rv-issues-wrap" style="margin-bottom:10px;display:none">
-        <div style="font-size:.75rem;font-weight:700;color:var(--red);margin-bottom:6px">⚠️ مشاكل مكتشفة</div>
-        <div id="rv-issues"></div>
+      <!-- Backup Warning -->
+      <div class="rev-backup-alert" id="rev-backup-alert" style="display:none">
+        <span>⚠️ يجب إنشاء نسخة احتياطية قبل تطبيق هذه الخطة</span>
+        <button class="btn btn-warning btn-sm" onclick="createBackupThenApprove()">💾 احتياطي + موافقة</button>
       </div>
 
-      <div id="rv-sug-wrap" style="margin-bottom:10px;display:none">
-        <div style="font-size:.75rem;font-weight:700;color:var(--green);margin-bottom:6px">💡 اقتراحات</div>
-        <div id="rv-suggestions"></div>
+      <!-- Steps -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title" style="margin-bottom:14px">📋 خطوات التنفيذ</div>
+        <div id="plan-steps"></div>
       </div>
 
-      <div id="rv-clean" style="display:none;padding:12px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:var(--radius-sm);text-align:center;font-size:.85rem;color:var(--green)">
-        ✅ الملف نظيف — لا توجد مشاكل مكتشفة
+      <!-- Files Affected -->
+      <div class="card" id="plan-files-card" style="margin-bottom:12px;display:none">
+        <div class="card-title" style="margin-bottom:10px">📂 الملفات المتأثرة</div>
+        <div id="plan-files"></div>
       </div>
 
-      <details style="margin-top:10px">
-        <summary style="cursor:pointer;font-size:.78rem;color:var(--text2);font-weight:600;margin-bottom:6px">📄 عرض الكود</summary>
-        <div class="code-block" id="rv-snippet" style="max-height:220px;overflow-y:auto;font-size:.73rem"></div>
-      </details>
+      <!-- Result message -->
+      <div id="plan-result" style="display:none"></div>
+
     </div>
   </div>
 
@@ -131,131 +129,199 @@
 
 {% block scripts %}
 <script>
-var _revFiles = [];
+var _currentPlan = null;
 
-async function loadFileList() {
-  document.getElementById('rev-files-loading').innerHTML = '<div style="text-align:center;padding:16px;color:var(--text3)"><div class="loading-spinner" style="width:24px;height:24px;border-width:2px;margin:0 auto 8px"></div><div style="font-size:.78rem">جاري التحميل...</div></div>';
-  document.getElementById('rev-file-browser').style.display = 'none';
+document.addEventListener('DOMContentLoaded', function() {
+  loadBackups();
+  startStatsPolling(8000);
+  // Load file list for autocomplete
+  apiGet('/ai/api/files').then(function(files) {
+    var code = files.filter(function(f){return f.is_code;}).map(function(f){return f.path;});
+    var inp  = document.getElementById('rev-path');
+    if (inp && code.length) {
+      var dl = document.createElement('datalist');
+      dl.id  = 'rev-path-list';
+      code.slice(0,40).forEach(function(p){var o=document.createElement('option');o.value=p;dl.appendChild(o);});
+      document.body.appendChild(dl);
+      inp.setAttribute('list','rev-path-list');
+    }
+  }).catch(function(){});
+});
+
+function quickPlan(desc) {
+  document.getElementById('rev-desc').value = desc;
+  createPlan();
+}
+
+async function createPlan() {
+  var desc = document.getElementById('rev-desc').value.trim();
+  if (!desc) { showToast('أدخل وصف التعديل أولاً','warning'); return; }
+  var btn = document.getElementById('create-plan-btn');
+  btn.disabled = true; btn.textContent = '⏳ جاري الإنشاء...';
   try {
-    _revFiles = await apiGet('/ai/api/files');
-    _revFiles = _revFiles.filter(function(f){ return f.is_code; });
-    renderRevFiles(_revFiles);
-    document.getElementById('rev-files-loading').style.display = 'none';
-    document.getElementById('rev-file-browser').style.display  = 'block';
+    var d = await apiPost('/ai/api/plan', { description: desc });
+    _currentPlan = d;
+    renderPlan(d);
   } catch(e) {
-    document.getElementById('rev-files-loading').innerHTML = '<div style="padding:16px;text-align:center;color:var(--red);font-size:.8rem">❌ فشل تحميل القائمة</div>';
+    showToast('فشل إنشاء الخطة','error');
+  }
+  btn.disabled = false; btn.textContent = '🔬 إنشاء خطة التعديل';
+}
+
+function renderPlan(d) {
+  document.getElementById('rev-empty-state').style.display = 'none';
+  document.getElementById('rev-plan-wrap').style.display  = 'block';
+  document.getElementById('plan-result').style.display    = 'none';
+
+  document.getElementById('plan-title').textContent = d.title || '—';
+  document.getElementById('plan-time').textContent  = '⏱️ ' + d.estimated_time;
+  document.getElementById('plan-date').textContent  = '📅 ' + d.created_at;
+
+  var riskColors = {none:'var(--green)',low:'var(--yellow)',medium:'var(--orange)',high:'var(--red)'};
+  var rb = document.getElementById('plan-risk-badge');
+  rb.textContent = d.risk_label || d.risk;
+  rb.style.background = (riskColors[d.risk]||'var(--text3)') + '22';
+  rb.style.color      = riskColors[d.risk] || 'var(--text3)';
+  rb.style.border     = '1px solid ' + (riskColors[d.risk]||'var(--border)') + '55';
+
+  // Steps
+  var sh = '';
+  (d.steps||[]).forEach(function(s) {
+    var rCol = {none:'var(--green)',low:'var(--yellow)',medium:'var(--orange)',high:'var(--red)'}[s.risk]||'var(--text3)';
+    sh += '<div class="rev-step"><div class="rev-step-num" style="background:var(--accent)22;color:var(--accent)">'+s.n+'</div>'
+        + '<div class="rev-step-body"><div class="rev-step-action">'+esc(s.action)+'</div>'
+        + '<div class="rev-step-desc">'+esc(s.desc)+'</div></div>'
+        + '<div class="rev-step-risk" style="color:'+rCol+'">'+s.risk+'</div>'
+        + '</div>';
+  });
+  document.getElementById('plan-steps').innerHTML = sh;
+
+  // Files
+  if (d.files_affected && d.files_affected.length) {
+    var fh = d.files_affected.map(function(f){ return '<div class="scroll-list-item"><code style="font-size:.76rem;color:var(--accent2)">'+esc(f)+'</code></div>'; }).join('');
+    document.getElementById('plan-files').innerHTML = fh;
+    document.getElementById('plan-files-card').style.display = 'block';
+  } else {
+    document.getElementById('plan-files-card').style.display = 'none';
+  }
+
+  // Backup warning
+  document.getElementById('rev-backup-alert').style.display = d.requires_backup ? 'flex' : 'none';
+}
+
+async function approvePlan() {
+  if (!_currentPlan) return;
+  document.getElementById('approve-btn').disabled = true;
+  document.getElementById('reject-btn').disabled  = true;
+
+  if (_currentPlan.requires_backup) {
+    await createBackup();
+    await new Promise(function(r){setTimeout(r,800);});
+  }
+
+  var res = document.getElementById('plan-result');
+  res.style.display = 'block';
+  res.innerHTML = '<div style="padding:16px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);border-radius:var(--radius-sm);color:var(--green);font-size:.85rem">✅ تم قبول الخطة. الخطوات ستُطبَّق يدوياً أو عبر محرر الذكاء.</div>';
+  showToast('تم قبول الخطة ✅','success');
+}
+
+function rejectPlan() {
+  document.getElementById('rev-plan-wrap').style.display   = 'none';
+  document.getElementById('rev-empty-state').style.display = 'block';
+  _currentPlan = null;
+  showToast('تم رفض الخطة','info');
+}
+
+async function createBackupThenApprove() {
+  await createBackup();
+  approvePlan();
+}
+
+async function createBackup() {
+  var btn = document.getElementById('create-bk-btn');
+  if (btn) { btn.disabled=true; btn.textContent='⏳...'; }
+  try {
+    var d = await apiPost('/ai/api/backup/create', { description: 'نسخة من مراجعة التعديلات' });
+    if (d.ok) {
+      showToast('✅ نسخة احتياطية: ' + d.id, 'success');
+      loadBackups();
+    } else {
+      showToast('❌ فشل: ' + (d.error||''), 'error');
+    }
+  } catch(e) { showToast('فشل الاتصال','error'); }
+  if (btn) { btn.disabled=false; btn.textContent='+ إنشاء نسخة'; }
+}
+
+async function loadBackups() {
+  document.getElementById('bk-list-loading').style.display = 'block';
+  document.getElementById('bk-list').style.display = 'none';
+  document.getElementById('bk-empty').style.display = 'none';
+  try {
+    var bks = await apiGet('/ai/api/backup/list');
+    document.getElementById('bk-list-loading').style.display = 'none';
+    if (!bks.length) { document.getElementById('bk-empty').style.display = 'block'; return; }
+    var h = '';
+    bks.slice(0,8).forEach(function(b) {
+      h += '<div class="bk-item">'
+         + '<div><div class="bk-item-id">'+b.id+'</div><div class="bk-item-meta">'+b.datetime+' · '+b.files+' ملف · '+b.size_h+'</div><div class="bk-item-desc">'+esc(b.description)+'</div></div>'
+         + '<button class="btn btn-ghost btn-sm bk-restore-btn" onclick="restoreBackup(\''+b.id+'\')">↩ استعادة</button>'
+         + '</div>';
+    });
+    document.getElementById('bk-list').innerHTML = h;
+    document.getElementById('bk-list').style.display = 'block';
+  } catch(e) {
+    document.getElementById('bk-list-loading').innerHTML = '<div style="color:var(--red);font-size:.8rem">❌ فشل</div>';
   }
 }
 
-function renderRevFiles(files) {
-  var html = '';
-  files.slice(0,60).forEach(function(f) {
-    var extColors = {'.py':'var(--accent)','.js':'var(--yellow)','.html':'var(--orange)','.css':'var(--purple)','.json':'var(--cyan)','.md':'var(--green)'};
-    var color = extColors[f.ext] || 'var(--text3)';
-    html += '<div class="scroll-list-item" style="cursor:pointer" onclick="selectFile(\''+escHtml(f.path)+'\')">'
-          + '<div style="display:flex;justify-content:space-between;align-items:center">'
-          + '<span style="font-family:monospace;font-size:.74rem;color:var(--text2)">'+escHtml(f.path)+'</span>'
-          + '<span style="font-size:.65rem;font-weight:700;color:'+color+';background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:99px">'+f.ext+'</span>'
-          + '</div></div>';
-  });
-  document.getElementById('rev-file-list').innerHTML = html || '<div style="padding:16px;text-align:center;color:var(--text3)">لا توجد ملفات كود</div>';
-}
-
-function filterRevFiles() {
-  var q = document.getElementById('rev-filter').value.toLowerCase();
-  renderRevFiles(q ? _revFiles.filter(function(f){ return f.path.toLowerCase().includes(q); }) : _revFiles);
-}
-
-function selectFile(path) {
-  document.getElementById('rev-path').value = path;
-  showToast('تم اختيار: '+path, 'info', 2000);
+async function restoreBackup(id) {
+  if (!confirm('استعادة النسخة ' + id + '؟\nسيتم إنشاء نسخة أمان تلقائياً قبل الاستعادة.')) return;
+  showToast('⏳ جاري الاستعادة...','info',5000);
+  try {
+    var d = await apiPost('/ai/api/backup/restore', { id: id });
+    if (d.ok) { showToast('✅ ' + d.msg, 'success'); loadBackups(); }
+    else       { showToast('❌ ' + (d.error||'فشل'), 'error'); }
+  } catch(e) { showToast('فشل الاتصال','error'); }
 }
 
 async function reviewFile() {
   var path = document.getElementById('rev-path').value.trim();
-  if (!path) { showToast('أدخل مسار الملف أولاً', 'warning'); return; }
-
-  setBanner('🔬 جاري مراجعة الملف...', path, 'running');
-  document.getElementById('rev-placeholder').style.display = 'none';
-  document.getElementById('rev-loading').style.display    = 'block';
-  document.getElementById('rev-result').style.display     = 'none';
-
+  if (!path) { showToast('أدخل مسار الملف','warning'); return; }
+  document.getElementById('file-review-loading').style.display = 'block';
+  document.getElementById('file-review-result').style.display  = 'none';
   try {
     var d = await apiPost('/ai/api/review', { path: path });
-    document.getElementById('rev-loading').style.display = 'none';
-
-    if (!d.ok) {
-      showToast(d.error || 'فشل المراجعة', 'error');
-      document.getElementById('rev-placeholder').style.display = 'block';
-      setBanner('❌ فشلت المراجعة', d.error || 'الملف غير موجود', 'error');
-      return;
+    document.getElementById('file-review-loading').style.display = 'none';
+    if (!d.ok) { showToast(d.error||'فشل','error'); return; }
+    var issues  = d.issues||[];
+    var sug     = d.suggestions||[];
+    var isClean = !issues.length && !sug.length;
+    var h = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
+           + '<span class="badge badge-blue">'+esc(d.ext||'—')+'</span>'
+           + '<span class="badge badge-gray">'+d.lines+' سطر</span>'
+           + '<span class="badge badge-gray">'+(d.chars||0).toLocaleString()+' حرف</span>'
+           + '</div>';
+    if (isClean) {
+      h += '<div style="padding:10px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:var(--radius-sm);font-size:.82rem;color:var(--green)">✅ الملف نظيف — لا مشاكل مكتشفة</div>';
     }
-
-    var fname = path.split('/').pop();
-    document.getElementById('rev-filename').textContent = fname;
-    document.getElementById('rev-lines').textContent    = d.lines;
-    document.getElementById('rev-issues').textContent   = d.issues ? d.issues.length : 0;
-    document.getElementById('rev-sug-count').textContent = d.suggestions ? d.suggestions.length : 0;
-    _ubarColor('rev-fn-bar',    80,                                    'var(--purple)');
-    _ubarColor('rev-lines-bar', Math.min((d.lines||0)/5, 100),         'var(--accent)');
-    _ubarColor('rev-issues-bar',Math.min((d.issues||[]).length*20,100),'var(--red)');
-    _ubarColor('rev-sug-bar',   Math.min((d.suggestions||[]).length*25,100),'var(--green)');
-
-    document.getElementById('rv-ext').textContent        = d.ext || '—';
-    document.getElementById('rv-lines-badge').textContent = d.lines + ' سطر';
-    document.getElementById('rv-chars').textContent       = (d.chars||0).toLocaleString() + ' حرف';
-
-    if (d.issues && d.issues.length) {
-      document.getElementById('rv-issues').innerHTML = d.issues.map(function(i){ return '<div style="padding:5px 8px;background:rgba(239,68,68,0.1);border-radius:var(--radius-xs);font-size:.78rem;margin-bottom:4px;color:var(--red)">⚠️ '+escHtml(i)+'</div>'; }).join('');
-      document.getElementById('rv-issues-wrap').style.display = 'block';
-    } else {
-      document.getElementById('rv-issues-wrap').style.display = 'none';
+    if (issues.length) {
+      h += '<div style="margin-bottom:8px"><div style="font-size:.72rem;font-weight:700;color:var(--red);margin-bottom:4px">⚠️ مشاكل ('+issues.length+')</div>';
+      issues.forEach(function(i){ h += '<div style="font-size:.76rem;padding:4px 6px;background:rgba(239,68,68,0.08);border-radius:var(--radius-xs);margin-bottom:3px;color:var(--red)">'+esc(i)+'</div>'; });
+      h += '</div>';
     }
-
-    if (d.suggestions && d.suggestions.length) {
-      document.getElementById('rv-suggestions').innerHTML = d.suggestions.map(function(s){ return '<div style="padding:5px 8px;background:rgba(34,197,94,0.1);border-radius:var(--radius-xs);font-size:.78rem;margin-bottom:4px;color:var(--green)">💡 '+escHtml(s)+'</div>'; }).join('');
-      document.getElementById('rv-sug-wrap').style.display = 'block';
-    } else {
-      document.getElementById('rv-sug-wrap').style.display = 'none';
+    if (sug.length) {
+      h += '<div><div style="font-size:.72rem;font-weight:700;color:var(--green);margin-bottom:4px">💡 اقتراحات ('+sug.length+')</div>';
+      sug.forEach(function(s){ h += '<div style="font-size:.76rem;padding:4px 6px;background:rgba(34,197,94,0.08);border-radius:var(--radius-xs);margin-bottom:3px;color:var(--green)">'+esc(s)+'</div>'; });
+      h += '</div>';
     }
-
-    var isClean = (!d.issues || !d.issues.length) && (!d.suggestions || !d.suggestions.length);
-    document.getElementById('rv-clean').style.display = isClean ? 'block' : 'none';
-
-    document.getElementById('rv-snippet').textContent = d.snippet + (d.truncated ? '\n\n... (الملف أكبر من العرض المسموح)' : '');
-    document.getElementById('rev-result').style.display = 'block';
-
-    var totalIssues = (d.issues||[]).length + (d.suggestions||[]).length;
-    setBanner(
-      totalIssues > 0 ? '⚠️ تم اكتشاف '+totalIssues+' ملاحظة في '+fname : '✅ الملف نظيف — '+fname,
-      'سطر '+d.lines+' · '+d.ext+' · '+(d.chars||0).toLocaleString()+' حرف',
-      totalIssues > 0 ? 'warning' : 'success'
-    );
-    showToast('اكتملت المراجعة ✅', 'success');
+    document.getElementById('file-review-result').innerHTML = h;
+    document.getElementById('file-review-result').style.display = 'block';
   } catch(e) {
-    document.getElementById('rev-loading').style.display = 'none';
-    document.getElementById('rev-placeholder').style.display = 'block';
-    showToast('فشل تحليل الملف', 'error');
-    setBanner('❌ فشل الاتصال', 'تعذّر الوصول إلى محرك المراجعة', 'error');
+    document.getElementById('file-review-loading').style.display = 'none';
+    showToast('فشل التحليل','error');
   }
 }
 
-function setBanner(title, sub, state) {
-  var b = document.getElementById('rev-banner');
-  var t = b.querySelector('.ai-banner-title');
-  var s = b.querySelector('.ai-banner-sub');
-  if (t) t.textContent = title;
-  if (s) s.textContent = sub;
-  b.className = 'ai-banner mb-3 ai-banner-'+(state||'');
-}
-
-function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-  startStatsPolling(8000);
-  loadFileList();
-});
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 </script>
 {% endblock %}
