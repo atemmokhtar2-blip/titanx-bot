@@ -136,6 +136,8 @@ class ReasoningEngine:
 
     _GREETING = re.compile(
         r"^(?:hi+|hello+|hey+|howdy|yo+|sup\b|good\s+(?:morning|afternoon|evening|day)|"
+        r"how\s+are\s+you|how'?s\s+it\s+going|how'?s\s+(?:everything|life|things)|"
+        r"what'?s\s+up|how\s+do\s+you\s+do|nice\s+to\s+meet|greetings|"
         r"مرحبا+|السلام\s+عليكم|أهلاً?|هلا\b|سلام\b|صباح\s+(?:الخير|النور)|"
         r"مساء\s+(?:الخير|النور)|كيف\s+(?:حالك|الحال)|ما\s+الأخبار|وش\s+لونك)\b",
         re.IGNORECASE,
@@ -1436,6 +1438,16 @@ def detect_intent(msg: str) -> str:
     ]
     if any(re.search(p, ml) for p in _COMPARE_P):
         return "general"
+
+    # ①·⁵  Social / wellbeing — "How are you?", "What's up?", etc. → greeting
+    _SOCIAL_P = [
+        r"^how\s+are\s+you", r"^how'?s\s+it\s+going", r"^how'?s\s+(?:everything|life|things)",
+        r"^what'?s\s+up", r"^how\s+do\s+you\s+do", r"^nice\s+to\s+meet",
+        r"^greetings?\b", r"^good\s+(?:morning|afternoon|evening|day)\b",
+        r"أنت\s+بخير", r"كيف\s+حالك", r"كيف\s+الحال",
+    ]
+    if any(re.search(p, ml) for p in _SOCIAL_P):
+        return "greeting"
 
     # ②  Capabilities checked BEFORE identity — "what are you capable of?" → capabilities
     _CAPS_P = [
