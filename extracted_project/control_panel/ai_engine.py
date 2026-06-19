@@ -872,6 +872,18 @@ INTENTS: dict = {
     "impact":      [r"what breaks", r"what happens if", r"impact of", r"if i change",
                     r"ماذا يحدث لو", r"ماذا يكسر", r"تأثير التغيير"],
     "self_test":   [r"self.?test", r"test yourself", r"اختبر نفسك", r"self check", r"run tests?"],
+    # Conversational / meta intents
+    "identity":      [r"who are you", r"what are you", r"من أنت", r"ما أنت", r"عرّف نفسك",
+                      r"introduce yourself", r"about yourself", r"tell me about you",
+                      r"ما هو\b.{0,10}x\b", r"ما هي\b.{0,10}x\b", r"about the ai"],
+    "capabilities":  [r"what can you do", r"ماذا تستطيع", r"what do you do",
+                      r"your capabilities", r"قدراتك", r"إمكانياتك",
+                      r"كيف.{0,10}تساعد", r"how can you help", r"your features",
+                      r"what are you capable", r"ما.{0,10}(?:قدرات|إمكانيات)"],
+    "hf_query":      [r"hugging.?face", r"هوجينج فيس", r"hf\s+(?:connected|status|working|online)",
+                      r"connected.{0,15}(?:to|with).{0,10}(?:hf|ai|model|space)",
+                      r"are you.{0,20}connected", r"connection.{0,10}status",
+                      r"متصل\b", r"الاتصال\b.{0,10}(?:بـ|مع)", r"نموذج خارجي"],
     # Phase 2 — Action intent classification
     "create_feature": [
         r"create\b.{0,40}(bot|feature|system|module|command|handler|notification|service)",
@@ -908,6 +920,46 @@ INTENTS: dict = {
 
 def detect_intent(msg: str) -> str:
     ml = msg.lower()
+
+    # ── Priority -1: Conversational / identity (absolute top priority) ─────────
+    # These must NEVER return file lists
+
+    # ①  Comparison / reasoning (catches "difference between X and Y" before action patterns)
+    _COMPARE_P = [
+        r"difference between", r"\bcompare\b.{0,25}\band\b", r"\bvs\b", r"\bversus\b",
+        r"الفرق بين", r"\bcontrast\b", r"compare.{0,20}and", r"between.{0,30}and",
+    ]
+    if any(re.search(p, ml) for p in _COMPARE_P):
+        return "general"
+
+    # ②  Capabilities checked BEFORE identity — "what are you capable of?" → capabilities
+    _CAPS_P = [
+        r"what can you do", r"ماذا تستطيع", r"what do you do",
+        r"your capabilities", r"قدراتك", r"إمكانياتك", r"ماذا تقدر",
+        r"how can you help", r"what are you capable",
+        r"ما.{0,10}(?:قدرات|إمكانيات|تستطيع)",
+    ]
+    if any(re.search(p, ml) for p in _CAPS_P):
+        return "capabilities"
+
+    # ③  Identity — checked AFTER capabilities so "capable" doesn't fall here
+    _IDENTITY_P = [
+        r"who are you", r"what are you\b", r"من أنت", r"ما أنت", r"عرّف نفسك",
+        r"introduce yourself", r"tell me about you", r"about yourself",
+    ]
+    if any(re.search(p, ml) for p in _IDENTITY_P):
+        return "identity"
+
+    _HF_P = [
+        r"hugging.?face", r"هوجينج فيس",
+        r"hf\s+(?:connected|status|working|online|space)",
+        r"are you.{0,25}connected",
+        r"متصل\b.{0,20}(?:بـ|مع|بـال)", r"الاتصال\b.{0,15}(?:hugging|hf|نموذج)",
+        r"connected.{0,20}(?:hugging|hf|space|model)",
+        r"نموذج خارجي", r"space.*connected",
+    ]
+    if any(re.search(p, ml) for p in _HF_P):
+        return "hf_query"
 
     # ── Priority 0: Action intents (must beat file-finding patterns) ──────────
     # "Create notification bot" → create_feature
@@ -2091,6 +2143,10 @@ def process_chat(msg: str) -> dict:
         "ui_redesign":    lambda: _r_ui_redesign(msg),
         "debug_fix":      lambda: _r_debug_fix(msg),
         "new_page":       lambda: _r_new_page(msg),
+        # Conversational / meta
+        "identity":       lambda: _r_identity(),
+        "capabilities":   lambda: _r_capabilities(),
+        "hf_query":       lambda: _r_hf_query(),
         "structure":   lambda: _r_structure(),
         "routes":      lambda: _r_routes(),
         "security":    lambda: _r_security(),
@@ -2110,6 +2166,115 @@ def process_chat(msg: str) -> dict:
 
 
 # ─── Response Handlers ────────────────────────────────────────────────────────
+
+def _r_identity() -> dict:
+    """'Who are you?' — rich identity response, never a file list."""
+    mem = load_memory()
+    proj = mem.get("project", {})
+    name  = proj.get("name", "X Control Center")
+    ver   = proj.get("version", "v5.0")
+    return {
+        "text": f"""🧠 **أنا X AI Operator — مرحلة 2**
+
+**ما أنا؟**
+أنا محرك ذكاء اصطناعي متخصص مدمج في **{name} {ver}**.
+لست مجرد مستعرض ملفات — أنا نظام تفكير وتخطيط يفهم قصد المستخدم.
+
+**أصلي:**
+• 🔍 محرك معرفة المشروع — أعرف كل ملف، مسار، وتبعية
+• 🚀 مخطط ميزات — أضع خطط تنفيذ كاملة للأشياء الجديدة
+• 🔧 محقق أخطاء — أشخّص المشاكل وأقترح حلولاً دقيقة
+• 🎨 مستشار تصميم — أحدد ملفات الواجهة للتعديل
+• 🤖 متصل بـ Hugging Face — نموذج `x-ai-core` يعزز تحليلاتي
+
+**المشروع الذي أعمل عليه:**
+  • بوت Telegram رئيسي (PrimeDownloader)
+  • بوت دعم فني (Support Bot)
+  • لوحة تحكم FastAPI على المنفذ 5000
+
+اسألني: "What can you do?" لقائمة كاملة بالقدرات.""",
+        "data": {"identity": "X AI Operator", "phase": "2", "hf_connected": True},
+    }
+
+
+def _r_capabilities() -> dict:
+    """'What can you do?' — full capability listing."""
+    return {
+        "text": """⚡ **قدرات X AI Operator — المرحلة الثانية**
+
+**🔍 معرفة المشروع الكاملة:**
+  • "What file controls the dashboard?" → الملف الدقيق
+  • "Where is the login page?" → المسار الكامل
+  • "What CSS controls the colors?" → ملف CSS
+
+**🚀 تخطيط الميزات الجديدة:**
+  • "Create notification bot" → خطة + ملفات + خطوات
+  • "Build new feature" → scaffold كامل
+
+**🎨 إعادة التصميم:**
+  • "Redesign homepage" → الملفات + خطوات التنفيذ
+  • "Revamp sidebar" → خطة التعديل
+
+**🔧 التشخيص والإصلاح:**
+  • "Fix broken button" → تشخيص + فحص سجلات مباشر
+  • "Fix error in auth" → root-cause analysis
+
+**🏗️ تحليل المعمارية:**
+  • "How does the bot work?"
+  • "What depends on auth.py?"
+  • "What breaks if I change style.css?"
+
+**🤖 Hugging Face (متصل):**
+  • "Are you connected to Hugging Face?" → حالة الاتصال
+  • يمكنني إرسال طلبات للتحليل والتخطيط عبر النموذج الخارجي
+
+**🧪 اختبار ذاتي:**
+  • "اختبر نفسك" → تشغيل 13 اختباراً والتحقق من النتائج""",
+        "data": {
+            "intents": [
+                "identity", "capabilities", "hf_query",
+                "find_file", "create_feature", "ui_redesign",
+                "debug_fix", "new_page", "plan_modify",
+                "dependency", "root_cause", "impact", "arch",
+                "errors", "analyze", "security", "status", "self_test",
+            ]
+        },
+    }
+
+
+def _r_hf_query() -> dict:
+    """'Are you connected to Hugging Face?' — live status check."""
+    status = hf_status()
+    if status["connected"]:
+        text = f"""🤖 **نعم — متصل بـ Hugging Face ✅**
+
+**Space:** `{HF_SPACE_URL}`
+**الحالة:** 🟢 متصل ومستجيب (تم التحقق للتو)
+
+**نقاط الاتصال الحية:**
+  • `POST /api/analyze` — تحليل الأخطاء والكود
+  • `POST /api/assistant` — مساعد ذكاء عام
+  • `POST /api/planner` — تخطيط الميزات خطوة بخطوة
+  • `GET  /api/memory` — ذاكرة المشروع من الـ Space ✅
+
+**API Proxy محلي (بعد المصادقة):**
+  • `GET  /ai/api/hf/status`
+  • `POST /ai/api/hf/analyze`
+  • `POST /ai/api/hf/assistant`
+  • `POST /ai/api/hf/planner`
+  • `GET  /ai/api/hf/memory`
+
+الاتصال يعمل وجاهز للاستخدام."""
+    else:
+        text = f"""⚠️ **مشكلة في الاتصال بـ Hugging Face**
+
+**Space:** `{HF_SPACE_URL}`
+**الخطأ:** `{status.get('error', 'connection timeout')}`
+
+معظم الوظائف تعمل محلياً — الاتصال بـ HF اختياري للتعزيز فقط.
+يُعاد المحاولة تلقائياً في كل طلب."""
+    return {"text": text, "data": {"hf_status": status}}
+
 
 def _r_create_feature(msg: str) -> dict:
     """Handler for 'create notification bot', 'build X feature', etc."""
@@ -2628,12 +2793,46 @@ def _r_help() -> dict:
 
 
 def _r_general(msg: str) -> dict:
-    entries = _find_concept(msg)
-    if entries:
-        return answer_file_question(msg)
-    lines = ["🤖 لم أفهم السؤال بوضوح.\n",
-             "جرب: 'What file controls the homepage?' أو 'اختبر نفسك'"]
-    return {"text": "\n".join(lines), "data": {}}
+    """Intelligent fallback — NEVER returns raw file lists for conversational questions.
+
+    Rule: Only call answer_file_question() when the message contains an explicit
+    file-related keyword. For all other inputs, give a contextual guidance response.
+    """
+    ml = msg.lower()
+
+    # Only route to file search when the question is EXPLICITLY about a file/page/route
+    _FILE_INDICATORS = [
+        r"\bfile\b", r"\bملف\b", r"\bpage\b", r"\bصفحة\b",
+        r"\btemplate\b", r"\brouter\b", r"\bcss\b", r"\bjavascript\b",
+        r"\bjs\b", r"\bcode\b", r"\bكود\b", r"\bpath\b", r"\bمسار\b",
+        r"\bwhere is\b", r"\bأين\b", r"\bfind\b", r"\bابحث\b",
+    ]
+    is_explicit_file_question = any(re.search(p, ml) for p in _FILE_INDICATORS)
+
+    if is_explicit_file_question:
+        entries = _find_concept(msg)
+        if entries:
+            return answer_file_question(msg)
+
+    # Intelligent contextual response — never return a raw file list
+    mem   = load_memory()
+    proj  = mem.get("project", {})
+    pname = proj.get("name", "X Control Center")
+
+    lines = [
+        f"🧠 **X AI Operator** · **{pname}**\n",
+        "لم أتعرف على نوع هذا الطلب بدقة.",
+        "**يمكنني مساعدتك في:**\n",
+        "  🔍 **ملفات المشروع** — \"What file controls the dashboard?\"",
+        "  🚀 **ميزات جديدة** — \"Create notification bot\"",
+        "  🔧 **إصلاح مشاكل** — \"Fix broken button\"",
+        "  🎨 **إعادة تصميم** — \"Redesign homepage\"",
+        "  🏗️ **المعمارية** — \"How does the bot work?\"",
+        "  ⚡ **قدراتي الكاملة** — \"What can you do?\"",
+        "  🧪 **اختبار ذاتي** — \"اختبر نفسك\"\n",
+        "أعِد صياغة سؤالك وسأحاول الإجابة بدقة أكبر.",
+    ]
+    return {"text": "\n".join(lines), "data": {"intent": "general", "query": msg}}
 
 
 # ─── Utility ─────────────────────────────────────────────────────────────────

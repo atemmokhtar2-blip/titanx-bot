@@ -110,191 +110,6 @@
   "chat_history": [
     {
       "role": "user",
-      "text": "ما الملفات المسؤولة عن ألوان لوحة التحكم؟",
-      "ts": "2026-06-19T06:11:49.688721"
-    },
-    {
-      "role": "ai",
-      "text": "📁 **هيكل المشروع** (159 ملف إجمالاً)\n\n**المجلدات الرئيسية:**\n  `control_panel/templates/` — 20 ملف\n  `control_panel/routers/` — 15 ملف\n  `developer_bot/handlers/` — 15 ملف\n  `database/` — 12 ملف\n  `admin_bot/handlers/` — 11 ملف\n  `handlers/` — 10 ملف\n\n**المكونات:**\n  🤖 `bot.py` — البوت الرئيسي (PrimeDownloader)\n  🆘 `support_bot/` — بوت الدعم الفني\n  🖥️ `control_panel/` — لوحة التحكم (FastAPI)\n  🧠 `control_panel/routers/` — مسارات API (11 router)\n  🎨 `control_panel/templates/` — واجهات المستخدم\n\n",
-      "ts": "2026-06-19T06:11:49.700791"
-    },
-    {
-      "role": "user",
-      "text": "افحص الأخطاء",
-      "ts": "2026-06-19T06:12:23.833130"
-    },
-    {
-      "role": "ai",
-      "text": "✅ **تحليل المشروع مكتمل**\n\n📊 **الإحصائيات الكاملة:**\n- إجمالي الملفات: **159** ملف\n- ملفات الكود: **144** ملف\n- إجمالي الأسطر: **24,454** سطر\n\n📂 **أكثر الأنواع شيوعاً:**\n  `.py` ← 119 ملف\n  `.html` ← 20 ملف\n  `.log` ← 8 ملف\n\n💡 المشروع يحتوي على بنية منظمة. اكتب **\"افحص الأخطاء\"** للكشف عن المشاكل.",
-      "ts": "2026-06-19T06:12:23.857542"
-    },
-    {
-      "role": "user",
-      "text": "افحص الأمان",
-      "ts": "2026-06-19T06:12:36.856968"
-    },
-    {
-      "role": "ai",
-      "text": "✅ **تحليل المشروع مكتمل**\n\n📊 **الإحصائيات الكاملة:**\n- إجمالي الملفات: **159** ملف\n- ملفات الكود: **144** ملف\n- إجمالي الأسطر: **24,464** سطر\n\n📂 **أكثر الأنواع شيوعاً:**\n  `.py` ← 119 ملف\n  `.html` ← 20 ملف\n  `.log` ← 8 ملف\n\n💡 المشروع يحتوي على بنية منظمة. اكتب **\"افحص الأخطاء\"** للكشف عن المشاكل.",
-      "ts": "2026-06-19T06:12:36.866641"
-    },
-    {
-      "role": "user",
-      "text": "افحص الأخطاء",
-      "ts": "2026-06-19T06:12:44.097250"
-    },
-    {
-      "role": "ai",
-      "text": "✅ **تحليل المشروع مكتمل**\n\n📊 **الإحصائيات الكاملة:**\n- إجمالي الملفات: **159** ملف\n- ملفات الكود: **144** ملف\n- إجمالي الأسطر: **24,474** سطر\n\n📂 **أكثر الأنواع شيوعاً:**\n  `.py` ← 119 ملف\n  `.html` ← 20 ملف\n  `.log` ← 8 ملف\n\n💡 المشروع يحتوي على بنية منظمة. اكتب **\"افحص الأخطاء\"** للكشف عن المشاكل.",
-      "ts": "2026-06-19T06:12:44.108331"
-    },
-    {
-      "role": "user",
-      "text": "أريد إعادة تصميم الصفحة الرئيسية بالكامل.\n\nلا تنفذ.\n\nاعرض فقط:\n1- الملفات المطلوبة\n2- سبب تعديل كل ملف\n3- مستوى الخطورة\n4- خطة التنفيذ",
-      "ts": "2026-06-19T06:13:04.289406"
-    },
-    {
-      "role": "ai",
-      "text": "📋 **خطة التنفيذ: أريد إعادة تصميم الصفحة الرئيسية بالكامل.\n\nلا تنفذ.\n\nاعرض فق**\n\n⚠️ مستوى الخطورة: 🟠 متوسط\n🔄 الاستعادة: استعادة النسخة الاحتياطية التي تم إنشاؤها في الخطوة 1\n\n**الملفات المتأثرة:**\n  🟡 `control_panel/templates/dashboard.html` — صفحة لوحة القيادة الرئيسية\n  🟠 `control_panel/routers/dashboard.py` — مسار / وبيانات لوحة القيادة\n\n**خطوات التنفيذ:**\n  **1.** 💾 نسخة احتياطية أولاً\n     ↳ حفظ الحالة الحالية قبل أي تعديل ✅\n  **2.** تعديل `dashboard.html`\n     ↳ صفحة لوحة القيادة الرئيسية ",
-      "ts": "2026-06-19T06:13:04.301707"
-    },
-    {
-      "role": "user",
-      "text": "كيف أعرف سبب عدم عمل زر معين في لوحة التحكم؟\nحلل طريقة البحث عن المشكلة.",
-      "ts": "2026-06-19T06:13:53.454524"
-    },
-    {
-      "role": "ai",
-      "text": "🔍 **نتائج فحص الأخطاء** (إجمالي: **57** مشكلة)\n\n✅ **السجلات:** نظيفة\n\n⚠️ **مشاكل الكود:** 57\n  · 🖨️ print() داخل الكود: **36x**\n  · ⏰ time.sleep(): **7x**\n  · ⚠️ Wildcard import: **1x**\n  · 📝 ملاحظة TODO غير منجزة: **9x**\n\n💡 اذهب إلى **مهندس الذكاء** `/ai/engineer` للتقرير الكامل.",
-      "ts": "2026-06-19T06:13:53.622879"
-    },
-    {
-      "role": "user",
-      "text": "ما الملف المسؤول عن ألوان لوحة التحكم؟",
-      "ts": "2026-06-19T06:15:00.873446"
-    },
-    {
-      "role": "ai",
-      "text": "🔍 **بحث عن: \"ما الملف المسؤول عن ألوان لوحة التحكم؟\"**\n\nلم أجد تطابقاً مباشراً في خريطة المعرفة.\n\n💡 جرب الأوامر التالية:\n  · `ابحث عن dashboard` — لوحة القيادة\n  · `ما الملف الذي يتحكم في الألوان؟`\n  · `أين صفحة المستخدمين؟`",
-      "ts": "2026-06-19T06:15:00.885745"
-    },
-    {
-      "role": "user",
-      "text": "إذا طلبت إنشاء بوت جديد وربطه بالمشروع الحالي، ما الملفات والمجلدات التي ستحتاج إلى تعديلها؟ ولماذا؟",
-      "ts": "2026-06-19T06:15:31.233234"
-    },
-    {
-      "role": "ai",
-      "text": "📁 **هيكل المشروع** (159 ملف إجمالاً)\n\n**المجلدات الرئيسية:**\n  `control_panel/templates/` — 20 ملف\n  `control_panel/routers/` — 15 ملف\n  `developer_bot/handlers/` — 15 ملف\n  `database/` — 12 ملف\n  `admin_bot/handlers/` — 11 ملف\n  `handlers/` — 10 ملف\n\n**المكونات:**\n  🤖 `bot.py` — البوت الرئيسي (PrimeDownloader)\n  🆘 `support_bot/` — بوت الدعم الفني\n  🖥️ `control_panel/` — لوحة التحكم (FastAPI)\n  🧠 `control_panel/routers/` — مسارات API (11 router)\n  🎨 `control_panel/templates/` — واجهات المستخدم\n\n",
-      "ts": "2026-06-19T06:15:31.240332"
-    },
-    {
-      "role": "user",
-      "text": "كيف أعرف سبب عدم عمل زر معين في لوحة التحكم؟\nحلل طريقة البحث عن المشكلة.",
-      "ts": "2026-06-19T09:01:08.186583"
-    },
-    {
-      "role": "user",
-      "text": "stats",
-      "ts": "2026-06-19T09:05:46.315733"
-    },
-    {
-      "role": "assistant",
-      "text": "📊 **إحصائيات المشروع**\n\n📁 إجمالي الملفات: 144\n🎨 القوالب HTML: 20\n⚙️ الـ Routers: 15\n🤖 معالجات البوت: 39\n🗄️ نماذج قاعدة البيانات: 17\n🔧 الخدمات: 4\n🎨 ملفات CSS: 1\n📜 ملفات JS: 1\n🌐 المسارات: 20\n🧠 المفاهيم الدلالية: 56",
-      "ts": "2026-06-19T09:05:46.350534"
-    },
-    {
-      "role": "user",
-      "text": "memory",
-      "ts": "2026-06-19T09:05:46.353930"
-    },
-    {
-      "role": "assistant",
-      "text": "🧠 **ذاكرة المشروع**\n\nالإصدار: 5.0\nالمشروع: X Control Center\nإجمالي المحادثات: 3\nإجمالي الأسئلة: 0\nإجمالي الخطط: 0\nآخر تحديث: 2026-06-19T09:05:46.356186",
-      "ts": "2026-06-19T09:05:46.359840"
-    },
-    {
-      "role": "user",
-      "text": "كيف أعرف سبب عدم عمل زر معين في لوحة التحكم؟\nحلل طريقة البحث عن المشكلة.",
-      "ts": "2026-06-19T09:06:36.196427"
-    },
-    {
-      "role": "assistant",
-      "text": "✅ لا توجد أخطاء في السجلات",
-      "ts": "2026-06-19T09:06:36.216533"
-    },
-    {
-      "role": "user",
-      "text": "إذا طلبت إنشاء بوت جديد وربطه بالمشروع الحالي، ما الملفات والمجلدات التي ستحتاج إلى تعديلها؟ ولماذا؟",
-      "ts": "2026-06-19T09:06:59.171572"
-    },
-    {
-      "role": "assistant",
-      "text": "📂 **هيكل المشروع**\n\nالملفات الكلية: 144\nالمسارات في الجراف: 20\nالمفاهيم الدلالية: 56\n\n  .py: 119 ملف\n  .html: 20 ملف\n  .json: 2 ملف\n  .md: 1 ملف\n  .css: 1 ملف\n  .js: 1 ملف",
-      "ts": "2026-06-19T09:06:59.189799"
-    },
-    {
-      "role": "user",
-      "text": "ما الملف المسؤول عن الصفحة الرئيسية؟",
-      "ts": "2026-06-19T09:08:12.435007"
-    },
-    {
-      "role": "assistant",
-      "text": "📍 **الملفات المسؤولة عن: `؟`**\n\n🌐 **الرابط:** `الصفحة الرئيسية / لوحة التحكم`\n  ⚙️ **ROUTER**: `control_panel/routers/dashboard.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/dashboard.html` ✅\n  🏗️ **BASE**: `control_panel/templates/base.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/api/stats`, `/api/activity`, `/api/chart`\n\n📂 **الملفات المرتبطة:**",
-      "ts": "2026-06-19T09:08:12.448016"
-    },
-    {
-      "role": "user",
-      "text": "إذا أردت إنشاء صفحة جديدة داخل لوحة X باسم AI Tools\n\nلا تنفذ.\n\nاعرض:\n\n1- الملفات التي ستنشئها\n2- الملفات التي ستعدلها\n3- الـ Router المطلوب\n4- الـ Template المطلوب\n5- الـ CSS المطلوب\n6- كيف ستربطها بالشريط الجانبي",
-      "ts": "2026-06-19T09:08:57.409692"
-    },
-    {
-      "role": "assistant",
-      "text": "🌐 **20 مسار في لوحة التحكم:**\n\n• `/` → `control_panel/templates/dashboard.html` — الصفحة الرئيسية / لوحة التحكم\n• `/dashboard` → `control_panel/templates/dashboard.html` — لوحة التحكم الرئيسية\n• `/panel` → `control_panel/templates/access.html` — صفحة الدخول / المصادقة\n• `/panel/login` → `control_panel/templates/access.html` — معالج تسجيل الدخول\n• `/users` → `control_panel/templates/users.html` — إدارة المستخدمين\n• `/broadcast` → `control_panel/templates/broadcast.html` — نظام البث للمستخدمين\n• `",
-      "ts": "2026-06-19T09:08:57.422167"
-    },
-    {
-      "role": "user",
-      "text": "إذا أردت إضافة قسم جديد داخل لوحة X باسم AI Tools\n\nلا تنفذ.\n\nاعرض:\n\n1- Route الجديد\n2- Template الجديد\n3- الملفات التي ستحتاج تعديلها\n4- كيف سيتم إضافته إلى الشريط الجانبي\n5- APIs المطلوبة\n6- المخاطر المحتملة",
-      "ts": "2026-06-19T09:09:58.188541"
-    },
-    {
-      "role": "assistant",
-      "text": "🌐 **20 مسار في لوحة التحكم:**\n\n• `/` → `control_panel/templates/dashboard.html` — الصفحة الرئيسية / لوحة التحكم\n• `/dashboard` → `control_panel/templates/dashboard.html` — لوحة التحكم الرئيسية\n• `/panel` → `control_panel/templates/access.html` — صفحة الدخول / المصادقة\n• `/panel/login` → `control_panel/templates/access.html` — معالج تسجيل الدخول\n• `/users` → `control_panel/templates/users.html` — إدارة المستخدمين\n• `/broadcast` → `control_panel/templates/broadcast.html` — نظام البث للمستخدمين\n• `",
-      "ts": "2026-06-19T09:09:58.191071"
-    },
-    {
-      "role": "user",
-      "text": "إذا أردت إنشاء بوت إشعارات جديد وربطه بلوحة X\n\nما الملفات التي ستعدلها ولماذا؟",
-      "ts": "2026-06-19T09:10:39.938232"
-    },
-    {
-      "role": "assistant",
-      "text": "📍 **الملفات المسؤولة عن: `إذا أردت إنشاء بوت إشعارات جديد وربطه بلوحة X\n\nما الملفات التي ستعدلها ولماذا؟`**\n\n🌐 **الرابط:** `لوحة التحكم الرئيسية`\n  ⚙️ **ROUTER**: `control_panel/routers/dashboard.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/dashboard.html` ✅\n  🏗️ **BASE**: `control_panel/templates/base.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/api/stats`, `/api/activity`, `/api/chart`\n\n📂 **الملفات المرتبطة:**",
-      "ts": "2026-06-19T09:10:39.941352"
-    },
-    {
-      "role": "user",
-      "text": "ما الفرق بين:\n\n1- تعديل الصفحة الرئيسية\n\n2- إنشاء بوت جديد\n\nوما الملفات المختلفة التي سيتطلبها كل منهما؟\n\nاعتمد على المشروع الحالي.",
-      "ts": "2026-06-19T09:11:33.293948"
-    },
-    {
-      "role": "assistant",
-      "text": "📍 **الملفات المسؤولة عن: `ما الفرق بين:\n\n1- تعديل الصفحة الرئيسية\n\n2- إنشاء بوت جديد\n\nوما الملفات المختلفة التي سيتطلبها كل منهما؟\n\nاعتمد على المشروع الحالي.`**\n\n🌐 **الرابط:** `الصفحة الرئيسية / لوحة التحكم`\n  ⚙️ **ROUTER**: `control_panel/routers/dashboard.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/dashboard.html` ✅\n  🏗️ **BASE**: `control_panel/templates/base.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/api/stats`,",
-      "ts": "2026-06-19T09:11:33.308259"
-    },
-    {
-      "role": "user",
-      "text": "Create notification bot",
-      "ts": "2026-06-19T09:26:57.587790"
-    },
-    {
-      "role": "assistant",
-      "text": "🚀 **طلب إنشاء: Bot / Telegram Handler**\n\n🔎 **تحليل الطلب:** `Create notification bot`\n\n**📂 الملفات المطلوبة:**\n  • `handlers/new_bot_handler.py` [HANDLER] — منطق الأوامر الجديدة\n  • `bot.py` [ENTRYPOINT] — تسجيل الهاندلر الجديد\n  • `config/settings.py` [CONFIG] — إضافة أي إعدادات مطلوبة\n\n**🎯 مستوى التعقيد:** LOW\n\n**📋 خطوات التنفيذ:**\n1. أنشئ `handlers/new_bot_handler.py` وعرّف أوامر البوت\n2. سجّل الهاندلر في `bot.py` ضمن `application.add_handler()`\n3. أضف أي إعدادات مطلوبة في `config/settings.py",
-      "ts": "2026-06-19T09:26:57.605958"
-    },
-    {
-      "role": "user",
       "text": "Redesign homepage",
       "ts": "2026-06-19T09:26:57.609307"
     },
@@ -322,6 +137,226 @@
       "role": "assistant",
       "text": "📄 **إنشاء صفحة جديدة: `new_page`**\n\n**📂 الملفات التي يجب إنشاؤها:**\n  ⚙️ `control_panel/routers/new_page.py` [ROUTER] — نقاط نهاية الصفحة\n  🎨 `control_panel/templates/new_page.html` [TEMPLATE] — واجهة الصفحة\n\n**📂 الملفات التي يجب تعديلها:**\n  🔧 `control_panel/app.py` [ENTRYPOINT] — تسجيل الراوتر الجديد\n  🎨 `control_panel/templates/base.html` [NAVIGATION] — إضافة رابط في القائمة الجانبية\n\n**📋 خطوات التنفيذ:**\n  1. أنشئ `control_panel/routers/new_page.py`:\n     ```python\n     from fastapi import A",
       "ts": "2026-06-19T09:26:57.985637"
+    },
+    {
+      "role": "user",
+      "text": "من انت",
+      "ts": "2026-06-19T09:29:08.596017"
+    },
+    {
+      "role": "assistant",
+      "text": "🤖 لم أفهم السؤال بوضوح.\n\nجرب: 'What file controls the homepage?' أو 'اختبر نفسك'",
+      "ts": "2026-06-19T09:29:08.615400"
+    },
+    {
+      "role": "user",
+      "text": "اشرح لي الفرق بين Python و JavaScript.",
+      "ts": "2026-06-19T09:29:31.176741"
+    },
+    {
+      "role": "assistant",
+      "text": "🏗️ **معمارية: PROJECT**\n\nX Control Center — نظام بوت Telegram مع لوحة تحكم FastAPI\n\n**components:**\n  • PrimeDownloader Bot (bot.py) — بوت التحميل الرئيسي\n  • Support Bot (support_bot/bot.py) — بوت الدعم الفني\n  • Control Panel (control_panel/app.py) — لوحة تحكم FastAPI على بورت 5000\n  • Database (database/) — SQLite (bot.db) + Support (support.db)\n  • AI Engine (control_panel/ai_engine.py) — نظام الذكاء الاصطناعي",
+      "ts": "2026-06-19T09:29:31.179846"
+    },
+    {
+      "role": "user",
+      "text": "أنشئ بوت إشعارات جديد.\nلا تنفذ.",
+      "ts": "2026-06-19T09:29:58.757099"
+    },
+    {
+      "role": "assistant",
+      "text": "🚀 **طلب إنشاء: Notification System**\n\n🔎 **تحليل الطلب:** `أنشئ بوت إشعارات جديد.\nلا تنفذ.`\n\n**📂 الملفات المطلوبة:**\n  • `services/notifier.py` [SERVICE] — منطق الإشعارات\n  • `handlers/notifications.py` [HANDLER] — هاندلر الإشعارات\n  • `bot.py` [ENTRYPOINT] — تسجيل وظيفة الإشعارات\n\n**🎯 مستوى التعقيد:** LOW\n\n**📋 خطوات التنفيذ:**\n1. أنشئ `services/notifier.py` بدالة `send_notification(user_id, text)`\n2. أضف مهمة جدولة (job_queue) في `bot.py`\n3. اختبر الإشعار يدوياً عبر أمر `/test_notify`\n\n💡 **اسأل ",
+      "ts": "2026-06-19T09:29:58.760765"
+    },
+    {
+      "role": "user",
+      "text": "ما الفرق بين:\n\n1- تعديل الصفحة الرئيسية\n\n2- إنشاء بوت جديد",
+      "ts": "2026-06-19T09:30:45.598059"
+    },
+    {
+      "role": "assistant",
+      "text": "📍 **الملفات المسؤولة عن: `ما الفرق بين:\n\n1- تعديل الصفحة الرئيسية\n\n2- إنشاء بوت جديد`**\n\n🌐 **الرابط:** `الصفحة الرئيسية / لوحة التحكم`\n  ⚙️ **ROUTER**: `control_panel/routers/dashboard.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/dashboard.html` ✅\n  🏗️ **BASE**: `control_panel/templates/base.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/api/stats`, `/api/activity`, `/api/chart`\n\n📂 **الملفات المرتبطة:**",
+      "ts": "2026-06-19T09:30:45.603019"
+    },
+    {
+      "role": "user",
+      "text": "أريد صفحة جديدة اسمها AI Tools.\n\nلا تنفذ.\n\nاعرض خطة التنفيذ فقط.",
+      "ts": "2026-06-19T09:31:08.472514"
+    },
+    {
+      "role": "assistant",
+      "text": "📄 **إنشاء صفحة جديدة: `new_page`**\n\n**📂 الملفات التي يجب إنشاؤها:**\n  ⚙️ `control_panel/routers/new_page.py` [ROUTER] — نقاط نهاية الصفحة\n  🎨 `control_panel/templates/new_page.html` [TEMPLATE] — واجهة الصفحة\n\n**📂 الملفات التي يجب تعديلها:**\n  🔧 `control_panel/app.py` [ENTRYPOINT] — تسجيل الراوتر الجديد\n  🎨 `control_panel/templates/base.html` [NAVIGATION] — إضافة رابط في القائمة الجانبية\n\n**📋 خطوات التنفيذ:**\n  1. أنشئ `control_panel/routers/new_page.py`:\n     ```python\n     from fastapi import A",
+      "ts": "2026-06-19T09:31:08.476469"
+    },
+    {
+      "role": "user",
+      "text": "إذا تعطل زر داخل لوحة X\n\nكيف ستبحث عن السبب؟",
+      "ts": "2026-06-19T09:31:49.131197"
+    },
+    {
+      "role": "assistant",
+      "text": "📍 **الملفات المسؤولة عن: `إذا تعطل زر داخل لوحة X\n\nكيف ستبحث عن السبب؟`**\n\n🌐 **الرابط:** `لوحة التحكم الرئيسية`\n  ⚙️ **ROUTER**: `control_panel/routers/dashboard.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/dashboard.html` ✅\n  🏗️ **BASE**: `control_panel/templates/base.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/api/stats`, `/api/activity`, `/api/chart`\n\n📂 **الملفات المرتبطة:**",
+      "ts": "2026-06-19T09:31:49.142947"
+    },
+    {
+      "role": "user",
+      "text": "من أنت؟",
+      "ts": "2026-06-19T09:47:11.455859"
+    },
+    {
+      "role": "assistant",
+      "text": "🤖 لم أفهم السؤال بوضوح.\n\nجرب: 'What file controls the homepage?' أو 'اختبر نفسك'",
+      "ts": "2026-06-19T09:47:11.469416"
+    },
+    {
+      "role": "user",
+      "text": "ما حالة Hugging Face؟",
+      "ts": "2026-06-19T09:48:33.443906"
+    },
+    {
+      "role": "assistant",
+      "text": "📊 **حالة نظام الذكاء الاصطناعي**\n\n🧠 المحرك: v3.0 — Project Knowledge System\n🗺️ الجراف: 20 مسار | 56 مفهوم | 11 نموذج DB\n🧪 الاختبار الذاتي: 11/13 ⚠️ PARTIAL\n💾 النسخ الاحتياطية: 0\n🔌 المسارات في لوحة التحكم: 20\n✅ جميع الأنظمة تعمل",
+      "ts": "2026-06-19T09:48:33.457221"
+    },
+    {
+      "role": "user",
+      "text": "افحص الأخطاء",
+      "ts": "2026-06-19T09:48:50.370379"
+    },
+    {
+      "role": "assistant",
+      "text": "🔬 **تحليل المشروع الكامل**\n\n📁 إجمالي الملفات: 144\n🌐 المسارات المعروفة: 20\n🧠 المفاهيم الدلالية: 56\n🎨 القوالب: 20\n⚙️ الـ Routers: 15\n🤖 المعالجات: 39\n🗄️ نماذج DB: 17\n\n🔧 6 مشاكل في الكود",
+      "ts": "2026-06-19T09:48:50.769117"
+    },
+    {
+      "role": "user",
+      "text": "هل أنت متصل بـ Hugging Face Space؟",
+      "ts": "2026-06-19T09:49:14.739223"
+    },
+    {
+      "role": "assistant",
+      "text": "🤖 لم أفهم السؤال بوضوح.\n\nجرب: 'What file controls the homepage?' أو 'اختبر نفسك'",
+      "ts": "2026-06-19T09:49:14.741667"
+    },
+    {
+      "role": "user",
+      "text": "أعطني تقرير حالة النظام.\n\nأريد معرفة:\n\n1- هل Hugging Face متصل؟\n2- هل Intent Engine مفعل؟\n3- هل AI Engineer يعمل بنظام ذكاء اصطناعي أم بنظام كلمات مفتاحية؟\n4- ما سبب رسالة \"لم أفهم السؤال\"؟\n5- ما المكون الذي يستقبل الرسائل النصية داخل AI Workspace؟\n6- ما الملف المسؤول عن معالجة رسائل AI؟",
+      "ts": "2026-06-19T09:50:29.851261"
+    },
+    {
+      "role": "assistant",
+      "text": "📍 **الملفات المسؤولة عن: `؟`**\n\n🌐 **الرابط:** `حالة النظام`\n  ⚙️ **ROUTER**: `control_panel/routers/system.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/system.html` ✅\n  🏗️ **BASE**: `control_panel/templates/base.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/system/api/stats`, `/system/api/bots`\n\n📂 **الملفات المرتبطة:**\n  🎨 **TEMPLATE**: `control_panel/templates/ai_workspace.html` — صفحة X AI Operator\n  ⚙️ **ROUTER**: `c",
+      "ts": "2026-06-19T09:50:29.866102"
+    },
+    {
+      "role": "user",
+      "text": "Who are you?",
+      "ts": "2026-06-19T10:06:58.607720"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **أنا X AI Operator — مرحلة 2**\n\n**ما أنا؟**\nأنا محرك ذكاء اصطناعي متخصص مدمج في **X Control Center v5.0**.\nلست مجرد مستعرض ملفات — أنا نظام تفكير وتخطيط يفهم قصد المستخدم.\n\n**أصلي:**\n• 🔍 محرك معرفة المشروع — أعرف كل ملف، مسار، وتبعية\n• 🚀 مخطط ميزات — أضع خطط تنفيذ كاملة للأشياء الجديدة\n• 🔧 محقق أخطاء — أشخّص المشاكل وأقترح حلولاً دقيقة\n• 🎨 مستشار تصميم — أحدد ملفات الواجهة للتعديل\n• 🤖 متصل بـ Hugging Face — نموذج `x-ai-core` يعزز تحليلاتي\n\n**المشروع الذي أعمل عليه:**\n  • بوت Telegram رئيسي (P",
+      "ts": "2026-06-19T10:06:58.615078"
+    },
+    {
+      "role": "user",
+      "text": "What can you do?",
+      "ts": "2026-06-19T10:06:58.618431"
+    },
+    {
+      "role": "assistant",
+      "text": "⚡ **قدرات X AI Operator — المرحلة الثانية**\n\n**🔍 معرفة المشروع الكاملة:**\n  • \"What file controls the dashboard?\" → الملف الدقيق\n  • \"Where is the login page?\" → المسار الكامل\n  • \"What CSS controls the colors?\" → ملف CSS\n\n**🚀 تخطيط الميزات الجديدة:**\n  • \"Create notification bot\" → خطة + ملفات + خطوات\n  • \"Build new feature\" → scaffold كامل\n\n**🎨 إعادة التصميم:**\n  • \"Redesign homepage\" → الملفات + خطوات التنفيذ\n  • \"Revamp sidebar\" → خطة التعديل\n\n**🔧 التشخيص والإصلاح:**\n  • \"Fix broken button\" ",
+      "ts": "2026-06-19T10:06:58.623422"
+    },
+    {
+      "role": "user",
+      "text": "Are you connected to Hugging Face?",
+      "ts": "2026-06-19T10:06:58.626223"
+    },
+    {
+      "role": "assistant",
+      "text": "🤖 **نعم — متصل بـ Hugging Face ✅**\n\n**Space:** `https://7atemmmmm-x-ai-core.hf.space`\n**الحالة:** 🟢 متصل ومستجيب (تم التحقق للتو)\n\n**نقاط الاتصال الحية:**\n  • `POST /api/analyze` — تحليل الأخطاء والكود\n  • `POST /api/assistant` — مساعد ذكاء عام\n  • `POST /api/planner` — تخطيط الميزات خطوة بخطوة\n  • `GET  /api/memory` — ذاكرة المشروع من الـ Space ✅\n\n**API Proxy محلي (بعد المصادقة):**\n  • `GET  /ai/api/hf/status`\n  • `POST /ai/api/hf/analyze`\n  • `POST /ai/api/hf/assistant`\n  • `POST /ai/api/hf/pl",
+      "ts": "2026-06-19T10:06:58.941331"
+    },
+    {
+      "role": "user",
+      "text": "Create notification bot",
+      "ts": "2026-06-19T10:06:58.945602"
+    },
+    {
+      "role": "assistant",
+      "text": "🚀 **طلب إنشاء: Bot / Telegram Handler**\n\n🔎 **تحليل الطلب:** `Create notification bot`\n\n**📂 الملفات المطلوبة:**\n  • `handlers/new_bot_handler.py` [HANDLER] — منطق الأوامر الجديدة\n  • `bot.py` [ENTRYPOINT] — تسجيل الهاندلر الجديد\n  • `config/settings.py` [CONFIG] — إضافة أي إعدادات مطلوبة\n\n**🎯 مستوى التعقيد:** LOW\n\n**📋 خطوات التنفيذ:**\n1. أنشئ `handlers/new_bot_handler.py` وعرّف أوامر البوت\n2. سجّل الهاندلر في `bot.py` ضمن `application.add_handler()`\n3. أضف أي إعدادات مطلوبة في `config/settings.py",
+      "ts": "2026-06-19T10:06:58.955220"
+    },
+    {
+      "role": "user",
+      "text": "Redesign homepage",
+      "ts": "2026-06-19T10:06:58.964231"
+    },
+    {
+      "role": "assistant",
+      "text": "🎨 **طلب إعادة تصميم: الصفحة الرئيسية (Dashboard)**\n\n**📂 الملفات المطلوبة للتعديل:**\n  🎨 **Template:** `control_panel/templates/dashboard.html` — الواجهة الرئيسية للصفحة\n  🎨 **CSS:** `control_panel/static/css/style.css` — الألوان، المساحات، التخطيط\n  ⚙️ **Router:** `control_panel/routers/dashboard.py` — بيانات الصفحة\n\n**📋 خطوات إعادة التصميم:**\n  1. خذ نسخة احتياطية أولاً: **أنشئ نسخة احتياطية**\n  2. عدّل ملف `template.html` للبنية HTML\n  3. عدّل `style.css` للألوان والمساحات والخطوط\n  4. اختبر ع",
+      "ts": "2026-06-19T10:06:58.972174"
+    },
+    {
+      "role": "user",
+      "text": "Fix broken button",
+      "ts": "2026-06-19T10:06:58.975748"
+    },
+    {
+      "role": "assistant",
+      "text": "🔧 **تشخيص: زر / عنصر واجهة**\n\n📝 **الطلب:** `Fix broken button`\n\n**📂 الملف الأرجح:** `control_panel/static/js/app.js (JavaScript handler)`\n\n**🔍 مشاكل في الكود:**\n  ⚠️ `control_panel/ai_engine.py` [TODO]\n  ⚠️ `control_panel/ai_engine.py` [TODO]\n  ⚠️ `control_panel/ai_engine.py` [TODO]\n\n**🛠️ خطوات التشخيص:**\n  1. افحص ملف السجلات: `السجلات الأخيرة`\n  2. تحقق من وحدة تحكم المتصفح للأخطاء\n  3. اقرأ الملف المحدد واستخدم `أين الخطأ في [اسم الملف]`\n  4. بعد الإصلاح: اختبر الوظيفة مباشرة",
+      "ts": "2026-06-19T10:06:59.350284"
+    },
+    {
+      "role": "user",
+      "text": "Who are you?",
+      "ts": "2026-06-19T10:08:01.343016"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **أنا X AI Operator — مرحلة 2**\n\n**ما أنا؟**\nأنا محرك ذكاء اصطناعي متخصص مدمج في **X Control Center v5.0**.\nلست مجرد مستعرض ملفات — أنا نظام تفكير وتخطيط يفهم قصد المستخدم.\n\n**أصلي:**\n• 🔍 محرك معرفة المشروع — أعرف كل ملف، مسار، وتبعية\n• 🚀 مخطط ميزات — أضع خطط تنفيذ كاملة للأشياء الجديدة\n• 🔧 محقق أخطاء — أشخّص المشاكل وأقترح حلولاً دقيقة\n• 🎨 مستشار تصميم — أحدد ملفات الواجهة للتعديل\n• 🤖 متصل بـ Hugging Face — نموذج `x-ai-core` يعزز تحليلاتي\n\n**المشروع الذي أعمل عليه:**\n  • بوت Telegram رئيسي (P",
+      "ts": "2026-06-19T10:08:01.357190"
+    },
+    {
+      "role": "user",
+      "text": "What can you do?",
+      "ts": "2026-06-19T10:08:01.361685"
+    },
+    {
+      "role": "assistant",
+      "text": "⚡ **قدرات X AI Operator — المرحلة الثانية**\n\n**🔍 معرفة المشروع الكاملة:**\n  • \"What file controls the dashboard?\" → الملف الدقيق\n  • \"Where is the login page?\" → المسار الكامل\n  • \"What CSS controls the colors?\" → ملف CSS\n\n**🚀 تخطيط الميزات الجديدة:**\n  • \"Create notification bot\" → خطة + ملفات + خطوات\n  • \"Build new feature\" → scaffold كامل\n\n**🎨 إعادة التصميم:**\n  • \"Redesign homepage\" → الملفات + خطوات التنفيذ\n  • \"Revamp sidebar\" → خطة التعديل\n\n**🔧 التشخيص والإصلاح:**\n  • \"Fix broken button\" ",
+      "ts": "2026-06-19T10:08:01.368738"
+    },
+    {
+      "role": "user",
+      "text": "Are you connected to Hugging Face?",
+      "ts": "2026-06-19T10:08:01.371456"
+    },
+    {
+      "role": "assistant",
+      "text": "🤖 **نعم — متصل بـ Hugging Face ✅**\n\n**Space:** `https://7atemmmmm-x-ai-core.hf.space`\n**الحالة:** 🟢 متصل ومستجيب (تم التحقق للتو)\n\n**نقاط الاتصال الحية:**\n  • `POST /api/analyze` — تحليل الأخطاء والكود\n  • `POST /api/assistant` — مساعد ذكاء عام\n  • `POST /api/planner` — تخطيط الميزات خطوة بخطوة\n  • `GET  /api/memory` — ذاكرة المشروع من الـ Space ✅\n\n**API Proxy محلي (بعد المصادقة):**\n  • `GET  /ai/api/hf/status`\n  • `POST /ai/api/hf/analyze`\n  • `POST /ai/api/hf/assistant`\n  • `POST /ai/api/hf/pl",
+      "ts": "2026-06-19T10:08:01.670540"
+    },
+    {
+      "role": "user",
+      "text": "Create notification bot",
+      "ts": "2026-06-19T10:08:01.673624"
+    },
+    {
+      "role": "assistant",
+      "text": "🚀 **طلب إنشاء: Bot / Telegram Handler**\n\n🔎 **تحليل الطلب:** `Create notification bot`\n\n**📂 الملفات المطلوبة:**\n  • `handlers/new_bot_handler.py` [HANDLER] — منطق الأوامر الجديدة\n  • `bot.py` [ENTRYPOINT] — تسجيل الهاندلر الجديد\n  • `config/settings.py` [CONFIG] — إضافة أي إعدادات مطلوبة\n\n**🎯 مستوى التعقيد:** LOW\n\n**📋 خطوات التنفيذ:**\n1. أنشئ `handlers/new_bot_handler.py` وعرّف أوامر البوت\n2. سجّل الهاندلر في `bot.py` ضمن `application.add_handler()`\n3. أضف أي إعدادات مطلوبة في `config/settings.py",
+      "ts": "2026-06-19T10:08:01.679965"
+    },
+    {
+      "role": "user",
+      "text": "Difference between redesign and bot",
+      "ts": "2026-06-19T10:08:01.683143"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **X AI Operator** · **X Control Center**\n\nلم أتعرف على نوع هذا الطلب بدقة.\n**يمكنني مساعدتك في:**\n\n  🔍 **ملفات المشروع** — \"What file controls the dashboard?\"\n  🚀 **ميزات جديدة** — \"Create notification bot\"\n  🔧 **إصلاح مشاكل** — \"Fix broken button\"\n  🎨 **إعادة تصميم** — \"Redesign homepage\"\n  🏗️ **المعمارية** — \"How does the bot work?\"\n  ⚡ **قدراتي الكاملة** — \"What can you do?\"\n  🧪 **اختبار ذاتي** — \"اختبر نفسك\"\n\nأعِد صياغة سؤالك وسأحاول الإجابة بدقة أكبر.",
+      "ts": "2026-06-19T10:08:01.689664"
     }
   ],
   "analysis_cache": {},
@@ -332,7 +367,7 @@
     "errors_found": 57,
     "last_scan": null
   },
-  "updated": "2026-06-19T09:26:57.985640",
+  "updated": "2026-06-19T10:08:01.689667",
   "project": {
     "name": "X Control Center",
     "main_bot": "PrimeDownloader Bot (bot.py)",
@@ -347,10 +382,10 @@
     ]
   },
   "stats": {
-    "total_scans": 1,
-    "total_plans": 3,
-    "total_questions": 3,
-    "total_chats": 14
+    "total_scans": 3,
+    "total_plans": 8,
+    "total_questions": 4,
+    "total_chats": 36
   },
   "created": "2026-06-19T09:05:02.173299"
 }
