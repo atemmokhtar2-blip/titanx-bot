@@ -110,36 +110,6 @@
   "chat_history": [
     {
       "role": "user",
-      "text": "Are you connected to Hugging Face?",
-      "ts": "2026-06-19T10:08:01.371456"
-    },
-    {
-      "role": "assistant",
-      "text": "🤖 **نعم — متصل بـ Hugging Face ✅**\n\n**Space:** `https://7atemmmmm-x-ai-core.hf.space`\n**الحالة:** 🟢 متصل ومستجيب (تم التحقق للتو)\n\n**نقاط الاتصال الحية:**\n  • `POST /api/analyze` — تحليل الأخطاء والكود\n  • `POST /api/assistant` — مساعد ذكاء عام\n  • `POST /api/planner` — تخطيط الميزات خطوة بخطوة\n  • `GET  /api/memory` — ذاكرة المشروع من الـ Space ✅\n\n**API Proxy محلي (بعد المصادقة):**\n  • `GET  /ai/api/hf/status`\n  • `POST /ai/api/hf/analyze`\n  • `POST /ai/api/hf/assistant`\n  • `POST /ai/api/hf/pl",
-      "ts": "2026-06-19T10:08:01.670540"
-    },
-    {
-      "role": "user",
-      "text": "Create notification bot",
-      "ts": "2026-06-19T10:08:01.673624"
-    },
-    {
-      "role": "assistant",
-      "text": "🚀 **طلب إنشاء: Bot / Telegram Handler**\n\n🔎 **تحليل الطلب:** `Create notification bot`\n\n**📂 الملفات المطلوبة:**\n  • `handlers/new_bot_handler.py` [HANDLER] — منطق الأوامر الجديدة\n  • `bot.py` [ENTRYPOINT] — تسجيل الهاندلر الجديد\n  • `config/settings.py` [CONFIG] — إضافة أي إعدادات مطلوبة\n\n**🎯 مستوى التعقيد:** LOW\n\n**📋 خطوات التنفيذ:**\n1. أنشئ `handlers/new_bot_handler.py` وعرّف أوامر البوت\n2. سجّل الهاندلر في `bot.py` ضمن `application.add_handler()`\n3. أضف أي إعدادات مطلوبة في `config/settings.py",
-      "ts": "2026-06-19T10:08:01.679965"
-    },
-    {
-      "role": "user",
-      "text": "Difference between redesign and bot",
-      "ts": "2026-06-19T10:08:01.683143"
-    },
-    {
-      "role": "assistant",
-      "text": "🧠 **X AI Operator** · **X Control Center**\n\nلم أتعرف على نوع هذا الطلب بدقة.\n**يمكنني مساعدتك في:**\n\n  🔍 **ملفات المشروع** — \"What file controls the dashboard?\"\n  🚀 **ميزات جديدة** — \"Create notification bot\"\n  🔧 **إصلاح مشاكل** — \"Fix broken button\"\n  🎨 **إعادة تصميم** — \"Redesign homepage\"\n  🏗️ **المعمارية** — \"How does the bot work?\"\n  ⚡ **قدراتي الكاملة** — \"What can you do?\"\n  🧪 **اختبار ذاتي** — \"اختبر نفسك\"\n\nأعِد صياغة سؤالك وسأحاول الإجابة بدقة أكبر.",
-      "ts": "2026-06-19T10:08:01.689664"
-    },
-    {
-      "role": "user",
       "text": "ما حالة Hugging Face؟",
       "ts": "2026-06-19T10:10:35.079160"
     },
@@ -357,6 +327,36 @@
       "role": "assistant",
       "text": "🧠 **X AI Operator** · **X Control Center**\n\nلم أتعرف على نوع هذا الطلب بدقة.\n**يمكنني مساعدتك في:**\n\n  🔍 **ملفات المشروع** — \"What file controls the dashboard?\"\n  🚀 **ميزات جديدة** — \"Create notification bot\"\n  🔧 **إصلاح مشاكل** — \"Fix broken button\"\n  🎨 **إعادة تصميم** — \"Redesign homepage\"\n  🏗️ **المعمارية** — \"How does the bot work?\"\n  ⚡ **قدراتي الكاملة** — \"What can you do?\"\n  🧪 **اختبار ذاتي** — \"اختبر نفسك\"\n\nأعِد صياغة سؤالك وسأحاول الإجابة بدقة أكبر.",
       "ts": "2026-06-19T12:48:15.879105"
+    },
+    {
+      "role": "user",
+      "text": "من انت؟",
+      "ts": "2026-06-19T12:53:56.331693"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **X AI Operator** · **X Control Center**\n\nلم أتعرف على نوع هذا الطلب بدقة.\n**يمكنني مساعدتك في:**\n\n  🔍 **ملفات المشروع** — \"What file controls the dashboard?\"\n  🚀 **ميزات جديدة** — \"Create notification bot\"\n  🔧 **إصلاح مشاكل** — \"Fix broken button\"\n  🎨 **إعادة تصميم** — \"Redesign homepage\"\n  🏗️ **المعمارية** — \"How does the bot work?\"\n  ⚡ **قدراتي الكاملة** — \"What can you do?\"\n  🧪 **اختبار ذاتي** — \"اختبر نفسك\"\n\nأعِد صياغة سؤالك وسأحاول الإجابة بدقة أكبر.",
+      "ts": "2026-06-19T12:53:56.360862"
+    },
+    {
+      "role": "user",
+      "text": "من انت",
+      "ts": "2026-06-19T12:54:23.803298"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **X AI Operator** · **X Control Center**\n\nلم أتعرف على نوع هذا الطلب بدقة.\n**يمكنني مساعدتك في:**\n\n  🔍 **ملفات المشروع** — \"What file controls the dashboard?\"\n  🚀 **ميزات جديدة** — \"Create notification bot\"\n  🔧 **إصلاح مشاكل** — \"Fix broken button\"\n  🎨 **إعادة تصميم** — \"Redesign homepage\"\n  🏗️ **المعمارية** — \"How does the bot work?\"\n  ⚡ **قدراتي الكاملة** — \"What can you do?\"\n  🧪 **اختبار ذاتي** — \"اختبر نفسك\"\n\nأعِد صياغة سؤالك وسأحاول الإجابة بدقة أكبر.",
+      "ts": "2026-06-19T12:54:23.808338"
+    },
+    {
+      "role": "user",
+      "text": "من انت؟",
+      "ts": "2026-06-19T12:54:58.107827"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **X AI Operator** · **X Control Center**\n\nلم أتعرف على نوع هذا الطلب بدقة.\n**يمكنني مساعدتك في:**\n\n  🔍 **ملفات المشروع** — \"What file controls the dashboard?\"\n  🚀 **ميزات جديدة** — \"Create notification bot\"\n  🔧 **إصلاح مشاكل** — \"Fix broken button\"\n  🎨 **إعادة تصميم** — \"Redesign homepage\"\n  🏗️ **المعمارية** — \"How does the bot work?\"\n  ⚡ **قدراتي الكاملة** — \"What can you do?\"\n  🧪 **اختبار ذاتي** — \"اختبر نفسك\"\n\nأعِد صياغة سؤالك وسأحاول الإجابة بدقة أكبر.",
+      "ts": "2026-06-19T12:54:58.128238"
     }
   ],
   "analysis_cache": {},
@@ -367,7 +367,7 @@
     "errors_found": 57,
     "last_scan": null
   },
-  "updated": "2026-06-19T12:48:15.879108",
+  "updated": "2026-06-19T12:54:58.128240",
   "project": {
     "name": "X Control Center",
     "main_bot": "PrimeDownloader Bot (bot.py)",
@@ -385,7 +385,7 @@
     "total_scans": 3,
     "total_plans": 9,
     "total_questions": 5,
-    "total_chats": 58
+    "total_chats": 61
   },
   "created": "2026-06-19T09:05:02.173299"
 }
