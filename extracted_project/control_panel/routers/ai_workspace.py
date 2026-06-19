@@ -1,4 +1,5 @@
 """AI Workspace — project analyzer, code reviewer, error detector, AI chat operator."""
+import asyncio
 import os
 import json
 import time
@@ -323,7 +324,7 @@ async def api_chat(request: Request, session: dict = Depends(require_owner)):
             return JSONResponse({"ok": False, "error": "الرسالة فارغة"}, status_code=400)
         if len(msg) > 2000:
             return JSONResponse({"ok": False, "error": "الرسالة طويلة جداً"}, status_code=400)
-        result = process_chat(msg)
+        result = await asyncio.to_thread(process_chat, msg)
         return {"ok": True, **result}
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)

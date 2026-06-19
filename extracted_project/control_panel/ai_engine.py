@@ -9,10 +9,13 @@ Complete Project Knowledge System:
   - Modification Planning Engine (real files, real impact)
   - Self-Test Suite (8 canonical questions, must pass 8/8)
 """
-import os, re, ast, json, zipfile, hashlib, time
+import os, re, ast, json, zipfile, hashlib, time, logging
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
+
+# ─── Logging ──────────────────────────────────────────────────────────────────
+_ai_log = logging.getLogger("ai_engine")
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
 _HERE         = Path(__file__).parent
@@ -27,33 +30,43 @@ HF_TIMEOUT   = 8.0
 
 
 def _hf_post(endpoint: str, payload: dict) -> dict:
-    """POST to HF space with full error handling and local fallback."""
-    try:
-        import urllib.request, json as _json
+    """POST to HF space — runs in a daemon thread so the async event loop is not blocked."""
+    import urllib.request as _ur, json as _json, concurrent.futures as _cf
+    def _call():
         data = _json.dumps(payload).encode()
-        req  = urllib.request.Request(
+        req  = _ur.Request(
             f"{HF_SPACE_URL}{endpoint}",
             data=data,
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=HF_TIMEOUT) as r:
+        with _ur.urlopen(req, timeout=HF_TIMEOUT) as r:
             result = _json.loads(r.read().decode())
             result["_hf_source"] = "live"
             return result
+    try:
+        with _cf.ThreadPoolExecutor(max_workers=1) as pool:
+            fut = pool.submit(_call)
+            return fut.result(timeout=HF_TIMEOUT + 2)
     except Exception as e:
+        _ai_log.warning("HF POST %s failed: %s", endpoint, e)
         return {"ok": False, "error": str(e), "_hf_source": "error"}
 
 
 def _hf_get(endpoint: str) -> dict:
-    """GET from HF space with timeout and error handling."""
-    try:
-        import urllib.request, json as _json
-        with urllib.request.urlopen(f"{HF_SPACE_URL}{endpoint}", timeout=HF_TIMEOUT) as r:
+    """GET from HF space — runs in a daemon thread so the async event loop is not blocked."""
+    import urllib.request as _ur, json as _json, concurrent.futures as _cf
+    def _call():
+        with _ur.urlopen(f"{HF_SPACE_URL}{endpoint}", timeout=HF_TIMEOUT) as r:
             result = _json.loads(r.read().decode())
             result["_hf_source"] = "live"
             return result
+    try:
+        with _cf.ThreadPoolExecutor(max_workers=1) as pool:
+            fut = pool.submit(_call)
+            return fut.result(timeout=HF_TIMEOUT + 2)
     except Exception as e:
+        _ai_log.warning("HF GET %s failed: %s", endpoint, e)
         return {"ok": False, "error": str(e), "_hf_source": "error"}
 
 
@@ -336,10 +349,10 @@ class ProjectImpactAnalysis:
                 try:
                     if stem in f.read_text(errors="ignore"):
                         affected.append(str(f.relative_to(root)))
-                except Exception:
-                    pass
-        except Exception:
-            pass
+                except Exception as _e:
+                    _ai_log.warning("Impact scan read error %s: %s", f, _e)
+        except Exception as _e:
+            _ai_log.warning("Impact scan rglob error: %s", _e)
         risk = "HIGH" if len(affected) > 5 else "MEDIUM" if len(affected) > 2 else "LOW"
         return {"target": target, "affected": affected[:10],
                 "count": len(affected), "risk": risk,
@@ -1502,6 +1515,10 @@ def detect_intent(msg: str) -> str:
         r"if\s+you\s+(?:were|are).{0,20}(?:in\s+charge|owner|responsible|leading)",
         r"what\s+would\s+you\s+do.{0,20}(?:with|for|to).{0,20}(?:project|system|TitanX)",
         r"(?:خطة|استراتيجية|رؤية).{0,20}(?:تطوير|المشروع|الأسبوع|الشهر)",
+        r"(?:خطة|استراتيجية)\s+(?:المشروع|التطوير|للمشروع)",
+        r"(?:ما|كيف).{0,10}(?:خطتك|رؤيتك|استراتيجيتك)",
+        r"plan.{0,20}(?:for|the)\s+project",
+        r"roadmap.{0,20}project",
     ]
     if any(re.search(p, ml) for p in _STRATEGY_P):
         return "strategy"
@@ -2426,7 +2443,24 @@ _SELF_TESTS = [
     ("What files handle the support bot?",              "find_file", "support_bot"),
 ]
 
-_CANONICAL_TESTS = _SELF_TESTS[:8]  # the 8 required ones
+_CANONICAL_TESTS = _SELF_TESTS[:8]  # kept for reference; run_self_tests now uses full suite
+
+# ── Phase 3: Arabic reasoning self-tests ──────────────────────────────────────
+_ARABIC_REASONING_TESTS = [
+    # (question, expected_intent, expected_keyword_in_answer)
+    ("من أنت",                                    "identity",       "X AI"),
+    ("ما وظيفتك",                                 "identity",       "X AI"),
+    ("هل المشروع آمن؟",                           "security",       "أمن"),
+    ("ما أكبر نقطة ضعف بالمشروع؟",               "weakness",       "ضعف"),
+    ("كيف تطور المشروع",                          "improve",        "تطوير"),
+    ("لو أضفت بوت جديد ماذا سيتأثر؟",            "impact",         "تأثير"),
+    ("خطة تطوير المشروع",                         "strategy",       "استراتيج"),
+    ("هل بنية المشروع جيدة؟",                     "arch",           "معمارية"),
+    ("حلل المشروع",                               "analyze",        "ملف"),
+    ("ما الفرق بين FastAPI و Flask",              "conversation",   "FastAPI"),
+    ("اشرح معمارية المشروع",                      "arch",           "معمارية"),
+    ("ما أفضل تطوير للمشروع؟",                    "improve",        "تطوير"),
+]
 
 # Phase 2 self-tests — intent classification (Tests A–E from spec)
 _PHASE2_TESTS = [
@@ -2444,19 +2478,25 @@ _PHASE2_TESTS = [
 ]
 
 
-def run_self_tests(extended: bool = False) -> dict:
-    """Run the self-test suite. Phase 1 (file questions) + Phase 2 (intent tests A-E)."""
-    tests_to_run = _SELF_TESTS if extended else _CANONICAL_TESTS
-    results = []
-    passed  = 0
+def run_self_tests(extended: bool = True) -> dict:
+    """
+    Run the full self-test suite:
+    - Phase 1: file-awareness tests  → answer_file_question()
+    - Phase 2: intent-only tests     → detect_intent() only
+    - Phase 3: Arabic reasoning      → process_chat() (needs real handler output)
+    """
+    # ── Phase 1: file-awareness tests ─────────────────────────────────────────
+    p1_results = []
+    p1_passed  = 0
+    p1_tests   = _SELF_TESTS if extended else _CANONICAL_TESTS
 
-    for question, expected_intent, expected_keyword in tests_to_run:
+    for question, expected_intent, expected_keyword in p1_tests:
         got_intent = detect_intent(question)
         intent_ok  = (got_intent == expected_intent)
 
-        answer     = answer_file_question(question)
-        ans_text   = answer["text"].lower()
-        ans_files  = " ".join(e["path"].lower() for e in answer.get("data", {}).get("files", []))
+        answer    = answer_file_question(question)
+        ans_text  = answer["text"].lower()
+        ans_files = " ".join(e["path"].lower() for e in answer.get("data", {}).get("files", []))
         keyword_found = (
             expected_keyword.lower() in ans_text or
             expected_keyword.lower() in ans_files
@@ -2464,16 +2504,17 @@ def run_self_tests(extended: bool = False) -> dict:
 
         ok = intent_ok and keyword_found
         if ok:
-            passed += 1
+            p1_passed += 1
 
-        results.append({
-            "question":        question,
-            "expected_intent": expected_intent,
-            "got_intent":      got_intent,
-            "intent_ok":       intent_ok,
+        p1_results.append({
+            "question":         question,
+            "expected_intent":  expected_intent,
+            "got_intent":       got_intent,
+            "intent_ok":        intent_ok,
             "expected_keyword": expected_keyword,
-            "keyword_found":   keyword_found,
-            "passed":          ok,
+            "keyword_found":    keyword_found,
+            "passed":           ok,
+            "phase":            "P1",
         })
 
     # ── Phase 2: intent-only tests (A–E) ──────────────────────────────────────
@@ -2492,21 +2533,58 @@ def run_self_tests(extended: bool = False) -> dict:
             "expected_keyword": description,
             "keyword_found":    intent_ok,
             "passed":           intent_ok,
+            "phase":            "P2",
         })
 
-    total      = len(tests_to_run)
-    all_passed = passed + p2_passed
-    all_total  = total + len(_PHASE2_TESTS)
-    all_results = results + p2_results
+    # ── Phase 3: Arabic reasoning tests (use process_chat for real responses) ──
+    p3_results = []
+    p3_passed  = 0
+    if extended:
+        for question, expected_intent, expected_keyword in _ARABIC_REASONING_TESTS:
+            got_intent = detect_intent(question)
+            intent_ok  = (got_intent == expected_intent)
+
+            try:
+                chat_resp = process_chat(question)
+                ans_text  = chat_resp.get("text", "").lower()
+            except Exception as _e:
+                _ai_log.warning("P3 self-test process_chat error for %r: %s", question, _e)
+                ans_text = ""
+
+            # Arabic keyword matching (case-insensitive, strip diacritics not needed at this level)
+            keyword_found = expected_keyword.lower() in ans_text
+
+            ok = intent_ok and keyword_found
+            if ok:
+                p3_passed += 1
+
+            p3_results.append({
+                "question":         question,
+                "expected_intent":  expected_intent,
+                "got_intent":       got_intent,
+                "intent_ok":        intent_ok,
+                "expected_keyword": expected_keyword,
+                "keyword_found":    keyword_found,
+                "passed":           ok,
+                "phase":            "P3",
+            })
+
+    all_passed  = p1_passed + p2_passed + p3_passed
+    all_total   = len(p1_tests) + len(_PHASE2_TESTS) + (len(_ARABIC_REASONING_TESTS) if extended else 0)
+    all_results = p1_results + p2_results + p3_results
+
     return {
         "score":     f"{all_passed}/{all_total}",
-        "pass_rate": f"{all_passed/all_total*100:.0f}%",
+        "pass_rate": f"{all_passed/all_total*100:.0f}%" if all_total else "0%",
         "status":    "✅ PASS" if all_passed == all_total else ("⚠️ PARTIAL" if all_passed >= all_total * 0.75 else "❌ FAIL"),
         "tests":     all_results,
+        "results":   all_results,   # alias for backward compat
         "passed":    all_passed,
         "total":     all_total,
-        "phase1":    {"passed": passed,    "total": total,             "label": "File Awareness"},
-        "phase2":    {"passed": p2_passed, "total": len(_PHASE2_TESTS), "label": "Intent Classification (A-E)"},
+        "failed":    all_total - all_passed,
+        "phase1":    {"passed": p1_passed, "total": len(p1_tests),                                             "label": "File Awareness"},
+        "phase2":    {"passed": p2_passed, "total": len(_PHASE2_TESTS),                                        "label": "Intent Classification (A-E)"},
+        "phase3":    {"passed": p3_passed, "total": len(_ARABIC_REASONING_TESTS) if extended else 0,           "label": "Arabic Reasoning"},
     }
 
 
@@ -2546,15 +2624,18 @@ def load_memory() -> dict:
         try:
             raw = json.loads(MEMORY_FILE.read_text(encoding="utf-8"))
             return _migrate_memory(raw)
-        except Exception:
-            pass
+        except Exception as _e:
+            _ai_log.warning("Memory load error: %s", _e)
     data = _default_memory()
     save_memory(data)
     return data
 
 
 def save_memory(data: dict):
-    MEMORY_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        MEMORY_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as _e:
+        _ai_log.warning("Memory save error: %s", _e)
 
 
 def _default_memory() -> dict:
@@ -2585,12 +2666,37 @@ def update_stats(key: str, val: int = 1):
     save_memory(m)
 
 
+# ── Startup: pre-create memory file so load_memory() always finds it ─────────
+if not MEMORY_FILE.exists():
+    try:
+        save_memory(_default_memory())
+    except Exception as _me:
+        _ai_log.warning("Startup memory init failed: %s", _me)
+
+
 def save_chat(role: str, text: str):
     m = load_memory()
     m.setdefault("chat_history", []).append({"role": role, "text": text[:500], "ts": datetime.now().isoformat()})
     m["chat_history"] = m["chat_history"][-50:]
     m["updated"] = datetime.now().isoformat()
     save_memory(m)
+
+
+def _persist_turn(user_msg: str, assistant_msg: str):
+    """Consolidate: one disk-read + one disk-write per full turn (replaces 4 I/O ops)."""
+    try:
+        m = load_memory()
+        stats = m.setdefault("stats", {"total_scans": 0, "total_plans": 0, "total_questions": 0, "total_chats": 0})
+        stats["total_chats"] = stats.get("total_chats", 0) + 1
+        hist = m.setdefault("chat_history", [])
+        now  = datetime.now().isoformat()
+        hist.append({"role": "user",      "text": user_msg[:500],      "ts": now})
+        hist.append({"role": "assistant", "text": assistant_msg[:500], "ts": now})
+        m["chat_history"] = hist[-50:]
+        m["updated"] = now
+        save_memory(m)
+    except Exception as _e:
+        _ai_log.warning("_persist_turn error: %s", _e)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2643,7 +2749,12 @@ def restore_backup(bk_id: str) -> dict:
 # PROJECT SCANNER (filesystem-level analysis)
 # ═══════════════════════════════════════════════════════════════════════════════
 
+_walk_cache: dict = {"ts": 0.0, "files": []}
+
 def walk_project() -> list:
+    """Walk project files — 60-second TTL cache to avoid repeated filesystem scans."""
+    if time.time() - _walk_cache["ts"] < 60 and _walk_cache["files"]:
+        return _walk_cache["files"]
     files = []
     for root, dirs, fnames in os.walk(str(EXTRACTED_DIR)):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
@@ -2651,7 +2762,10 @@ def walk_project() -> list:
             fp = Path(root) / f
             if fp.suffix in CODE_EXTS:
                 files.append(str(fp.relative_to(EXTRACTED_DIR)))
-    return sorted(files)
+    result = sorted(files)
+    _walk_cache["files"] = result
+    _walk_cache["ts"]    = time.time()
+    return result
 
 
 def _scan_project_files() -> list:
@@ -2704,8 +2818,8 @@ def detect_log_errors() -> list:
             for ln in lines[-200:]:
                 if any(k in ln for k in ["ERROR", "CRITICAL", "Exception", "Traceback"]):
                     errors.append({"file": lf.name, "line": ln.strip()[:200]})
-        except Exception:
-            pass
+        except Exception as _e:
+            _ai_log.warning("Log read error %s: %s", lf, _e)
     return errors[-50:]
 
 
@@ -2728,8 +2842,8 @@ def detect_code_issues() -> list:
                     for i, ln in enumerate(src.splitlines(), 1):
                         if "TODO" in ln or "FIXME" in ln:
                             issues.append({"file": rel, "type": "TODO", "detail": f"Line {i}: {ln.strip()[:100]}"})
-            except Exception:
-                pass
+            except Exception as _e:
+                _ai_log.warning("Code issue scan error %s: %s", rel, _e)
     return issues[:30]
 
 
@@ -2748,8 +2862,8 @@ def security_scan() -> list:
                 for pat in danger:
                     if pat in src:
                         issues.append({"file": rel, "pattern": pat, "severity": "medium"})
-            except Exception:
-                pass
+            except Exception as _e:
+                _ai_log.warning("Security scan read error %s: %s", rel, _e)
     return issues
 
 
@@ -2790,14 +2904,12 @@ def full_analysis() -> dict:
 def process_chat(msg: str) -> dict:
     """
     Main entry point for AI chat messages.
-    Phase 3: Integrates ReasoningEngine gate, AIMemoryLayer, and full handler table.
+    Phase 3: Integrates ReasoningEngine gate, AIMemoryLayer (context-aware), and full handler table.
+    I/O: single _persist_turn() call = 1 read + 1 write per turn (was 4 I/O ops).
     """
-    save_chat("user", msg)
-    update_stats("total_chats")
-
     intent = detect_intent(msg)
 
-    # Phase 3: Record to session memory
+    # Phase 3: Record to session memory BEFORE routing so handlers can read context
     AIMemoryLayer.record("user", msg, intent)
 
     handlers = {
@@ -2842,10 +2954,12 @@ def process_chat(msg: str) -> dict:
     resp = fn()
     resp["intent"] = intent
 
-    # Phase 3: Record assistant response to session memory
-    AIMemoryLayer.record("assistant", resp.get("text", "")[:300], intent)
+    # Phase 3: Record assistant response + decision to session memory
+    resp_text = resp.get("text", "")
+    AIMemoryLayer.record("assistant", resp_text[:300], intent)
 
-    save_chat("assistant", resp.get("text", "")[:500])
+    # Single consolidated disk write (replaces save_chat x2 + update_stats)
+    _persist_turn(msg, resp_text[:500])
     return resp
 
 
@@ -2949,10 +3063,30 @@ def _r_conversation(msg: str) -> dict:
         if hf.get("ok") and isinstance(answer, str) and len(answer) > 30:
             return {"text": f"💬 {answer}",
                     "data": {"mode": "conversation", "source": "hf"}}
-    except Exception:
-        pass
+    except Exception as _e:
+        _ai_log.warning("_r_conversation HF step 3 error: %s", _e)
 
-    # ── 4. Intelligent generic fallback ─────────────────────────────────────
+    # ── 4. Use HF assistant before giving up ────────────────────────────────
+    try:
+        hf2 = call_hf_assistant(msg)
+        ans = hf2.get("response") or hf2.get("analysis") or hf2.get("message") or ""
+        if hf2.get("ok") and isinstance(ans, str) and len(ans) > 20:
+            return {"text": f"💬 {ans}", "data": {"mode": "conversation", "source": "hf_fallback"}}
+    except Exception as _e:
+        _ai_log.warning("_r_conversation HF fallback error: %s", _e)
+
+    # ── 5. Memory-aware context hint before generic menu ─────────────────────
+    ctx = AIMemoryLayer.context()
+    last_intent = AIMemoryLayer.last_intent()
+    if ctx["total_turns"] > 2 and last_intent not in ("greeting", "general", "conversation"):
+        return {
+            "text": (
+                f"💬 سؤالك يبدو عاماً — لكن محادثتنا الأخيرة كانت حول **{last_intent}**.\n"
+                "هل تريد متابعة ذلك الموضوع؟ أو اسألني سؤالاً تقنياً محدداً."
+            ),
+            "data": {"mode": "conversation", "prior_intent": last_intent},
+        }
+
     return {
         "text": (
             "💬 **وضع المحادثة العامة**\n\n"
@@ -2978,7 +3112,6 @@ def _r_identity() -> dict:
         "planner":  AIPlanner.status(),
         "engineer": AIEngineerCore.status(),
         "impact":   ProjectImpactAnalysis.status(),
-        "future":   FutureExecutionArchitecture.status(),
     }
     return {
         "text": f"""🧠 **أنا X AI Operator — المرحلة 3**
@@ -3173,6 +3306,8 @@ def _r_create_feature(msg: str) -> dict:
     lines.extend(steps)
     lines.append("\n💡 **اسأل عن أي خطوة للحصول على تفاصيل أعمق.**")
 
+    AIMemoryLayer.record_decision(f"Feature plan generated: {kind}", msg)
+
     return {
         "text": "\n".join(lines),
         "data": {"kind": kind, "files": files_to_create, "steps": steps, "risk": risk},
@@ -3340,6 +3475,8 @@ def _r_new_page(msg: str) -> dict:
         "\n🔄 **استراتيجية الاسترجاع:** احذف الملفات الجديدة وأعِد السطور في app.py و base.html",
     ]
 
+    AIMemoryLayer.record_decision(f"New page plan generated: {page_name}", msg)
+
     return {
         "text": "\n".join(lines),
         "data": {
@@ -3371,6 +3508,7 @@ def _r_plan(msg: str) -> dict:
     lines.append("\n**📋 الخطوات:**")
     for step in plan["steps"]:
         lines.append(f"  {step}")
+    AIMemoryLayer.record_decision(f"Modification plan: {plan['description']}", f"{plan['estimated_files']} files affected")
     return {"text": "\n".join(lines), "data": plan}
 
 
