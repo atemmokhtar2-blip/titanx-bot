@@ -212,6 +212,116 @@
       "role": "assistant",
       "text": "🧠 **ذاكرة المشروع**\n\nالإصدار: 5.0\nالمشروع: X Control Center\nإجمالي المحادثات: 3\nإجمالي الأسئلة: 0\nإجمالي الخطط: 0\nآخر تحديث: 2026-06-19T09:05:46.356186",
       "ts": "2026-06-19T09:05:46.359840"
+    },
+    {
+      "role": "user",
+      "text": "كيف أعرف سبب عدم عمل زر معين في لوحة التحكم؟\nحلل طريقة البحث عن المشكلة.",
+      "ts": "2026-06-19T09:06:36.196427"
+    },
+    {
+      "role": "assistant",
+      "text": "✅ لا توجد أخطاء في السجلات",
+      "ts": "2026-06-19T09:06:36.216533"
+    },
+    {
+      "role": "user",
+      "text": "إذا طلبت إنشاء بوت جديد وربطه بالمشروع الحالي، ما الملفات والمجلدات التي ستحتاج إلى تعديلها؟ ولماذا؟",
+      "ts": "2026-06-19T09:06:59.171572"
+    },
+    {
+      "role": "assistant",
+      "text": "📂 **هيكل المشروع**\n\nالملفات الكلية: 144\nالمسارات في الجراف: 20\nالمفاهيم الدلالية: 56\n\n  .py: 119 ملف\n  .html: 20 ملف\n  .json: 2 ملف\n  .md: 1 ملف\n  .css: 1 ملف\n  .js: 1 ملف",
+      "ts": "2026-06-19T09:06:59.189799"
+    },
+    {
+      "role": "user",
+      "text": "ما الملف المسؤول عن الصفحة الرئيسية؟",
+      "ts": "2026-06-19T09:08:12.435007"
+    },
+    {
+      "role": "assistant",
+      "text": "📍 **الملفات المسؤولة عن: `؟`**\n\n🌐 **الرابط:** `الصفحة الرئيسية / لوحة التحكم`\n  ⚙️ **ROUTER**: `control_panel/routers/dashboard.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/dashboard.html` ✅\n  🏗️ **BASE**: `control_panel/templates/base.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/api/stats`, `/api/activity`, `/api/chart`\n\n📂 **الملفات المرتبطة:**",
+      "ts": "2026-06-19T09:08:12.448016"
+    },
+    {
+      "role": "user",
+      "text": "إذا أردت إنشاء صفحة جديدة داخل لوحة X باسم AI Tools\n\nلا تنفذ.\n\nاعرض:\n\n1- الملفات التي ستنشئها\n2- الملفات التي ستعدلها\n3- الـ Router المطلوب\n4- الـ Template المطلوب\n5- الـ CSS المطلوب\n6- كيف ستربطها بالشريط الجانبي",
+      "ts": "2026-06-19T09:08:57.409692"
+    },
+    {
+      "role": "assistant",
+      "text": "🌐 **20 مسار في لوحة التحكم:**\n\n• `/` → `control_panel/templates/dashboard.html` — الصفحة الرئيسية / لوحة التحكم\n• `/dashboard` → `control_panel/templates/dashboard.html` — لوحة التحكم الرئيسية\n• `/panel` → `control_panel/templates/access.html` — صفحة الدخول / المصادقة\n• `/panel/login` → `control_panel/templates/access.html` — معالج تسجيل الدخول\n• `/users` → `control_panel/templates/users.html` — إدارة المستخدمين\n• `/broadcast` → `control_panel/templates/broadcast.html` — نظام البث للمستخدمين\n• `",
+      "ts": "2026-06-19T09:08:57.422167"
+    },
+    {
+      "role": "user",
+      "text": "إذا أردت إضافة قسم جديد داخل لوحة X باسم AI Tools\n\nلا تنفذ.\n\nاعرض:\n\n1- Route الجديد\n2- Template الجديد\n3- الملفات التي ستحتاج تعديلها\n4- كيف سيتم إضافته إلى الشريط الجانبي\n5- APIs المطلوبة\n6- المخاطر المحتملة",
+      "ts": "2026-06-19T09:09:58.188541"
+    },
+    {
+      "role": "assistant",
+      "text": "🌐 **20 مسار في لوحة التحكم:**\n\n• `/` → `control_panel/templates/dashboard.html` — الصفحة الرئيسية / لوحة التحكم\n• `/dashboard` → `control_panel/templates/dashboard.html` — لوحة التحكم الرئيسية\n• `/panel` → `control_panel/templates/access.html` — صفحة الدخول / المصادقة\n• `/panel/login` → `control_panel/templates/access.html` — معالج تسجيل الدخول\n• `/users` → `control_panel/templates/users.html` — إدارة المستخدمين\n• `/broadcast` → `control_panel/templates/broadcast.html` — نظام البث للمستخدمين\n• `",
+      "ts": "2026-06-19T09:09:58.191071"
+    },
+    {
+      "role": "user",
+      "text": "إذا أردت إنشاء بوت إشعارات جديد وربطه بلوحة X\n\nما الملفات التي ستعدلها ولماذا؟",
+      "ts": "2026-06-19T09:10:39.938232"
+    },
+    {
+      "role": "assistant",
+      "text": "📍 **الملفات المسؤولة عن: `إذا أردت إنشاء بوت إشعارات جديد وربطه بلوحة X\n\nما الملفات التي ستعدلها ولماذا؟`**\n\n🌐 **الرابط:** `لوحة التحكم الرئيسية`\n  ⚙️ **ROUTER**: `control_panel/routers/dashboard.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/dashboard.html` ✅\n  🏗️ **BASE**: `control_panel/templates/base.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/api/stats`, `/api/activity`, `/api/chart`\n\n📂 **الملفات المرتبطة:**",
+      "ts": "2026-06-19T09:10:39.941352"
+    },
+    {
+      "role": "user",
+      "text": "ما الفرق بين:\n\n1- تعديل الصفحة الرئيسية\n\n2- إنشاء بوت جديد\n\nوما الملفات المختلفة التي سيتطلبها كل منهما؟\n\nاعتمد على المشروع الحالي.",
+      "ts": "2026-06-19T09:11:33.293948"
+    },
+    {
+      "role": "assistant",
+      "text": "📍 **الملفات المسؤولة عن: `ما الفرق بين:\n\n1- تعديل الصفحة الرئيسية\n\n2- إنشاء بوت جديد\n\nوما الملفات المختلفة التي سيتطلبها كل منهما؟\n\nاعتمد على المشروع الحالي.`**\n\n🌐 **الرابط:** `الصفحة الرئيسية / لوحة التحكم`\n  ⚙️ **ROUTER**: `control_panel/routers/dashboard.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/dashboard.html` ✅\n  🏗️ **BASE**: `control_panel/templates/base.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/api/stats`,",
+      "ts": "2026-06-19T09:11:33.308259"
+    },
+    {
+      "role": "user",
+      "text": "Create notification bot",
+      "ts": "2026-06-19T09:26:57.587790"
+    },
+    {
+      "role": "assistant",
+      "text": "🚀 **طلب إنشاء: Bot / Telegram Handler**\n\n🔎 **تحليل الطلب:** `Create notification bot`\n\n**📂 الملفات المطلوبة:**\n  • `handlers/new_bot_handler.py` [HANDLER] — منطق الأوامر الجديدة\n  • `bot.py` [ENTRYPOINT] — تسجيل الهاندلر الجديد\n  • `config/settings.py` [CONFIG] — إضافة أي إعدادات مطلوبة\n\n**🎯 مستوى التعقيد:** LOW\n\n**📋 خطوات التنفيذ:**\n1. أنشئ `handlers/new_bot_handler.py` وعرّف أوامر البوت\n2. سجّل الهاندلر في `bot.py` ضمن `application.add_handler()`\n3. أضف أي إعدادات مطلوبة في `config/settings.py",
+      "ts": "2026-06-19T09:26:57.605958"
+    },
+    {
+      "role": "user",
+      "text": "Redesign homepage",
+      "ts": "2026-06-19T09:26:57.609307"
+    },
+    {
+      "role": "assistant",
+      "text": "🎨 **طلب إعادة تصميم: الصفحة الرئيسية (Dashboard)**\n\n**📂 الملفات المطلوبة للتعديل:**\n  🎨 **Template:** `control_panel/templates/dashboard.html` — الواجهة الرئيسية للصفحة\n  🎨 **CSS:** `control_panel/static/css/style.css` — الألوان، المساحات، التخطيط\n  ⚙️ **Router:** `control_panel/routers/dashboard.py` — بيانات الصفحة\n\n**📋 خطوات إعادة التصميم:**\n  1. خذ نسخة احتياطية أولاً: **أنشئ نسخة احتياطية**\n  2. عدّل ملف `template.html` للبنية HTML\n  3. عدّل `style.css` للألوان والمساحات والخطوط\n  4. اختبر ع",
+      "ts": "2026-06-19T09:26:57.616088"
+    },
+    {
+      "role": "user",
+      "text": "Fix broken button",
+      "ts": "2026-06-19T09:26:57.618347"
+    },
+    {
+      "role": "assistant",
+      "text": "🔧 **تشخيص: زر / عنصر واجهة**\n\n📝 **الطلب:** `Fix broken button`\n\n**📂 الملف الأرجح:** `control_panel/static/js/app.js (JavaScript handler)`\n\n**🔍 مشاكل في الكود:**\n  ⚠️ `control_panel/ai_engine.py` [TODO]\n  ⚠️ `control_panel/ai_engine.py` [TODO]\n  ⚠️ `control_panel/ai_engine.py` [TODO]\n\n**🛠️ خطوات التشخيص:**\n  1. افحص ملف السجلات: `السجلات الأخيرة`\n  2. تحقق من وحدة تحكم المتصفح للأخطاء\n  3. اقرأ الملف المحدد واستخدم `أين الخطأ في [اسم الملف]`\n  4. بعد الإصلاح: اختبر الوظيفة مباشرة",
+      "ts": "2026-06-19T09:26:57.976096"
+    },
+    {
+      "role": "user",
+      "text": "Create new page",
+      "ts": "2026-06-19T09:26:57.978528"
+    },
+    {
+      "role": "assistant",
+      "text": "📄 **إنشاء صفحة جديدة: `new_page`**\n\n**📂 الملفات التي يجب إنشاؤها:**\n  ⚙️ `control_panel/routers/new_page.py` [ROUTER] — نقاط نهاية الصفحة\n  🎨 `control_panel/templates/new_page.html` [TEMPLATE] — واجهة الصفحة\n\n**📂 الملفات التي يجب تعديلها:**\n  🔧 `control_panel/app.py` [ENTRYPOINT] — تسجيل الراوتر الجديد\n  🎨 `control_panel/templates/base.html` [NAVIGATION] — إضافة رابط في القائمة الجانبية\n\n**📋 خطوات التنفيذ:**\n  1. أنشئ `control_panel/routers/new_page.py`:\n     ```python\n     from fastapi import A",
+      "ts": "2026-06-19T09:26:57.985637"
     }
   ],
   "analysis_cache": {},
@@ -222,7 +332,7 @@
     "errors_found": 57,
     "last_scan": null
   },
-  "updated": "2026-06-19T09:05:46.359843",
+  "updated": "2026-06-19T09:26:57.985640",
   "project": {
     "name": "X Control Center",
     "main_bot": "PrimeDownloader Bot (bot.py)",
@@ -237,10 +347,10 @@
     ]
   },
   "stats": {
-    "total_scans": 0,
-    "total_plans": 0,
-    "total_questions": 0,
-    "total_chats": 3
+    "total_scans": 1,
+    "total_plans": 3,
+    "total_questions": 3,
+    "total_chats": 14
   },
   "created": "2026-06-19T09:05:02.173299"
 }

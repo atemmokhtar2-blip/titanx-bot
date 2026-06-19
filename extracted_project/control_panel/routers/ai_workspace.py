@@ -16,6 +16,9 @@ from ..ai_engine import (
     # Phase 1.5 — Intelligence Layer
     search_project_files, build_dependency_map, answer_file_question,
     get_file_role, run_self_tests, create_modification_plan,
+    # Phase 2 — HF Space Integration
+    call_hf_analyze, call_hf_assistant, call_hf_planner, call_hf_memory, hf_status,
+    HF_SPACE_URL,
 )
 
 router = APIRouter(prefix="/ai")
@@ -492,5 +495,64 @@ async def api_plan_v2(request: Request, session: dict = Depends(require_owner)):
 
 @router.get("/api/self_test")
 async def api_self_test(session: dict = Depends(require_owner)):
-    """Run Phase 1.5 self-tests — verify AI can answer file questions."""
+    """Run Phase 1.5 + Phase 2 self-tests — verify AI intent classification."""
     return run_self_tests()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 2 — Hugging Face Space Integration
+# Space: https://huggingface.co/spaces/7atemmmmm/x-ai-core
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/api/hf/status")
+async def api_hf_status(session: dict = Depends(require_owner)):
+    """Check HF space connectivity and health."""
+    status = hf_status()
+    return {
+        "ok": status["connected"],
+        "space_url": HF_SPACE_URL,
+        "connected": status["connected"],
+        "memory_ok": status.get("memory_ok", False),
+        "error": status.get("error"),
+        "endpoints": ["/api/analyze", "/api/assistant", "/api/planner", "/api/memory"],
+    }
+
+
+@router.post("/api/hf/analyze")
+async def api_hf_analyze(request: Request, session: dict = Depends(require_owner)):
+    """Proxy to HF /api/analyze — error diagnosis and code analysis."""
+    body = await request.json()
+    text = str(body.get("text", "")).strip()
+    if not text:
+        return JSONResponse({"ok": False, "error": "text is required"}, status_code=400)
+    result = call_hf_analyze(text)
+    return result
+
+
+@router.post("/api/hf/assistant")
+async def api_hf_assistant(request: Request, session: dict = Depends(require_owner)):
+    """Proxy to HF /api/assistant — general AI assistant for project questions."""
+    body = await request.json()
+    message = str(body.get("message", "")).strip()
+    if not message:
+        return JSONResponse({"ok": False, "error": "message is required"}, status_code=400)
+    result = call_hf_assistant(message)
+    return result
+
+
+@router.post("/api/hf/planner")
+async def api_hf_planner(request: Request, session: dict = Depends(require_owner)):
+    """Proxy to HF /api/planner — step-by-step feature roadmap."""
+    body = await request.json()
+    description = str(body.get("description", "")).strip()
+    if not description:
+        return JSONResponse({"ok": False, "error": "description is required"}, status_code=400)
+    result = call_hf_planner(description)
+    return result
+
+
+@router.get("/api/hf/memory")
+async def api_hf_memory(session: dict = Depends(require_owner)):
+    """GET HF /api/memory — project memory stored in the HF space."""
+    result = call_hf_memory()
+    return result

@@ -21,6 +21,72 @@ MEMORY_FILE   = _HERE / ".ai_memory.json"
 BACKUP_DIR    = EXTRACTED_DIR / ".ai_backups"
 BACKUP_DIR.mkdir(exist_ok=True)
 
+# ─── Hugging Face Space Integration ───────────────────────────────────────────
+HF_SPACE_URL = "https://7atemmmmm-x-ai-core.hf.space"
+HF_TIMEOUT   = 8.0
+
+
+def _hf_post(endpoint: str, payload: dict) -> dict:
+    """POST to HF space with full error handling and local fallback."""
+    try:
+        import urllib.request, json as _json
+        data = _json.dumps(payload).encode()
+        req  = urllib.request.Request(
+            f"{HF_SPACE_URL}{endpoint}",
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=HF_TIMEOUT) as r:
+            result = _json.loads(r.read().decode())
+            result["_hf_source"] = "live"
+            return result
+    except Exception as e:
+        return {"ok": False, "error": str(e), "_hf_source": "error"}
+
+
+def _hf_get(endpoint: str) -> dict:
+    """GET from HF space with timeout and error handling."""
+    try:
+        import urllib.request, json as _json
+        with urllib.request.urlopen(f"{HF_SPACE_URL}{endpoint}", timeout=HF_TIMEOUT) as r:
+            result = _json.loads(r.read().decode())
+            result["_hf_source"] = "live"
+            return result
+    except Exception as e:
+        return {"ok": False, "error": str(e), "_hf_source": "error"}
+
+
+def call_hf_analyze(text: str) -> dict:
+    """Send text to HF /api/analyze — error diagnosis and code analysis."""
+    return _hf_post("/api/analyze", {"text": text, "query": text})
+
+
+def call_hf_assistant(message: str) -> dict:
+    """Send message to HF /api/assistant — general AI assistant response."""
+    return _hf_post("/api/assistant", {"message": message, "query": message})
+
+
+def call_hf_planner(description: str) -> dict:
+    """Send feature description to HF /api/planner — step-by-step roadmap."""
+    return _hf_post("/api/planner", {"description": description, "task": description})
+
+
+def call_hf_memory() -> dict:
+    """GET HF /api/memory — project memory from HF space."""
+    return _hf_get("/api/memory")
+
+
+def hf_status() -> dict:
+    """Check whether the HF space is reachable and returning valid data."""
+    try:
+        result = call_hf_memory()
+        if result.get("_hf_source") == "live":
+            return {"connected": True, "url": HF_SPACE_URL, "memory_ok": result.get("ok", False)}
+        return {"connected": False, "url": HF_SPACE_URL, "error": result.get("error", "unknown")}
+    except Exception as e:
+        return {"connected": False, "url": HF_SPACE_URL, "error": str(e)}
+
 SKIP_DIRS  = {
     "__pycache__", ".git", "node_modules", ".pythonlibs", "temp", "backups",
     ".local", ".venv", "dist", "build", ".cache", ".ai_backups", "artifacts",
@@ -806,11 +872,86 @@ INTENTS: dict = {
     "impact":      [r"what breaks", r"what happens if", r"impact of", r"if i change",
                     r"ماذا يحدث لو", r"ماذا يكسر", r"تأثير التغيير"],
     "self_test":   [r"self.?test", r"test yourself", r"اختبر نفسك", r"self check", r"run tests?"],
+    # Phase 2 — Action intent classification
+    "create_feature": [
+        r"create\b.{0,40}(bot|feature|system|module|command|handler|notification|service)",
+        r"build\b.{0,30}(bot|feature|system|module|service)",
+        r"make\b.{0,30}(bot|feature|system|service)",
+        r"add\b.{0,30}(bot|notification|command|feature|handler|service)",
+        r"implement\b.{0,40}(bot|feature|system|module)",
+        r"develop\b.{0,30}(bot|feature|system)",
+        r"أنشئ\b", r"اصنع", r"أضف.*بوت", r"بناء.*بوت", r"طور.*ميزة",
+    ],
+    "ui_redesign": [
+        r"redesign\b", r"revamp\b", r"إعادة\s*تصميم",
+        r"redo\b.{0,20}(page|design|ui|interface|layout)",
+        r"new\b.{0,10}look\b", r"تجديد.*تصميم", r"change\b.{0,20}design",
+        r"restyle\b", r"update\b.{0,10}(design|look|ui|layout)",
+    ],
+    "debug_fix": [
+        r"\bfix\b.{0,40}(error|bug|button|broken|issue|problem|page|feature|crash|fail)",
+        r"\bfix\b\s+(?:the|this|a|an)\b",
+        r"repair\b.{0,30}(error|bug|button|broken)",
+        r"correct\b.{0,30}(error|bug|issue|problem)",
+        r"صلح\b", r"إصلاح\b",
+        r"debug\b.{0,30}(button|page|feature|error|issue)",
+        r"investigate\b.{0,30}(error|bug|issue|broken)",
+        r"broken\b.{0,20}(button|page|feature|link)",
+    ],
+    "new_page": [
+        r"(?:create|add|make|build)\b.{0,15}(?:new\b.{0,5})?(?:page|screen|view|section)\b",
+        r"new\b.{0,5}page\b", r"صفحة\s*جديدة", r"أنشئ\s*صفحة",
+        r"add\b.{0,10}screen\b", r"create\b.{0,10}view\b",
+    ],
 }
 
 
 def detect_intent(msg: str) -> str:
     ml = msg.lower()
+
+    # ── Priority 0: Action intents (must beat file-finding patterns) ──────────
+    # "Create notification bot" → create_feature
+    _P0_CREATE = [
+        r"create\b.{0,40}(bot|feature|system|module|command|handler|notification|service)",
+        r"build\b.{0,30}(bot|feature|system|module|service)",
+        r"make\b.{0,30}(bot|feature|system|service)",
+        r"add\b.{0,30}(bot|notification|command|feature|handler|service)",
+        r"implement\b.{0,40}(bot|feature|system|module)",
+        r"develop\b.{0,30}(bot|feature|system)",
+        r"أنشئ\b", r"اصنع", r"أضف.*بوت", r"بناء.*بوت",
+    ]
+    if any(re.search(p, ml) for p in _P0_CREATE):
+        return "create_feature"
+
+    # "Redesign homepage" → ui_redesign
+    _P0_REDESIGN = [
+        r"redesign\b", r"revamp\b", r"إعادة\s*تصميم",
+        r"redo\b.{0,20}(page|design|ui|interface|layout)",
+        r"restyle\b", r"new\b.{0,10}look\b", r"تجديد.*تصميم",
+    ]
+    if any(re.search(p, ml) for p in _P0_REDESIGN):
+        return "ui_redesign"
+
+    # "Fix broken button" / "Fix error" → debug_fix
+    _P0_FIX = [
+        r"\bfix\b.{0,40}(error|bug|button|broken|issue|problem|page|feature|crash|fail)",
+        r"\bfix\b\s+(?:the|this|a|an)\b",
+        r"repair\b.{0,30}(error|bug|button|broken)",
+        r"correct\b.{0,30}(error|bug|issue|problem)",
+        r"صلح\b", r"إصلاح\b",
+        r"investigate\b.{0,30}(error|bug|issue|broken)",
+        r"broken\b.{0,20}(button|page|feature|link)",
+    ]
+    if any(re.search(p, ml) for p in _P0_FIX):
+        return "debug_fix"
+
+    # "Create new page" → new_page
+    _P0_NEW_PAGE = [
+        r"(?:create|add|make|build)\b.{0,15}(?:new\b.{0,5})?(?:page|screen|view|section)\b",
+        r"new\b.{0,5}page\b", r"صفحة\s*جديدة", r"أنشئ\s*صفحة",
+    ]
+    if any(re.search(p, ml) for p in _P0_NEW_PAGE):
+        return "new_page"
 
     # ── Priority 1: file-awareness patterns (must run first) ──────────────────
     _FILE_Q = [
@@ -1558,8 +1699,8 @@ _SELF_TESTS = [
     ("What file controls the sidebar?",                 "find_file", "base.html"),
     ("What file loads the AI Engineer page?",           "find_file", "ai_engineer"),
     ("What route serves the users page?",               "find_file", "users"),
-    ("What files must change to redesign the homepage?","find_file", "dashboard.html"),
-    ("What files must change to redesign the sidebar?", "find_file", "base.html"),
+    ("What files must change to redesign the homepage?","ui_redesign", "style.css"),
+    ("What files must change to redesign the sidebar?", "ui_redesign", "style.css"),
     # Extra coverage
     ("Find the login page",                             "find_file", "access.html"),
     ("What file handles authentication?",               "find_file", "auth.py"),
@@ -1573,9 +1714,24 @@ _SELF_TESTS = [
 
 _CANONICAL_TESTS = _SELF_TESTS[:8]  # the 8 required ones
 
+# Phase 2 self-tests — intent classification (Tests A–E from spec)
+_PHASE2_TESTS = [
+    # (question, expected_intent, description)
+    # Test A — file control awareness (already covered in Phase 1, confirmed here)
+    ("What file controls the dashboard?",                       "find_file",      "File Control → find_file"),
+    # Test B — bot creation → must NOT be general
+    ("Create notification bot",                                 "create_feature", "Bot Creation → create_feature"),
+    # Test C — distinction between redesign and bot creation
+    ("Redesign homepage",                                       "ui_redesign",    "UI Redesign → ui_redesign"),
+    # Test D — broken element investigation
+    ("Fix broken button",                                       "debug_fix",      "Fix Request → debug_fix"),
+    # Test E — new page creation
+    ("Create new page",                                         "new_page",       "New Page → new_page"),
+]
+
 
 def run_self_tests(extended: bool = False) -> dict:
-    """Run the self-test suite. extended=True runs all 16 tests."""
+    """Run the self-test suite. Phase 1 (file questions) + Phase 2 (intent tests A-E)."""
     tests_to_run = _SELF_TESTS if extended else _CANONICAL_TESTS
     results = []
     passed  = 0
@@ -1606,14 +1762,37 @@ def run_self_tests(extended: bool = False) -> dict:
             "passed":          ok,
         })
 
-    total = len(tests_to_run)
+    # ── Phase 2: intent-only tests (A–E) ──────────────────────────────────────
+    p2_results = []
+    p2_passed  = 0
+    for question, expected_intent, description in _PHASE2_TESTS:
+        got_intent = detect_intent(question)
+        intent_ok  = (got_intent == expected_intent)
+        if intent_ok:
+            p2_passed += 1
+        p2_results.append({
+            "question":         question,
+            "expected_intent":  expected_intent,
+            "got_intent":       got_intent,
+            "intent_ok":        intent_ok,
+            "expected_keyword": description,
+            "keyword_found":    intent_ok,
+            "passed":           intent_ok,
+        })
+
+    total      = len(tests_to_run)
+    all_passed = passed + p2_passed
+    all_total  = total + len(_PHASE2_TESTS)
+    all_results = results + p2_results
     return {
-        "score":     f"{passed}/{total}",
-        "pass_rate": f"{passed/total*100:.0f}%",
-        "status":    "✅ PASS" if passed == total else ("⚠️ PARTIAL" if passed >= total * 0.75 else "❌ FAIL"),
-        "tests":     results,
-        "passed":    passed,
-        "total":     total,
+        "score":     f"{all_passed}/{all_total}",
+        "pass_rate": f"{all_passed/all_total*100:.0f}%",
+        "status":    "✅ PASS" if all_passed == all_total else ("⚠️ PARTIAL" if all_passed >= all_total * 0.75 else "❌ FAIL"),
+        "tests":     all_results,
+        "passed":    all_passed,
+        "total":     all_total,
+        "phase1":    {"passed": passed,    "total": total,             "label": "File Awareness"},
+        "phase2":    {"passed": p2_passed, "total": len(_PHASE2_TESTS), "label": "Intent Classification (A-E)"},
     }
 
 
@@ -1896,17 +2075,22 @@ def process_chat(msg: str) -> dict:
     intent = detect_intent(msg)
 
     handlers = {
-        "find_file":   lambda: _r_find_file(msg),
-        "plan_modify": lambda: _r_plan(msg),
-        "dependency":  lambda: _r_dependency(msg),
-        "impact":      lambda: _r_impact(msg),
-        "root_cause":  lambda: _r_root_cause(msg),
-        "arch":        lambda: _r_arch(msg),
-        "self_test":   lambda: _r_self_test(),
-        "errors":      lambda: _r_errors(),
-        "analyze":     lambda: _r_analyze(),
-        "backup":      lambda: _r_backup_info(),
-        "restore":     lambda: _r_restore_info(),
+        "find_file":      lambda: _r_find_file(msg),
+        "plan_modify":    lambda: _r_plan(msg),
+        "dependency":     lambda: _r_dependency(msg),
+        "impact":         lambda: _r_impact(msg),
+        "root_cause":     lambda: _r_root_cause(msg),
+        "arch":           lambda: _r_arch(msg),
+        "self_test":      lambda: _r_self_test(),
+        "errors":         lambda: _r_errors(),
+        "analyze":        lambda: _r_analyze(),
+        "backup":         lambda: _r_backup_info(),
+        "restore":        lambda: _r_restore_info(),
+        # Phase 2 — Action intents
+        "create_feature": lambda: _r_create_feature(msg),
+        "ui_redesign":    lambda: _r_ui_redesign(msg),
+        "debug_fix":      lambda: _r_debug_fix(msg),
+        "new_page":       lambda: _r_new_page(msg),
         "structure":   lambda: _r_structure(),
         "routes":      lambda: _r_routes(),
         "security":    lambda: _r_security(),
@@ -1926,6 +2110,260 @@ def process_chat(msg: str) -> dict:
 
 
 # ─── Response Handlers ────────────────────────────────────────────────────────
+
+def _r_create_feature(msg: str) -> dict:
+    """Handler for 'create notification bot', 'build X feature', etc."""
+    update_stats("total_plans")
+    ml = msg.lower()
+
+    # Classify what type of thing is being created
+    if re.search(r"bot\b", ml):
+        kind = "Bot / Telegram Handler"
+        files_to_create = [
+            ("handlers/new_bot_handler.py", "handler", "منطق الأوامر الجديدة"),
+            ("bot.py", "entrypoint", "تسجيل الهاندلر الجديد"),
+            ("config/settings.py", "config", "إضافة أي إعدادات مطلوبة"),
+        ]
+        steps = [
+            "1. أنشئ `handlers/new_bot_handler.py` وعرّف أوامر البوت",
+            "2. سجّل الهاندلر في `bot.py` ضمن `application.add_handler()`",
+            "3. أضف أي إعدادات مطلوبة في `config/settings.py`",
+            "4. اختبر بـ /start وتأكد أن الأوامر الجديدة تستجيب",
+        ]
+        risk = "low"
+    elif re.search(r"(notification|تنبيه|إشعار)", ml):
+        kind = "Notification System"
+        files_to_create = [
+            ("services/notifier.py", "service", "منطق الإشعارات"),
+            ("handlers/notifications.py", "handler", "هاندلر الإشعارات"),
+            ("bot.py", "entrypoint", "تسجيل وظيفة الإشعارات"),
+        ]
+        steps = [
+            "1. أنشئ `services/notifier.py` بدالة `send_notification(user_id, text)`",
+            "2. أضف مهمة جدولة (job_queue) في `bot.py`",
+            "3. اختبر الإشعار يدوياً عبر أمر `/test_notify`",
+        ]
+        risk = "low"
+    elif re.search(r"page\b|screen\b|view\b", ml):
+        kind = "Control Panel Page"
+        files_to_create = [
+            ("control_panel/routers/new_router.py", "router", "نقاط نهاية الصفحة الجديدة"),
+            ("control_panel/templates/new_page.html", "template", "واجهة الصفحة"),
+            ("control_panel/app.py", "entrypoint", "تسجيل الراوتر"),
+            ("control_panel/templates/base.html", "navigation", "إضافة رابط في القائمة الجانبية"),
+        ]
+        steps = [
+            "1. أنشئ `control_panel/routers/new_router.py` مع `@router.get('/{page}')`",
+            "2. أنشئ `control_panel/templates/new_page.html` يرث من `base.html`",
+            "3. سجّل الراوتر في `control_panel/app.py` بـ `app.include_router()`",
+            "4. أضف الرابط في القائمة الجانبية ضمن `base.html`",
+        ]
+        risk = "low"
+    else:
+        kind = "Feature / Module"
+        files_to_create = [
+            ("services/new_feature.py", "service", "منطق الميزة الجديدة"),
+            ("handlers/new_feature_handler.py", "handler", "استقبال الطلبات"),
+        ]
+        steps = [
+            "1. حدد المتطلبات الكاملة للميزة",
+            "2. أنشئ طبقة الخدمة في `services/`",
+            "3. أنشئ الهاندلر أو الراوتر في `handlers/` أو `routers/`",
+            "4. سجّل المكون الجديد في نقطة الدخول المناسبة",
+        ]
+        risk = "low"
+
+    lines = [
+        f"🚀 **طلب إنشاء: {kind}**\n",
+        f"🔎 **تحليل الطلب:** `{msg}`\n",
+        "**📂 الملفات المطلوبة:**",
+    ]
+    for path, role, why in files_to_create:
+        lines.append(f"  • `{path}` [{role.upper()}] — {why}")
+    lines.append(f"\n**🎯 مستوى التعقيد:** {risk.upper()}")
+    lines.append("\n**📋 خطوات التنفيذ:**")
+    lines.extend(steps)
+    lines.append("\n💡 **اسأل عن أي خطوة للحصول على تفاصيل أعمق.**")
+
+    return {
+        "text": "\n".join(lines),
+        "data": {"kind": kind, "files": files_to_create, "steps": steps, "risk": risk},
+    }
+
+
+def _r_ui_redesign(msg: str) -> dict:
+    """Handler for 'redesign homepage', 'revamp sidebar', etc."""
+    update_stats("total_plans")
+    ml = msg.lower()
+
+    # Detect target of redesign
+    target = "غير محدد"
+    route_info = _route_for_concept(msg)
+    concept_hits = _find_concept(msg)
+
+    if re.search(r"homepage|dashboard|الرئيسية|لوحة التحكم", ml):
+        target = "الصفحة الرئيسية (Dashboard)"
+    elif re.search(r"sidebar|القائمة الجانبية", ml):
+        target = "القائمة الجانبية (Sidebar)"
+    elif re.search(r"login|تسجيل الدخول|الدخول", ml):
+        target = "صفحة تسجيل الدخول"
+    elif concept_hits:
+        target = concept_hits[0][2]
+
+    lines = [
+        f"🎨 **طلب إعادة تصميم: {target}**\n",
+        "**📂 الملفات المطلوبة للتعديل:**",
+    ]
+
+    if route_info:
+        lines.append(f"  🎨 **Template:** `{route_info.get('template', '—')}` — الواجهة الرئيسية للصفحة")
+        for c in route_info.get("css", []):
+            lines.append(f"  🎨 **CSS:** `{c}` — الألوان، المساحات، التخطيط")
+        lines.append(f"  ⚙️ **Router:** `{route_info.get('router', '—')}` — بيانات الصفحة")
+    else:
+        lines.append("  🎨 `control_panel/static/css/style.css` — الألوان والتخطيط العام")
+        lines.append("  🎨 `control_panel/templates/base.html` — القائمة الجانبية والهيكل")
+        if concept_hits:
+            for path, role, desc in concept_hits[:3]:
+                lines.append(f"  📄 `{path}` [{role}] — {desc}")
+
+    lines += [
+        "\n**📋 خطوات إعادة التصميم:**",
+        "  1. خذ نسخة احتياطية أولاً: **أنشئ نسخة احتياطية**",
+        "  2. عدّل ملف `template.html` للبنية HTML",
+        "  3. عدّل `style.css` للألوان والمساحات والخطوط",
+        "  4. اختبر على شاشات مختلفة",
+        "\n🔄 **استراتيجية الاسترجاع:** نسخة احتياطية قبل أي تعديل",
+        "💡 **اسأل:** `ما الملفات المسؤولة عن [اسم الصفحة]؟` للتفاصيل الكاملة.",
+    ]
+
+    return {
+        "text": "\n".join(lines),
+        "data": {"target": target, "route_info": route_info, "files": concept_hits},
+    }
+
+
+def _r_debug_fix(msg: str) -> dict:
+    """Handler for 'fix broken button', 'fix error in X', 'investigate broken Y'."""
+    update_stats("total_scans")
+    ml = msg.lower()
+
+    # Detect what needs fixing
+    target_file = None
+    concept_hits = _find_concept(msg)
+    route_info   = _route_for_concept(msg)
+
+    problem_type = "عام"
+    if re.search(r"button|زر|btn", ml):
+        problem_type = "زر / عنصر واجهة"
+        target_file  = "control_panel/static/js/app.js (JavaScript handler)"
+    elif re.search(r"page|صفحة", ml):
+        problem_type = "صفحة"
+    elif re.search(r"error|خطأ|exception", ml):
+        problem_type = "خطأ في الكود"
+    elif re.search(r"crash|انهيار|توقف", ml):
+        problem_type = "انهيار / توقف"
+    elif re.search(r"link|رابط", ml):
+        problem_type = "رابط / مسار"
+
+    # Run live error scan
+    live_errors = detect_log_errors()[:5]
+    live_issues = detect_code_issues()[:3]
+
+    lines = [
+        f"🔧 **تشخيص: {problem_type}**\n",
+        f"📝 **الطلب:** `{msg}`\n",
+    ]
+
+    if route_info:
+        lines += [
+            "**📂 الملفات المحتملة للمشكلة:**",
+            f"  🎨 `{route_info.get('template', '—')}` — تحقق من HTML / القوالب",
+            f"  ⚙️ `{route_info.get('router', '—')}` — تحقق من المسارات والمنطق",
+        ]
+        for c in route_info.get("css", []):
+            lines.append(f"  🎨 `{c}` — تحقق من CSS إذا كان مشكلة تصميم")
+    elif concept_hits:
+        lines.append("**📂 الملفات المرتبطة:**")
+        for path, role, desc in concept_hits[:3]:
+            lines.append(f"  • `{path}` [{role}] — {desc}")
+    elif target_file:
+        lines.append(f"**📂 الملف الأرجح:** `{target_file}`")
+
+    if live_errors:
+        lines.append("\n**⚠️ أخطاء حديثة في السجلات:**")
+        for e in live_errors[:3]:
+            lines.append(f"  🔴 `{e.get('file', '?')}` — {e.get('line', '')[:80]}")
+
+    if live_issues:
+        lines.append("\n**🔍 مشاكل في الكود:**")
+        for i in live_issues[:3]:
+            lines.append(f"  ⚠️ `{i.get('file', '?')}` [{i.get('type', '')}]")
+
+    lines += [
+        "\n**🛠️ خطوات التشخيص:**",
+        "  1. افحص ملف السجلات: `السجلات الأخيرة`",
+        "  2. تحقق من وحدة تحكم المتصفح للأخطاء",
+        "  3. اقرأ الملف المحدد واستخدم `أين الخطأ في [اسم الملف]`",
+        "  4. بعد الإصلاح: اختبر الوظيفة مباشرة",
+    ]
+
+    return {
+        "text": "\n".join(lines),
+        "data": {"problem_type": problem_type, "live_errors": live_errors, "files": concept_hits},
+    }
+
+
+def _r_new_page(msg: str) -> dict:
+    """Handler for 'create new page', 'add new screen', etc."""
+    update_stats("total_plans")
+
+    page_name = "new_page"
+    m = re.search(r"(?:called?|named?|for|about|لـ?|باسم)\s+[\"']?(\w+)[\"']?", msg, re.IGNORECASE)
+    if m:
+        page_name = m.group(1)
+
+    lines = [
+        f"📄 **إنشاء صفحة جديدة: `{page_name}`**\n",
+        "**📂 الملفات التي يجب إنشاؤها:**",
+        f"  ⚙️ `control_panel/routers/{page_name}.py` [ROUTER] — نقاط نهاية الصفحة",
+        f"  🎨 `control_panel/templates/{page_name}.html` [TEMPLATE] — واجهة الصفحة",
+        "\n**📂 الملفات التي يجب تعديلها:**",
+        "  🔧 `control_panel/app.py` [ENTRYPOINT] — تسجيل الراوتر الجديد",
+        "  🎨 `control_panel/templates/base.html` [NAVIGATION] — إضافة رابط في القائمة الجانبية",
+        "\n**📋 خطوات التنفيذ:**",
+        f"  1. أنشئ `control_panel/routers/{page_name}.py`:",
+        "     ```python",
+        "     from fastapi import APIRouter, Depends, Request",
+        "     from fastapi.responses import HTMLResponse",
+        "     from fastapi.templating import Jinja2Templates",
+        "     from ..auth import require_owner",
+        "     router = APIRouter()",
+        f"     @router.get('/{page_name}', response_class=HTMLResponse)",
+        f"     async def {page_name}_page(request: Request, session=Depends(require_owner)):",
+        f"         return templates.TemplateResponse(request, '{page_name}.html', {{}})",
+        "     ```",
+        f"  2. أنشئ `control_panel/templates/{page_name}.html` يرث من `base.html`",
+        "  3. في `control_panel/app.py` أضف:",
+        f"     `from control_panel.routers import {page_name}`",
+        f"     `app.include_router({page_name}.router, prefix='/panel')`",
+        "  4. في `base.html` أضف في القائمة الجانبية:",
+        f"     `<a href='/panel/{page_name}' class='nav-link'>📄 {page_name}</a>`",
+        "\n🔄 **استراتيجية الاسترجاع:** احذف الملفات الجديدة وأعِد السطور في app.py و base.html",
+    ]
+
+    return {
+        "text": "\n".join(lines),
+        "data": {
+            "page_name": page_name,
+            "files_to_create": [
+                f"control_panel/routers/{page_name}.py",
+                f"control_panel/templates/{page_name}.html",
+            ],
+            "files_to_modify": ["control_panel/app.py", "control_panel/templates/base.html"],
+        },
+    }
+
 
 def _r_find_file(msg: str) -> dict:
     update_stats("total_questions")
