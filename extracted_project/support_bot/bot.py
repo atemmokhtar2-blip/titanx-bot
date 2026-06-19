@@ -109,10 +109,25 @@ def build_application() -> Application:
 
 def main():
     import time
+    from config.settings import SUPPORT_BOT_TOKEN as _TOKEN
     init_db()
     system_logger.info("Support DB initialized.")
     system_logger.info("=== SUPPORT BOT STARTUP === PID:%s", os.getpid())
-    time.sleep(5)
+
+    try:
+        import httpx
+        url = f"https://api.telegram.org/bot{_TOKEN}/deleteWebhook?drop_pending_updates=true"
+        resp = httpx.get(url, timeout=10)
+        system_logger.info("deleteWebhook response: %s", resp.text)
+    except Exception as e:
+        system_logger.warning("deleteWebhook failed: %s", e)
+    system_logger.info("Waiting 10s for previous session to expire...")
+    time.sleep(10)
+
+    import asyncio
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
     app = build_application()
     system_logger.info("Support Bot polling started.")
     app.run_polling(
