@@ -13,6 +13,9 @@ from ..ai_engine import (
     process_chat, create_plan, create_backup, list_backups, restore_backup,
     load_memory, save_memory, full_analysis, analyze_structure as _eng_structure,
     detect_log_errors, detect_code_issues, security_scan, detect_routes,
+    # Phase 1.5 — Intelligence Layer
+    search_project_files, build_dependency_map, answer_file_question,
+    get_file_role, run_self_tests, create_modification_plan,
 )
 
 router = APIRouter(prefix="/ai")
@@ -403,3 +406,91 @@ async def api_routes(session: dict = Depends(require_owner)):
 async def api_chat_history(session: dict = Depends(require_owner)):
     mem = load_memory()
     return mem.get("chat_history", [])
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  PHASE 1.5 — PROJECT INTELLIGENCE LAYER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/api/knowledge")
+async def api_knowledge(session: dict = Depends(require_owner)):
+    """Return the full semantic knowledge map of the project."""
+    from ..ai_engine import _SEMANTIC_MAP, _ALIASES
+    mapped_files = {}
+    for concept, entries in _SEMANTIC_MAP.items():
+        for (rel_path, role, desc) in entries:
+            if rel_path not in mapped_files:
+                mapped_files[rel_path] = {"path": rel_path, "role": role, "description": desc, "concepts": []}
+            mapped_files[rel_path]["concepts"].append(concept)
+    return {
+        "ok": True,
+        "total_concepts": len(_SEMANTIC_MAP),
+        "total_mapped_files": len(mapped_files),
+        "concepts": list(_SEMANTIC_MAP.keys()),
+        "aliases": list(_ALIASES.keys()),
+        "file_map": list(mapped_files.values()),
+    }
+
+
+@router.post("/api/search")
+async def api_search(request: Request, session: dict = Depends(require_owner)):
+    """Intelligent file search — returns files relevant to a concept/query."""
+    body  = await request.json()
+    query = str(body.get("query", "")).strip()
+    if not query:
+        return JSONResponse({"ok": False, "error": "query is required"}, status_code=400)
+    results = search_project_files(query)
+    return {"ok": True, "query": query, "total": len(results), "results": results}
+
+
+@router.post("/api/file_question")
+async def api_file_question(request: Request, session: dict = Depends(require_owner)):
+    """Answer 'what file controls X?' with real file names and roles."""
+    body = await request.json()
+    msg  = str(body.get("message", "")).strip()
+    if not msg:
+        return JSONResponse({"ok": False, "error": "message is required"}, status_code=400)
+    result = answer_file_question(msg)
+    return {"ok": True, **result}
+
+
+@router.get("/api/dependencies")
+async def api_dependencies(session: dict = Depends(require_owner)):
+    """Auto-built route → template → CSS/JS dependency map."""
+    dep_map = build_dependency_map()
+    return {
+        "ok": True,
+        "total_routes": len(dep_map),
+        "shared_assets": {
+            "css": "control_panel/static/css/style.css",
+            "js":  "control_panel/static/js/app.js",
+            "base_template": "control_panel/templates/base.html",
+        },
+        "routes": dep_map,
+    }
+
+
+@router.post("/api/file_role")
+async def api_file_role(request: Request, session: dict = Depends(require_owner)):
+    """Return a full profile of a file: what it does, dependencies, role."""
+    body = await request.json()
+    path = str(body.get("path", "")).strip()
+    if not path or ".." in path:
+        return JSONResponse({"ok": False, "error": "invalid path"}, status_code=400)
+    return get_file_role(path)
+
+
+@router.post("/api/plan_v2")
+async def api_plan_v2(request: Request, session: dict = Depends(require_owner)):
+    """Phase 1.5 planning engine — returns real file names, risks, rollback."""
+    body = await request.json()
+    desc = str(body.get("description", "")).strip()
+    if not desc:
+        return JSONResponse({"ok": False, "error": "description is required"}, status_code=400)
+    return create_modification_plan(desc)
+
+
+@router.get("/api/self_test")
+async def api_self_test(session: dict = Depends(require_owner)):
+    """Run Phase 1.5 self-tests — verify AI can answer file questions."""
+    return run_self_tests()
