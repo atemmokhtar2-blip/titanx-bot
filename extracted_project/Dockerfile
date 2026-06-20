@@ -36,14 +36,16 @@ USER appuser
 # ── Environment variables ─────────────────────────────────────────────────────
 # Web panel port — HF Spaces requires 7860
 ENV CONTROL_PANEL_PORT=7860
+# AI engine uses PROJECT_ROOT to locate source files — must be /app in Docker
+ENV PROJECT_ROOT=/app
 # Set by HF Space Secrets (do NOT hardcode here):
-#   TELEGRAM_BOT_TOKEN
-#   SUPPORT_BOT_TOKEN
-#   OWNER_ID
-#   ADMIN_IDS
-#   SUPPORT_BOT_USERNAME
-#   REQUIRED_CHANNEL
-#   SESSION_SECRET
+#   TELEGRAM_BOT_TOKEN   ← REQUIRED — main bot crashes without this
+#   SUPPORT_BOT_TOKEN    ← REQUIRED — support bot crashes without this
+#   OWNER_ID             ← REQUIRED — panel token URL broken without this
+#   SESSION_SECRET       ← HIGH     — defaults to public fallback if missing
+#   PUBLIC_URL           ← MEDIUM   — link generation returns empty if missing
+#   REQUIRED_CHANNEL     ← OPTIONAL
+#   ADMIN_IDS            ← OPTIONAL
 
 EXPOSE 7860
 

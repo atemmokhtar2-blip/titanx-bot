@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import json
 import signal
@@ -13,7 +14,13 @@ from ..config import CONTROL_PANEL_DIR, BOT_SCRIPTS, LOGS_DIR
 router = APIRouter(prefix="/bots")
 templates = Jinja2Templates(directory=os.path.join(CONTROL_PANEL_DIR, "templates"))
 
-PYTHONPATH = "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages"
+# Detect the active site-packages directory from the running interpreter.
+# Works in Replit (.pythonlibs), Docker (/usr/local/lib/python3.x/site-packages),
+# and any other Python environment — no hardcoded paths.
+_detected_sp = next(
+    (p for p in sys.path if "site-packages" in p and os.path.isdir(p)), ""
+)
+PYTHONPATH = _detected_sp or os.environ.get("PYTHONPATH", "")
 
 HEARTBEAT_FILES = {
     "main":    "/tmp/bot_health.json",

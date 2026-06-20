@@ -190,6 +190,41 @@
   </div>
 </div>
 
+<!-- ── HF Secrets Setup Guide ────────────────────────────────────────────────── -->
+<div style="margin-top:20px">
+  <div style="font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+    <span>🔐</span> <span>HF Secrets Setup Guide</span>
+  </div>
+  <div class="card">
+    <div class="card-title">🔐 دليل إعداد أسرار Hugging Face</div>
+    <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;line-height:1.7">
+      أضف هذه المتغيرات في <b>Settings → Variables and secrets</b> داخل مشروع HF Space الخاص بك.
+    </div>
+
+    <div style="margin-bottom:10px">
+      <button class="btn btn-primary btn-sm" id="guide-load-btn" onclick="loadSecretsGuide()">
+        📋 عرض دليل الأسرار
+      </button>
+    </div>
+
+    <div id="guide-wrap" style="display:none">
+      <div id="guide-list" class="scroll-list" style="max-height:360px"></div>
+
+      <!-- Static copy-ready block -->
+      <div style="margin-top:14px">
+        <div style="font-size:.78rem;font-weight:600;color:var(--text2);margin-bottom:6px">نسخة جاهزة للرفع (HF Secrets):</div>
+        <pre class="code-block" style="font-size:.73rem;white-space:pre-wrap;line-height:1.8">TELEGRAM_BOT_TOKEN  = &lt;your_bot_token&gt;        # REQUIRED
+SUPPORT_BOT_TOKEN   = &lt;your_support_token&gt;    # REQUIRED
+OWNER_ID            = &lt;your_telegram_user_id&gt; # REQUIRED
+SESSION_SECRET      = &lt;random_32+_chars&gt;      # REQUIRED (security)
+PUBLIC_URL          = &lt;https://your.hf.space&gt; # OPTIONAL
+REQUIRED_CHANNEL    = &lt;@channel&gt;              # OPTIONAL
+ADMIN_IDS           = &lt;id1,id2&gt;              # OPTIONAL</pre>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── FEATURE 3: Hugging Face Readiness System ─────────────────────────────── -->
 <div style="margin-top:20px">
   <div style="font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:8px">
@@ -369,6 +404,42 @@ async function generateRequirements(){
 
 function downloadRequirements(){
   window.location.href = '/updates/api/requirements/download';
+}
+
+// ── HF Secrets Guide ──────────────────────────────────────────────────────────
+
+async function loadSecretsGuide(){
+  const btn  = document.getElementById('guide-load-btn');
+  const wrap = document.getElementById('guide-wrap');
+  const list = document.getElementById('guide-list');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ جارٍ التحميل…';
+
+  try {
+    const data = await apiGet('/updates/api/secrets-guide');
+    if(!data.ok){ showToast(data.error || 'فشل', 'error'); return; }
+
+    const sevColor = { CRITICAL:'var(--red,#f87171)', HIGH:'var(--orange,#fb923c)',
+                       MEDIUM:'var(--yellow,#facc15)', LOW:'var(--text2)', INFO:'var(--text2)' };
+    list.innerHTML = data.guide.map(g =>
+      `<div class="scroll-list-item" style="flex-direction:column;align-items:flex-start;padding:8px 12px;gap:4px">
+        <div style="display:flex;align-items:center;gap:8px;width:100%">
+          <span style="font-size:.75rem;font-weight:700;color:${sevColor[g.severity] || 'var(--text2)'};min-width:64px">${g.severity}</span>
+          <code style="font-size:.8rem;font-weight:700;color:var(--accent)">${g.name}</code>
+          <span style="margin-right:auto;font-size:.7rem">${g.set ? '✅ مضبوط' : '❌ مفقود'}</span>
+        </div>
+        <div style="font-size:.72rem;color:var(--text2)">${g.description}</div>
+        <div style="font-size:.7rem;color:var(--text2);opacity:.7">Format: <code>${g.format}</code></div>
+      </div>`
+    ).join('');
+    wrap.style.display = 'block';
+    showToast('تم تحميل الدليل ✅', 'success');
+  } catch(e){
+    showToast(`فشل: ${e.message}`, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '🔄 تحديث الدليل';
 }
 
 // ── Feature 3: HF Readiness ───────────────────────────────────────────────────

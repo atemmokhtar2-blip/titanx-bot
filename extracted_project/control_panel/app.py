@@ -17,6 +17,10 @@ from .auth import (create_session, get_session, require_owner,
 from .routers import (dashboard, users, broadcast, db_manager,
                       files, logs_router, system, updates, github_router, search)
 from .routers import bots, backups, replit_manager, ai_workspace
+from . import env_validator as _ev
+
+# Run env validation at import time — logs warnings, never crashes
+_ev.log_startup_summary()
 
 # ── Panel settings (persistent password store) ──────────────────────────────
 SETTINGS_FILE = os.path.join(EXTRACTED_DIR, ".panel_settings.json")
@@ -219,8 +223,31 @@ async def logout():
     return response
 
 
-# ── Health ──────────────────────────────────────────────────────────────────
+# ── Health / Readiness endpoints ─────────────────────────────────────────────
 
 @app.get("/healthz")
 async def healthz():
     return {"status": "ok", "panel": "X Control Center", "version": "5.0"}
+
+
+@app.get("/health")
+async def health():
+    """Production health endpoint — used by HF Spaces and Docker health checks."""
+    import time as _time
+    from . import env_validator as _ev
+    ev = _ev.validate()
+    return {
+        "status":            "ok",
+        "panel":             "X Control Center",
+        "version":           "5.0",
+        "env_score":         ev["score"],
+        "deploy_blocked":    ev["deploy_blocked"],
+        "missing_critical":  ev["missing_critical"],
+        "timestamp":         int(_time.time()),
+    }
+
+
+@app.get("/ping")
+async def ping():
+    """Minimal liveness probe."""
+    return {"ok": True}

@@ -476,21 +476,54 @@ def _hf_readiness_check() -> dict:
     else:
         _add("الملفات الثابتة (Static)", "warning", "مجلد static مفقود أو فارغ")
 
-    # ── 9. Required env vars ──────────────────────────────────────────────────
-    required = ["TELEGRAM_BOT_TOKEN", "SUPPORT_BOT_TOKEN", "OWNER_ID"]
-    missing_env = [k for k in required if not os.getenv(k)]
-    if not missing_env:
-        _add("المتغيرات البيئية", "ok", "الأسرار الأساسية مضبوطة في البيئة الحالية ✅")
-    else:
-        _add("المتغيرات البيئية", "warning",
-             f"يجب إضافتها في HF Space Secrets: {', '.join(missing_env)}")
+    # ── 9. Secrets / env vars (via centralized validator) ────────────────────
+    try:
+        from ..env_validator import validate as _ev_validate
+        ev = _ev_validate()
+        if not ev["missing_critical"]:
+            _add("المتغيرات البيئية (Secrets)", "ok",
+                 f"جميع المتغيرات الحرجة مضبوطة ✅ — النتيجة: {ev['score']}%", critical=True)
+        else:
+            _add("المتغيرات البيئية (Secrets)", "critical",
+                 f"مفقود: {', '.join(ev['missing_critical'])} — أضفها في HF Space Secrets", critical=True)
+        if ev["missing_high"]:
+            _add("المتغيرات العالية الخطورة", "warning",
+                 f"يُنصح بضبطها: {', '.join(ev['missing_high'])}")
+    except Exception as e:
+        _add("المتغيرات البيئية", "warning", f"تعذّر التحقق: {e}")
 
-    # ── 10. SQLite persistence warning ───────────────────────────────────────
+    # ── 10. PROJECT_ROOT env var ──────────────────────────────────────────────
+    proj_root = os.environ.get("PROJECT_ROOT", "")
+    if proj_root and os.path.isdir(proj_root):
+        _add("PROJECT_ROOT", "ok", f"مضبوط ومجلد موجود: {proj_root} ✅", critical=True)
+    elif proj_root:
+        _add("PROJECT_ROOT", "warning", f"مضبوط لكن المجلد غير موجود: {proj_root}")
+    else:
+        df_path2 = os.path.join(EXTRACTED_DIR, "Dockerfile")
+        if os.path.exists(df_path2) and "PROJECT_ROOT" in open(df_path2).read():
+            _add("PROJECT_ROOT", "ok", "غير مضبوط محلياً لكن موجود في Dockerfile ✅")
+        else:
+            _add("PROJECT_ROOT", "critical",
+                 "غير مضبوط — محرك الذكاء سيفشل في مسح الملفات داخل Docker", critical=True)
+
+    # ── 11. Health endpoint ────────────────────────────────────────────────────
+    health_path = os.path.join(EXTRACTED_DIR, "control_panel", "app.py")
+    if os.path.exists(health_path):
+        content = open(health_path).read()
+        endpoints = [ep for ep in ["/health", "/ping", "/healthz"] if f'"{ep}"' in content or f"'{ep}'" in content]
+        if endpoints:
+            _add("Health Endpoint", "ok", f"نقاط الصحة موجودة: {', '.join(endpoints)} ✅")
+        else:
+            _add("Health Endpoint", "warning", "لا توجد نقاط health — يُنصح بإضافة /health")
+    else:
+        _add("Health Endpoint", "warning", "تعذّر التحقق من app.py")
+
+    # ── 12. SQLite persistence warning ────────────────────────────────────────
     _add("قاعدة البيانات (SQLite)", "warning",
          "البيانات مؤقتة على HF free tier — تُفقد عند إعادة تشغيل Space")
 
     pct = round(100 * score_pass / score_total) if score_total else 0
-    grade = "ممتاز 🟢" if pct >= 85 else ("جيد 🟡" if pct >= 60 else "يحتاج إصلاح 🔴")
+    grade = "جاهز للنشر 🟢" if pct >= 90 else ("جيد 🟡" if pct >= 70 else ("يحتاج إصلاح 🟠" if pct >= 50 else "غير جاهز 🔴"))
     return {
         "ok": True,
         "checks":         checks,
@@ -506,6 +539,16 @@ def _hf_readiness_check() -> dict:
 async def api_hf_readiness(session: dict = Depends(require_owner)):
     try:
         return _hf_readiness_check()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@router.get("/api/secrets-guide")
+async def api_secrets_guide(session: dict = Depends(require_owner)):
+    """Return the HF Secrets setup guide with current status of each variable."""
+    try:
+        from ..env_validator import get_secrets_guide
+        return {"ok": True, "guide": get_secrets_guide()}
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
