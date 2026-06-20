@@ -103,20 +103,27 @@
   </div>
   <div class="grid-2" style="align-items:start;gap:16px">
 
-    <!-- ── FEATURE 1: Project ZIP Export ── -->
+    <!-- ── FEATURE 1 / FEATURE 4: Deployment ZIP Export ── -->
     <div class="card">
-      <div class="card-title">📦 تصدير ZIP للمشروع</div>
+      <div class="card-title">📦 Deployment ZIP</div>
+
+      <!-- Deployment badge -->
+      <div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap">
+        <span class="badge badge-green" style="font-size:.72rem">✅ requirements.txt</span>
+        <span class="badge badge-green" style="font-size:.72rem">✅ Dockerfile</span>
+        <span class="badge badge-green" style="font-size:.72rem">✅ HF-Ready</span>
+      </div>
 
       <!-- Include / Exclude rules -->
       <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;line-height:1.7">
-        <div style="margin-bottom:4px"><b style="color:var(--green,#4ade80)">✅ يشمل:</b> الكود المصدري · القوالب · الملفات الثابتة · الإعدادات · الأصول</div>
+        <div style="margin-bottom:4px"><b style="color:var(--green,#4ade80)">✅ يشمل:</b> الكود المصدري · requirements.txt · Dockerfile · القوالب · الملفات الثابتة · الإعدادات</div>
         <div><b style="color:var(--red,#f87171)">❌ يستثني:</b> __pycache__ · .pyc · .git · temp · logs · backups · node_modules · .pythonlibs · dist · venv</div>
       </div>
 
       <!-- Action buttons -->
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
         <button class="btn btn-primary" id="export-gen-btn" onclick="generateExportZip()">
-          ⚙️ توليد Project ZIP
+          🚀 توليد Deployment ZIP
         </button>
         <button class="btn btn-ghost btn-sm" id="export-dl-btn" style="display:none" onclick="downloadExport()">
           ⬇️ تحميل ZIP
@@ -182,6 +189,53 @@
 
   </div>
 </div>
+
+<!-- ── FEATURE 3: Hugging Face Readiness System ─────────────────────────────── -->
+<div style="margin-top:20px">
+  <div style="font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+    <span>🤗</span> <span>Hugging Face Readiness</span>
+  </div>
+  <div class="card">
+    <div class="card-title">🔍 فحص الجاهزية للنشر على Hugging Face</div>
+
+    <div style="font-size:.78rem;color:var(--text2);margin-bottom:14px;line-height:1.7">
+      يفحص المشروع كاملاً ويولّد تقرير جاهزية شامل مع نسبة ونقاط حرجة وتحذيرات قبل الرفع على HF Spaces.
+    </div>
+
+    <!-- Score display -->
+    <div id="hf-score-wrap" style="display:none;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="text-align:center">
+          <div id="hf-score-num" style="font-size:2.4rem;font-weight:800;color:var(--accent);line-height:1">0%</div>
+          <div style="font-size:.7rem;color:var(--text2);margin-top:2px">Readiness Score</div>
+        </div>
+        <div id="hf-grade" style="font-size:1rem;font-weight:700;padding:6px 14px;border-radius:8px;background:var(--card-bg2,rgba(255,255,255,.05))"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span class="badge badge-green" id="hf-ok-count">0 ✅</span>
+          <span class="badge badge-yellow" id="hf-warn-count">0 ⚠️</span>
+          <span class="badge badge-red" id="hf-crit-count">0 ❌</span>
+        </div>
+      </div>
+      <!-- Score bar -->
+      <div style="margin-top:12px;background:rgba(255,255,255,.08);border-radius:99px;height:8px;overflow:hidden">
+        <div id="hf-score-bar" style="height:100%;background:var(--accent);border-radius:99px;width:0%;transition:width .6s ease"></div>
+      </div>
+    </div>
+
+    <!-- Action button -->
+    <div style="margin-bottom:14px">
+      <button class="btn btn-primary" id="hf-run-btn" onclick="runHfReadiness()">
+        🤗 تشغيل فحص الجاهزية
+      </button>
+    </div>
+
+    <!-- Checks list -->
+    <div id="hf-checks-wrap" style="display:none">
+      <div style="font-size:.8rem;font-weight:600;color:var(--text2);margin-bottom:8px">نتائج الفحص التفصيلية:</div>
+      <div id="hf-checks-list" class="scroll-list" style="max-height:340px"></div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -223,7 +277,7 @@ async function generateExportZip(){
     showToast('فشل الإنشاء', 'error');
   }
   btn.disabled = false;
-  btn.textContent = '⚙️ توليد Project ZIP';
+  btn.textContent = '🚀 توليد Deployment ZIP';
 }
 
 function downloadExport(){
@@ -315,6 +369,63 @@ async function generateRequirements(){
 
 function downloadRequirements(){
   window.location.href = '/updates/api/requirements/download';
+}
+
+// ── Feature 3: HF Readiness ───────────────────────────────────────────────────
+
+async function runHfReadiness(){
+  const btn  = document.getElementById('hf-run-btn');
+  const wrap = document.getElementById('hf-checks-wrap');
+  const list = document.getElementById('hf-checks-list');
+  const scoreWrap = document.getElementById('hf-score-wrap');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ جارٍ الفحص…';
+  wrap.style.display = 'none';
+  scoreWrap.style.display = 'none';
+
+  try {
+    const data = await apiPost('/updates/api/hf-readiness', {});
+    if(!data.ok){
+      showToast(data.error || 'فشل الفحص', 'error');
+    } else {
+      // Score display
+      document.getElementById('hf-score-num').textContent = `${data.score}%`;
+      document.getElementById('hf-grade').textContent = data.grade;
+      document.getElementById('hf-ok-count').textContent   = `${data.ok_count} ✅`;
+      document.getElementById('hf-warn-count').textContent = `${data.warning_count} ⚠️`;
+      document.getElementById('hf-crit-count').textContent = `${data.critical_count} ❌`;
+      scoreWrap.style.display = 'block';
+      setTimeout(() => {
+        document.getElementById('hf-score-bar').style.width = `${data.score}%`;
+      }, 50);
+
+      // Checks list
+      const statusIcon = { ok: '✅', warning: '⚠️', critical: '❌' };
+      const statusColor = {
+        ok:       'var(--green,#4ade80)',
+        warning:  'var(--yellow,#facc15)',
+        critical: 'var(--red,#f87171)',
+      };
+      list.innerHTML = data.checks.map(c =>
+        `<div class="scroll-list-item" style="align-items:flex-start;gap:12px">
+          <span style="font-size:1.1rem;flex-shrink:0">${statusIcon[c.status] || '❓'}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:.82rem;color:${statusColor[c.status]}">${c.name}${c.critical ? ' <span style="font-size:.65rem;opacity:.7">(حرج)</span>' : ''}</div>
+            <div style="color:var(--text2);font-size:.75rem;margin-top:2px">${c.message}</div>
+          </div>
+        </div>`
+      ).join('');
+      wrap.style.display = 'block';
+
+      const toastType = data.critical_count > 0 ? 'error' : (data.warning_count > 0 ? 'warning' : 'success');
+      showToast(`Readiness: ${data.score}% — ${data.grade}`, toastType);
+    }
+  } catch(e){
+    showToast(`فشل: ${e.message}`, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '🤗 تشغيل فحص الجاهزية';
 }
 
 // Load existing exports on page load

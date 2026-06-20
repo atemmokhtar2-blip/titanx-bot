@@ -390,7 +390,127 @@ async def api_restore(request: Request, background_tasks: BackgroundTasks,
     return {"ok": True}
 
 
-# ── Feature 1: Project ZIP Export ─────────────────────────────────────────────
+# ── Feature 3: Hugging Face Readiness Check ───────────────────────────────────
+
+def _hf_readiness_check() -> dict:
+    checks = []
+    score_pass = 0
+    score_total = 0
+
+    def _add(name: str, status: str, message: str, critical: bool = False):
+        nonlocal score_pass, score_total
+        weight = 2 if critical else 1
+        score_total += weight
+        if status == "ok":
+            score_pass += weight
+        elif status == "warning":
+            score_pass += weight // 2
+        checks.append({"name": name, "status": status, "message": message, "critical": critical})
+
+    # ── 1. requirements.txt ───────────────────────────────────────────────────
+    req_path = os.path.join(EXTRACTED_DIR, "requirements.txt")
+    if os.path.exists(req_path):
+        lines = [l.strip() for l in open(req_path) if l.strip() and not l.startswith("#")]
+        _add("requirements.txt", "ok", f"موجود — {len(lines)} حزمة مدرجة", critical=True)
+    else:
+        _add("requirements.txt", "critical", "مفقود — مطلوب للنشر على HF", critical=True)
+
+    # ── 2. Dockerfile ─────────────────────────────────────────────────────────
+    df_path = os.path.join(EXTRACTED_DIR, "Dockerfile")
+    if os.path.exists(df_path):
+        content = open(df_path).read()
+        missing = []
+        if "FROM" not in content:      missing.append("FROM")
+        if "EXPOSE" not in content:    missing.append("EXPOSE")
+        if "CMD" not in content and "ENTRYPOINT" not in content: missing.append("CMD/ENTRYPOINT")
+        if missing:
+            _add("Dockerfile", "warning", f"موجود لكن ناقص: {', '.join(missing)}", critical=True)
+        else:
+            _add("Dockerfile", "ok", "موجود ✅ (FROM + EXPOSE + CMD)", critical=True)
+    else:
+        _add("Dockerfile", "critical", "مفقود — مطلوب للنشر على HF", critical=True)
+
+    # ── 3. Entrypoint file ────────────────────────────────────────────────────
+    server_path = os.path.join(EXTRACTED_DIR, "control_panel", "server.py")
+    if os.path.exists(server_path):
+        _add("نقطة الدخول", "ok", "control_panel/server.py موجود ✅", critical=True)
+    else:
+        _add("نقطة الدخول", "critical", "control_panel/server.py مفقود!", critical=True)
+
+    # ── 4. Host binding ───────────────────────────────────────────────────────
+    if os.path.exists(server_path):
+        if "0.0.0.0" in open(server_path).read():
+            _add("ربط المضيف (Host)", "ok", "الخادم مرتبط بـ 0.0.0.0 ✅")
+        else:
+            _add("ربط المضيف (Host)", "warning", "تحقق من host='0.0.0.0' في server.py")
+
+    # ── 5. Port configuration ─────────────────────────────────────────────────
+    if os.path.exists(df_path):
+        if "7860" in open(df_path).read():
+            _add("Port (7860)", "ok", "Dockerfile يكشف المنفذ 7860 (متطلب HF) ✅")
+        else:
+            _add("Port (7860)", "warning", "Dockerfile لا يذكر 7860 — قد يكون مشكلة على HF Spaces")
+    else:
+        _add("Port (7860)", "warning", "لا يمكن التحقق — Dockerfile مفقود")
+
+    # ── 6. Python version ─────────────────────────────────────────────────────
+    ver = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    if sys.version_info >= (3, 10):
+        _add("Python Version", "ok", f"Python {ver} — متوافق مع HF Spaces ✅")
+    else:
+        _add("Python Version", "warning", f"Python {ver} — يُفضَّل 3.10+")
+
+    # ── 7. Templates directory ────────────────────────────────────────────────
+    tpl_dir = os.path.join(EXTRACTED_DIR, "control_panel", "templates")
+    if os.path.isdir(tpl_dir):
+        count = len([f for f in os.listdir(tpl_dir) if f.endswith(".html")])
+        _add("القوالب (Templates)", "ok", f"{count} ملف HTML في control_panel/templates/ ✅")
+    else:
+        _add("القوالب (Templates)", "critical", "مجلد templates مفقود!")
+
+    # ── 8. Static assets ──────────────────────────────────────────────────────
+    static_dir = os.path.join(EXTRACTED_DIR, "control_panel", "static")
+    if os.path.isdir(static_dir):
+        count = sum(len(files) for _, _, files in os.walk(static_dir))
+        _add("الملفات الثابتة (Static)", "ok", f"{count} ملف في control_panel/static/ ✅")
+    else:
+        _add("الملفات الثابتة (Static)", "warning", "مجلد static مفقود أو فارغ")
+
+    # ── 9. Required env vars ──────────────────────────────────────────────────
+    required = ["TELEGRAM_BOT_TOKEN", "SUPPORT_BOT_TOKEN", "OWNER_ID"]
+    missing_env = [k for k in required if not os.getenv(k)]
+    if not missing_env:
+        _add("المتغيرات البيئية", "ok", "الأسرار الأساسية مضبوطة في البيئة الحالية ✅")
+    else:
+        _add("المتغيرات البيئية", "warning",
+             f"يجب إضافتها في HF Space Secrets: {', '.join(missing_env)}")
+
+    # ── 10. SQLite persistence warning ───────────────────────────────────────
+    _add("قاعدة البيانات (SQLite)", "warning",
+         "البيانات مؤقتة على HF free tier — تُفقد عند إعادة تشغيل Space")
+
+    pct = round(100 * score_pass / score_total) if score_total else 0
+    grade = "ممتاز 🟢" if pct >= 85 else ("جيد 🟡" if pct >= 60 else "يحتاج إصلاح 🔴")
+    return {
+        "ok": True,
+        "checks":         checks,
+        "score":          pct,
+        "grade":          grade,
+        "ok_count":       sum(1 for c in checks if c["status"] == "ok"),
+        "warning_count":  sum(1 for c in checks if c["status"] == "warning"),
+        "critical_count": sum(1 for c in checks if c["status"] == "critical"),
+    }
+
+
+@router.post("/api/hf-readiness")
+async def api_hf_readiness(session: dict = Depends(require_owner)):
+    try:
+        return _hf_readiness_check()
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+# ── Feature 1 / Feature 4: Deployment ZIP Export ──────────────────────────────
 
 @router.post("/api/export/generate")
 async def api_export_generate(session: dict = Depends(require_owner)):
