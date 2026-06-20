@@ -100,8 +100,6 @@ SUPPORT_BOT_USERNAME = "x_support_team_bot"
 ADMIN_BOT_USERNAME = "x_admin_dev_bot"
 REQUIRED_CHANNEL = "@Sounnnd"
 PORT = "8080"
-TELEGRAM_BOT_TOKEN = "8994985055:AAGYyTLTqlYuKH7QFc5jdMzXdzKezu82grU"
-SUPPORT_BOT_TOKEN = "8868557719:AAExWC6VeKGhkBoU2hE9mYNqxGxBaQtuQec"
 
 [nix]
 packages = ["cargo", "ffmpeg-full", "freetype", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "rustc", "tcl", "tk", "zip", "zlib"]
