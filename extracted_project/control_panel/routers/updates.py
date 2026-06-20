@@ -1,20 +1,233 @@
 import os
+import ast
 import zipfile
 import shutil
 import subprocess
 import sys
+import importlib.metadata as _meta
 from datetime import datetime
 from fastapi import APIRouter, Request, Depends, UploadFile, File, BackgroundTasks
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from ..auth import require_owner
-from ..config import CONTROL_PANEL_DIR, PROJECT_ROOT, TEMP_DIR, BACKUPS_DIR, PROTECTED_NAMES
+from ..config import CONTROL_PANEL_DIR, PROJECT_ROOT, TEMP_DIR, BACKUPS_DIR, EXTRACTED_DIR, PROTECTED_NAMES
 
 router = APIRouter(prefix="/updates")
 templates = Jinja2Templates(directory=os.path.join(CONTROL_PANEL_DIR, "templates"))
 
 _update_status = {"running": False, "step": "", "log": [], "done": False, "success": False}
 SKIP_DIRS = {".git", "__pycache__", "temp", "backups", ".venv", "node_modules"}
+
+# ── Deployment Tools ──────────────────────────────────────────────────────────
+
+EXPORTS_DIR = os.path.join(EXTRACTED_DIR, "exports")
+os.makedirs(EXPORTS_DIR, exist_ok=True)
+
+_ZIP_EXCLUDE_DIRS = {
+    "__pycache__", ".git", "node_modules", ".pythonlibs",
+    "temp", "logs", "backups", "exports", ".local",
+    ".venv", "venv", ".cache", "dist", "build",
+}
+_ZIP_EXCLUDE_EXTS = {".pyc", ".pyo", ".log", ".egg-info"}
+_BASE_ZIP_NAME = "PrimeDownloader"
+
+# Import name → pip package name (curated from actual project imports)
+_IMPORT_TO_PIP = {
+    "telegram":          "python-telegram-bot==21.6",
+    "fastapi":           "fastapi",
+    "uvicorn":           "uvicorn[standard]",
+    "starlette":         "starlette",
+    "pydantic":          "pydantic",
+    "pydantic_core":     "pydantic-core",
+    "jinja2":            "Jinja2",
+    "aiohttp":           "aiohttp",
+    "aiofiles":          "aiofiles",
+    "aiosqlite":         "aiosqlite",
+    "cachetools":        "cachetools",
+    "dotenv":            "python-dotenv",
+    "PIL":               "Pillow",
+    "psutil":            "psutil",
+    "git":               "gitpython",
+    "httpx":             "httpx",
+    "yt_dlp":            "yt-dlp",
+    "itsdangerous":      "itsdangerous",
+    "multipart":         "python-multipart",
+    "requests":          "requests",
+    "yaml":              "PyYAML",
+    "bs4":               "beautifulsoup4",
+    "lxml":              "lxml",
+    "numpy":             "numpy",
+    "pandas":            "pandas",
+    "cryptography":      "cryptography",
+    "chardet":           "chardet",
+    "typing_extensions": "typing-extensions",
+    "annotated_types":   "annotated-types",
+}
+
+_STDLIB: set = getattr(sys, "stdlib_module_names", set()) | {
+    "os", "sys", "re", "io", "json", "time", "math", "enum", "abc",
+    "ast", "copy", "csv", "glob", "hmac", "html", "http", "logging",
+    "pathlib", "pickle", "queue", "random", "shutil", "signal",
+    "socket", "sqlite3", "string", "struct", "subprocess", "tempfile",
+    "threading", "traceback", "typing", "unittest", "urllib", "uuid",
+    "warnings", "weakref", "zipfile", "zlib", "base64", "binascii",
+    "builtins", "calendar", "codecs", "collections", "contextlib",
+    "datetime", "decimal", "difflib", "email", "functools",
+    "gc", "getpass", "gettext", "gzip", "hashlib", "inspect",
+    "itertools", "keyword", "locale", "mimetypes", "numbers",
+    "operator", "pprint", "secrets", "select", "stat", "textwrap",
+    "types", "unicodedata", "xml", "__future__", "dataclasses",
+    "asyncio", "concurrent", "importlib", "importlib.metadata",
+    "control_panel", "config", "handlers", "utils", "database",
+    "services", "workers", "middlewares",
+}
+
+
+def _fmt_size(b: int) -> str:
+    if b < 1024:       return f"{b} B"
+    elif b < 1024**2:  return f"{b/1024:.1f} KB"
+    elif b < 1024**3:  return f"{b/1024**2:.1f} MB"
+    return f"{b/1024**3:.2f} GB"
+
+
+def _versioned_export_name() -> str:
+    base = os.path.join(EXPORTS_DIR, f"{_BASE_ZIP_NAME}.zip")
+    if not os.path.exists(base):
+        return f"{_BASE_ZIP_NAME}.zip"
+    v = 2
+    while True:
+        name = f"{_BASE_ZIP_NAME}_v{v}.zip"
+        if not os.path.exists(os.path.join(EXPORTS_DIR, name)):
+            return name
+        v += 1
+
+
+def _build_export_zip() -> dict:
+    fname = _versioned_export_name()
+    fpath = os.path.join(EXPORTS_DIR, fname)
+    included, excluded = [], []
+    with zipfile.ZipFile(fpath, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+        for root, dirs, files in os.walk(EXTRACTED_DIR):
+            dirs[:] = [d for d in dirs if d not in _ZIP_EXCLUDE_DIRS]
+            for fn in files:
+                ext = os.path.splitext(fn)[1].lower()
+                fp  = os.path.join(root, fn)
+                arc = os.path.relpath(fp, EXTRACTED_DIR)
+                if ext in _ZIP_EXCLUDE_EXTS:
+                    excluded.append(arc)
+                    continue
+                try:
+                    zf.write(fp, arc)
+                    included.append(arc)
+                except (OSError, PermissionError):
+                    excluded.append(arc)
+    size = os.path.getsize(fpath)
+    return {
+        "ok": True, "name": fname,
+        "size": size, "size_h": _fmt_size(size),
+        "included": len(included), "excluded": len(excluded),
+    }
+
+
+def _list_exports() -> list:
+    result = []
+    for f in sorted(os.listdir(EXPORTS_DIR), reverse=True):
+        if not f.endswith(".zip"):
+            continue
+        fpath = os.path.join(EXPORTS_DIR, f)
+        try:
+            stat = os.stat(fpath)
+            result.append({
+                "name":   f,
+                "size_h": _fmt_size(stat.st_size),
+                "mtime":  datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M"),
+            })
+        except Exception:
+            pass
+    return result
+
+
+def _collect_imports(root_dir: str) -> dict:
+    """Walk all .py files; return {import_name: [source_files]}."""
+    found: dict = {}
+    for dirpath, dirnames, files in os.walk(root_dir):
+        dirnames[:] = [d for d in dirnames if d not in _ZIP_EXCLUDE_DIRS]
+        for fn in files:
+            if not fn.endswith(".py"):
+                continue
+            fp  = os.path.join(dirpath, fn)
+            rel = os.path.relpath(fp, root_dir)
+            try:
+                src  = open(fp, encoding="utf-8", errors="ignore").read()
+                tree = ast.parse(src, filename=fp)
+            except Exception:
+                continue
+            for node in ast.walk(tree):
+                names = []
+                if isinstance(node, ast.Import):
+                    names = [a.name.split(".")[0] for a in node.names]
+                elif isinstance(node, ast.ImportFrom):
+                    if node.module:
+                        names = [node.module.split(".")[0]]
+                for name in names:
+                    if name not in found:
+                        found[name] = []
+                    if rel not in found[name]:
+                        found[name].append(rel)
+    return found
+
+
+def _generate_requirements(root_dir: str) -> dict:
+    all_imports = _collect_imports(root_dir)
+    detected, unmapped = [], []
+
+    for imp_name in sorted(all_imports):
+        sources = all_imports[imp_name]
+        if imp_name in _STDLIB:
+            continue
+        pip_name = _IMPORT_TO_PIP.get(imp_name)
+        if not pip_name:
+            unmapped.append({"import": imp_name, "sources": sources[:3]})
+            continue
+        base_pkg = pip_name.split("[")[0].split("==")[0].strip()
+        version  = None
+        try:
+            version = _meta.version(base_pkg)
+        except Exception:
+            pass
+        detected.append({
+            "import_name": imp_name,
+            "pip_name":    pip_name,
+            "version":     version,
+            "sources":     sources[:4],
+        })
+
+    lines, seen = [], set()
+    for pkg in detected:
+        base = pkg["pip_name"].split("[")[0].split("==")[0].strip()
+        if base in seen:
+            continue
+        seen.add(base)
+        if "==" in pkg["pip_name"]:
+            lines.append(pkg["pip_name"])
+        elif pkg["version"]:
+            lines.append(f"{pkg['pip_name'].split('[')[0].split('==')[0]}>={pkg['version']}")
+        else:
+            lines.append(pkg["pip_name"])
+
+    lines.sort(key=str.lower)
+    content  = "\n".join(lines) + "\n"
+    out_path = os.path.join(TEMP_DIR, "requirements_generated.txt")
+    with open(out_path, "w") as f:
+        f.write(content)
+
+    return {
+        "ok": True,
+        "detected":       detected,
+        "unmapped":       unmapped,
+        "total_packages": len(detected),
+        "requirements":   content,
+    }
 
 
 def _analyze_zip(zip_path: str) -> dict:
@@ -175,3 +388,48 @@ async def api_restore(request: Request, background_tasks: BackgroundTasks,
                 analysis["files"].append(name)
     background_tasks.add_task(_apply_zip_bg, bpath, analysis, f"restore_{zip_name}")
     return {"ok": True}
+
+
+# ── Feature 1: Project ZIP Export ─────────────────────────────────────────────
+
+@router.post("/api/export/generate")
+async def api_export_generate(session: dict = Depends(require_owner)):
+    try:
+        result = _build_export_zip()
+        return result
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@router.get("/api/export/list")
+async def api_export_list(session: dict = Depends(require_owner)):
+    return _list_exports()
+
+
+@router.get("/api/export/download/{name}")
+async def api_export_download(name: str, session: dict = Depends(require_owner)):
+    if ".." in name or "/" in name:
+        return JSONResponse({"ok": False, "error": "اسم غير صالح"}, status_code=400)
+    fpath = os.path.join(EXPORTS_DIR, name)
+    if not os.path.exists(fpath):
+        return JSONResponse({"ok": False, "error": "الملف غير موجود"}, status_code=404)
+    return FileResponse(fpath, media_type="application/zip", filename=name)
+
+
+# ── Feature 2: Requirements Generator ─────────────────────────────────────────
+
+@router.post("/api/requirements/generate")
+async def api_requirements_generate(session: dict = Depends(require_owner)):
+    try:
+        result = _generate_requirements(EXTRACTED_DIR)
+        return result
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@router.get("/api/requirements/download")
+async def api_requirements_download(session: dict = Depends(require_owner)):
+    fpath = os.path.join(TEMP_DIR, "requirements_generated.txt")
+    if not os.path.exists(fpath):
+        return JSONResponse({"ok": False, "error": "لم يتم إنشاء الملف بعد، اضغط توليد أولاً"}, status_code=404)
+    return FileResponse(fpath, media_type="text/plain", filename="requirements.txt")

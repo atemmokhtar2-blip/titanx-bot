@@ -93,10 +93,239 @@
     {% endif %}
   </div>
 </div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     DEPLOYMENT TOOLS SECTION
+     ══════════════════════════════════════════════════════════════ -->
+<div style="margin-top:20px">
+  <div style="font-size:1rem;font-weight:700;color:var(--accent);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+    <span>🚀</span> <span>أدوات النشر</span>
+  </div>
+  <div class="grid-2" style="align-items:start;gap:16px">
+
+    <!-- ── FEATURE 1: Project ZIP Export ── -->
+    <div class="card">
+      <div class="card-title">📦 تصدير ZIP للمشروع</div>
+
+      <!-- Include / Exclude rules -->
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;line-height:1.7">
+        <div style="margin-bottom:4px"><b style="color:var(--green,#4ade80)">✅ يشمل:</b> الكود المصدري · القوالب · الملفات الثابتة · الإعدادات · الأصول</div>
+        <div><b style="color:var(--red,#f87171)">❌ يستثني:</b> __pycache__ · .pyc · .git · temp · logs · backups · node_modules · .pythonlibs · dist · venv</div>
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <button class="btn btn-primary" id="export-gen-btn" onclick="generateExportZip()">
+          ⚙️ توليد Project ZIP
+        </button>
+        <button class="btn btn-ghost btn-sm" id="export-dl-btn" style="display:none" onclick="downloadExport()">
+          ⬇️ تحميل ZIP
+        </button>
+      </div>
+
+      <!-- Status output -->
+      <div id="export-status" style="display:none;margin-top:4px">
+        <div class="code-block" id="export-log" style="font-size:.8rem;line-height:1.8"></div>
+      </div>
+
+      <!-- Existing exports list -->
+      <div id="export-list-wrap" style="margin-top:14px;display:none">
+        <div style="font-size:.8rem;font-weight:600;color:var(--text2);margin-bottom:6px">الأرشيفات السابقة:</div>
+        <div id="export-list" class="scroll-list" style="max-height:160px"></div>
+      </div>
+    </div>
+
+    <!-- ── FEATURE 2: Requirements Generator ── -->
+    <div class="card">
+      <div class="card-title">📋 مولّد requirements.txt</div>
+
+      <div style="font-size:.78rem;color:var(--text2);margin-bottom:12px;line-height:1.7">
+        يفحص كل ملفات <b>.py</b> في المشروع ويستخرج المكتبات الخارجية المستوردة فعلياً — بدون تخمين.
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <button class="btn btn-primary" id="req-gen-btn" onclick="generateRequirements()">
+          🔍 فحص وتوليد requirements.txt
+        </button>
+        <button class="btn btn-ghost btn-sm" id="req-dl-btn" style="display:none" onclick="downloadRequirements()">
+          ⬇️ تحميل requirements.txt
+        </button>
+      </div>
+
+      <!-- Validation summary -->
+      <div id="req-summary" style="display:none;margin-bottom:10px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:.8rem">
+          <span class="badge badge-green" id="req-badge-detected">0 مكتبة مكتشفة</span>
+          <span class="badge badge-yellow" id="req-badge-unmapped">0 غير مُعيَّنة</span>
+        </div>
+      </div>
+
+      <!-- Generated content preview -->
+      <div id="req-preview-wrap" style="display:none">
+        <div style="font-size:.78rem;color:var(--text2);margin-bottom:4px">المحتوى المُولَّد:</div>
+        <pre class="code-block" id="req-preview" style="max-height:200px;overflow-y:auto;font-size:.75rem;white-space:pre-wrap"></pre>
+      </div>
+
+      <!-- Unmapped imports info -->
+      <div id="req-unmapped-wrap" style="display:none;margin-top:10px">
+        <div style="font-size:.78rem;color:var(--text2);margin-bottom:4px">استيرادات غير مُعيَّنة (داخلية أو غير معروفة):</div>
+        <div id="req-unmapped-list" class="code-block" style="font-size:.73rem;max-height:120px;overflow-y:auto"></div>
+      </div>
+
+      <!-- Per-package table -->
+      <div id="req-table-wrap" style="display:none;margin-top:12px">
+        <div style="font-size:.78rem;font-weight:600;color:var(--text2);margin-bottom:6px">تفاصيل الحزم المكتشفة:</div>
+        <div class="scroll-list" id="req-table" style="max-height:200px"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+// ── Feature 1: Project ZIP Export ─────────────────────────────────────────────
+let _exportName = null;
+
+async function generateExportZip(){
+  const btn = document.getElementById('export-gen-btn');
+  const status = document.getElementById('export-status');
+  const log = document.getElementById('export-log');
+  const dlBtn = document.getElementById('export-dl-btn');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ جارٍ الإنشاء…';
+  status.style.display = 'block';
+  log.innerHTML = '⏳ جارٍ فحص الملفات وإنشاء الأرشيف…';
+
+  try {
+    const data = await apiPost('/updates/api/export/generate', {});
+    if(data.error || !data.ok){
+      log.innerHTML = `❌ خطأ: ${data.error || 'فشل غير معروف'}`;
+      showToast(data.error || 'فشل', 'error');
+    } else {
+      _exportName = data.name;
+      log.innerHTML =
+        `✅ <b>${data.name}</b>\n` +
+        `📁 الملفات المضمّنة: <b>${data.included}</b>\n` +
+        `🚫 الملفات المستثناة: <b>${data.excluded}</b>\n` +
+        `💾 الحجم: <b>${data.size_h}</b>\n` +
+        `\n🎉 الأرشيف جاهز للتحميل!`;
+      dlBtn.style.display = 'inline-flex';
+      dlBtn.textContent = `⬇️ تحميل ${data.name}`;
+      showToast('تم إنشاء ZIP بنجاح ✅', 'success');
+      loadExportList();
+    }
+  } catch(e){
+    log.innerHTML = `❌ خطأ: ${e.message}`;
+    showToast('فشل الإنشاء', 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '⚙️ توليد Project ZIP';
+}
+
+function downloadExport(){
+  if(!_exportName){ showToast('أنشئ الأرشيف أولاً', 'error'); return; }
+  window.location.href = `/updates/api/export/download/${encodeURIComponent(_exportName)}`;
+}
+
+async function loadExportList(){
+  try {
+    const list = await apiGet('/updates/api/export/list');
+    if(!list || !list.length) return;
+    const wrap = document.getElementById('export-list-wrap');
+    const ul   = document.getElementById('export-list');
+    wrap.style.display = 'block';
+    ul.innerHTML = list.map(e =>
+      `<div class="scroll-list-item">
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:.82rem">${e.name}</div>
+          <div style="color:var(--text2);font-size:.73rem">${e.mtime} · ${e.size_h}</div>
+        </div>
+        <button class="btn btn-sm btn-ghost" onclick="window.location.href='/updates/api/export/download/${encodeURIComponent(e.name)}'">⬇️</button>
+      </div>`
+    ).join('');
+  } catch(e){}
+}
+
+// ── Feature 2: Requirements Generator ─────────────────────────────────────────
+
+async function generateRequirements(){
+  const btn     = document.getElementById('req-gen-btn');
+  const dlBtn   = document.getElementById('req-dl-btn');
+  const summary = document.getElementById('req-summary');
+  const preview = document.getElementById('req-preview-wrap');
+  const unmappedWrap = document.getElementById('req-unmapped-wrap');
+  const tableWrap    = document.getElementById('req-table-wrap');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ جارٍ الفحص…';
+  summary.style.display = 'none';
+  preview.style.display = 'none';
+  unmappedWrap.style.display = 'none';
+  tableWrap.style.display = 'none';
+  dlBtn.style.display = 'none';
+
+  try {
+    const data = await apiPost('/updates/api/requirements/generate', {});
+    if(data.error || !data.ok){
+      showToast(data.error || 'فشل', 'error');
+    } else {
+      // Summary badges
+      document.getElementById('req-badge-detected').textContent = `${data.total_packages} مكتبة مكتشفة`;
+      document.getElementById('req-badge-unmapped').textContent = `${data.unmapped.length} غير مُعيَّنة`;
+      summary.style.display = 'block';
+
+      // Requirements preview
+      document.getElementById('req-preview').textContent = data.requirements;
+      preview.style.display = 'block';
+
+      // Unmapped
+      if(data.unmapped.length){
+        const ul = document.getElementById('req-unmapped-list');
+        ul.textContent = data.unmapped.map(u => `${u.import} ← ${u.sources.join(', ')}`).join('\n');
+        unmappedWrap.style.display = 'block';
+      }
+
+      // Per-package table
+      const tbl = document.getElementById('req-table');
+      tbl.innerHTML = data.detected.map(p =>
+        `<div class="scroll-list-item" style="flex-direction:column;align-items:flex-start;padding:6px 10px">
+          <div style="display:flex;align-items:center;gap:8px;width:100%">
+            <span class="badge badge-green" style="font-size:.7rem">${p.pip_name}</span>
+            ${p.version ? `<span style="color:var(--text2);font-size:.72rem">v${p.version}</span>` : ''}
+            <span style="color:var(--text2);font-size:.7rem;margin-right:auto">import ${p.import_name}</span>
+          </div>
+          <div style="color:var(--text2);font-size:.7rem;margin-top:2px">${p.sources.join(' · ')}</div>
+        </div>`
+      ).join('');
+      tableWrap.style.display = 'block';
+
+      dlBtn.style.display = 'inline-flex';
+      showToast(`✅ تم توليد requirements.txt — ${data.total_packages} حزمة`, 'success');
+    }
+  } catch(e){
+    showToast(`فشل: ${e.message}`, 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '🔍 فحص وتوليد requirements.txt';
+}
+
+function downloadRequirements(){
+  window.location.href = '/updates/api/requirements/download';
+}
+
+// Load existing exports on page load
+document.addEventListener('DOMContentLoaded', () => { loadExportList(); });
+
+// Helper: GET wrapper (apiPost already exists in base template)
+async function apiGet(url){
+  const r = await fetch(url);
+  return r.json();
+}
+
 async function restoreBackup(id){
   const btn = event.target;
   btn.disabled = true;
