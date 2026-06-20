@@ -46,6 +46,25 @@ except Exception:
     _IC  = None                # type: ignore
     _CE_OK = False
 
+# ─── Phase 2: Evidence Engine (fail-safe import) ─────────────────────────────
+try:
+    from control_panel.evidence_engine import (
+        verify_file_exists       as _ev_file_exists,
+        find_functions_in_file   as _ev_find_funcs,
+        grep_file_evidence       as _ev_grep,
+        find_import_lines        as _ev_import_lines,
+        find_router_for_concept  as _ev_router_concept,
+        find_keyboard_functions  as _ev_keyboards,
+        calculate_confidence     as _ev_confidence,
+        format_verified_answer   as _ev_format,
+        detect_subsystem         as _ev_subsystem,
+        NO_EVIDENCE_RESPONSE     as _NO_EVIDENCE,
+    )
+    _EV_OK = True
+except Exception as _ev_err:
+    _EV_OK = False
+    _NO_EVIDENCE = "⛔ NO EVIDENCE FOUND"  # type: ignore
+
 # ─── Phase 1: Project Indexer (fail-safe import) ─────────────────────────────
 try:
     from control_panel.project_indexer import ProjectIndexer as _PI
@@ -3673,6 +3692,20 @@ def detect_intent(msg: str) -> str:
     if any(re.search(p, ml) for p in _SCHEMA_P):
         return "arch"
 
+    # ── Function-finder (PHASE 2) — before _FILE_Q ───────────────────────────
+    # "What function creates this keyboard?" / "Which function handles /start?"
+    # Must be checked before _FILE_Q so function queries don't fall into find_file.
+    _FUNC_Q = [
+        r"what\s+function\s+(?:creates?|handles?|processes?|builds?|makes?|generates?|sends?|defines?|serves?)",
+        r"which\s+function\s+(?:creates?|handles?|processes?|builds?|makes?|generates?|sends?|is\s+responsible)",
+        r"what\s+function\s+is\s+responsible",
+        r"which\s+function\s+is\s+responsible",
+        r"ما\s+(?:الدالة|الوظيفة).{0,20}(?:التي|اللي|تُنشئ|تُعالج|تُرسل|تبني)",
+        r"أي\s+(?:دالة|وظيفة).{0,20}(?:تُنشئ|تعالج|تبني|تُرسل)",
+    ]
+    if any(re.search(p, ml) for p in _FUNC_Q):
+        return "find_function"
+
     # ── Priority 1: file-awareness patterns (must run first) ──────────────────
     _FILE_Q = [
         r"what file.{0,25}control",
@@ -5442,6 +5475,7 @@ def process_chat(msg: str) -> dict:
         "project_mod":    lambda: _r_project_mod(msg),
         # ── Project knowledge ─────────────────────────────────────────────────
         "find_file":      lambda: _r_find_file(msg),
+        "find_function":  lambda: _r_find_function(msg),   # PHASE 2
         "plan_modify":    lambda: _r_plan(msg),
         "dependency":     lambda: _r_dependency(msg),
         "who_depends":    lambda: _r_who_depends_on(msg),
@@ -5451,7 +5485,7 @@ def process_chat(msg: str) -> dict:
         "root_cause":     lambda: _r_root_cause(msg),
         "arch":           lambda: _r_arch(msg),
         "structure":      lambda: _r_structure(),
-        "routes":         lambda: _r_routes(),
+        "routes":         lambda: _r_routes(msg),          # PHASE 2: pass msg for concept lookup
         "security":       lambda: _r_security(),
         "errors":         lambda: _r_errors(),
         "analyze":        lambda: _r_analyze(),
@@ -5874,8 +5908,204 @@ def _r_new_page(msg: str) -> dict:
 
 
 def _r_find_file(msg: str) -> dict:
+    """
+    PHASE 2 — Evidence-first file lookup.
+
+    Mandatory flow:
+      1. Answer via answer_file_question() (semantic + route graph)
+      2. Verify primary file physically exists on disk
+      3. Find functions in file related to query
+      4. Extract evidence lines (actual code)
+      5. Calculate confidence
+      6. Append mandatory Verification Report block
+    """
     update_stats("total_questions")
-    return answer_file_question(msg)
+    base = answer_file_question(msg)
+
+    if not _EV_OK:
+        return base
+
+    # ── Extract verified file list ────────────────────────────────────────────
+    file_list = base.get("data", {}).get("files", [])
+    concept   = base.get("data", {}).get("concept", msg)
+
+    # If the evidence gate already returned NO EVIDENCE, propagate it
+    if not file_list and "INSUFFICIENT" in base.get("data", {}).get("evidence", ""):
+        return base
+
+    if not file_list:
+        # No files found — explicit NO EVIDENCE
+        return {
+            "text": _NO_EVIDENCE + f"\n\n_Concept searched: `{concept}`_",
+            "data": {"concept": concept, "files": [], "evidence": "NO_FILES_FOUND"},
+        }
+
+    # ── Verification: take the primary (highest-relevance) file ──────────────
+    primary   = file_list[0]["path"]
+    exists    = _ev_file_exists(primary)
+
+    if not exists:
+        return {
+            "text": _NO_EVIDENCE + f"\n\n_File `{primary}` not found on disk._",
+            "data": {"concept": concept, "files": [], "evidence": "FILE_NOT_ON_DISK"},
+        }
+
+    # ── Evidence collection ───────────────────────────────────────────────────
+    terms      = [t for t in concept.lower().split() if len(t) > 3][:6]
+    funcs      = _ev_find_funcs(primary, terms)
+    ev_lines   = _ev_grep(primary, terms, max_hits=3)
+    subsystem  = _ev_subsystem(primary)
+    confidence = _ev_confidence(
+        file_exists=exists,
+        functions_found=funcs,
+        evidence_lines=ev_lines,
+    )
+    func_name  = funcs[0]["name"] if funcs else None
+
+    # ── Build mandatory verification block ───────────────────────────────────
+    extra = []
+    if len(file_list) > 1:
+        others = [f"`{f['path']}`" for f in file_list[1:4]]
+        extra.append(f"📂 **Related:** {', '.join(others)}")
+
+    verify_block = _ev_format(
+        subsystem=subsystem,
+        file_path=primary,
+        function_name=func_name,
+        evidence_lines=ev_lines,
+        confidence=confidence,
+        extra_lines=extra,
+    )
+
+    return {
+        "text": base["text"] + verify_block,
+        "data": {**base.get("data", {}), "verification": {
+            "subsystem": subsystem,
+            "primary_file": primary,
+            "function": func_name,
+            "confidence": confidence,
+            "evidence_count": len(ev_lines),
+        }},
+    }
+
+
+def _r_find_function(msg: str) -> dict:
+    """
+    PHASE 2 — Function-finder handler.
+
+    Mandatory flow:
+      1. Determine what kind of function is sought (keyboard, handler, etc.)
+      2. Search real project files for matching function definitions
+      3. Verify each file exists on disk
+      4. Extract function signature as evidence
+      5. Build mandatory Verification Report
+
+    Returns NO EVIDENCE if no matching function found.
+    """
+    if not _EV_OK:
+        return {"text": "⚠️ Evidence Engine not loaded.", "data": {}}
+
+    ml = msg.lower()
+
+    # ── Classify the function type ────────────────────────────────────────────
+    is_keyboard = any(kw in ml for kw in [
+        "keyboard", "inline", "reply", "button", "لوحة", "زر",
+    ])
+    is_handler  = any(kw in ml for kw in [
+        "handler", "command", "معالج", "أمر",
+    ])
+
+    # ── Case 1: keyboard functions ────────────────────────────────────────────
+    if is_keyboard:
+        kb_funcs = _ev_keyboards()
+        if not kb_funcs:
+            return {
+                "text": _NO_EVIDENCE + "\n\n_No keyboard-creating functions found._",
+                "data": {"evidence": "NO_KEYBOARD_FUNCTIONS"},
+            }
+
+        lines: list = [
+            f"⌨️ **Keyboard Functions Found: {len(kb_funcs)}**\n",
+            "_(verified by reading real file content)_\n",
+        ]
+        for entry in kb_funcs[:10]:
+            ev_lines = [{"line_no": entry["line_no"], "text": entry["evidence"]}]
+            block = _ev_format(
+                subsystem=_ev_subsystem(entry["file"]),
+                file_path=entry["file"],
+                function_name=entry["function"],
+                evidence_lines=ev_lines,
+                confidence=_ev_confidence(
+                    file_exists=True,
+                    functions_found=[entry],
+                    evidence_lines=ev_lines,
+                ),
+                extra_lines=[f"🎹 **Keyboard type:** `{entry['keyboard_type']}`"],
+                label="VERIFIED FROM SOURCE",
+            )
+            lines.append(block)
+            lines.append("")
+
+        return {"text": "\n".join(lines), "data": {"functions": kb_funcs[:10]}}
+
+    # ── Case 2: generic function search with query terms ─────────────────────
+    terms = [t for t in re.sub(
+        r"what|which|function|creates?|handles?|processes?|makes?",
+        " ", ml,
+    ).split() if len(t) > 3][:5]
+
+    if not terms:
+        return {
+            "text": (
+                "⚠️ لم أستطع تحديد نوع الدالة.\n\n"
+                "جرب:\n"
+                "  • 'What function creates the keyboard?'\n"
+                "  • 'What function handles /start command?'\n"
+                "  • 'What function sends notifications?'"
+            ),
+            "data": {},
+        }
+
+    # Search all Python files
+    results: list = []
+    import os
+    proj = __import__("pathlib").Path(__file__).parent.parent
+    for py_file in sorted(proj.rglob("*.py")):
+        rel = str(py_file.relative_to(proj)) if proj in py_file.parents else str(py_file)
+        if any(skip in rel for skip in ["__pycache__", ".git", "node_modules"]):
+            continue
+        funcs = _ev_find_funcs(rel, terms)
+        for f in funcs:
+            results.append({**f, "file": rel})
+
+    if not results:
+        return {
+            "text": _NO_EVIDENCE + f"\n\n_No function found matching: {terms}_",
+            "data": {"evidence": "NO_FUNCTION_FOUND", "terms": terms},
+        }
+
+    lines = [
+        f"⚙️ **Functions matching `{' '.join(terms)}`:** {len(results)} found\n",
+        "_(verified from real source files)_\n",
+    ]
+    for entry in results[:8]:
+        ev_lines = [{"line_no": entry["line_no"], "text": entry["evidence"]}]
+        block = _ev_format(
+            subsystem=_ev_subsystem(entry["file"]),
+            file_path=entry["file"],
+            function_name=entry["name"],
+            evidence_lines=ev_lines,
+            confidence=_ev_confidence(
+                file_exists=True,
+                functions_found=[entry],
+                evidence_lines=ev_lines,
+            ),
+            label="VERIFIED FROM SOURCE",
+        )
+        lines.append(block)
+        lines.append("")
+
+    return {"text": "\n".join(lines), "data": {"functions": results[:8]}}
 
 
 def _r_plan(msg: str) -> dict:
@@ -5922,17 +6152,31 @@ def _r_dependency(msg: str) -> dict:
         for a in route_info.get("apis", []):
             lines.append(f"  🔌 API: `{a}`")
 
-    # ── File-level import graph (live AST) ────────────────────────────────────
+    # ── File-level import graph (live AST) — PHASE 2: with evidence lines ──────
     if entries:
         for path, role, desc in entries[:4]:
             report = ProjectDependencyGraph.full_impact_report(path)
             direct = report.get("direct_importers", [])
             risk   = report.get("risk", "LOW")
             lines.append(f"\n📁 `{path}` [{role}] — {desc}")
+
+            # Verify the target file itself exists before claiming anything
+            if _EV_OK and not _ev_file_exists(path):
+                lines.append("  ⛔ **FILE NOT ON DISK** — cannot verify importers")
+                continue
+
             if direct:
                 lines.append(f"  📥 **يستورده ({len(direct)} ملف):**")
                 for imp in direct[:10]:
                     lines.append(f"    ↳ `{imp}`")
+                    # PHASE 2 EVIDENCE: verify import file exists + show actual import line
+                    if _EV_OK:
+                        if not _ev_file_exists(imp):
+                            lines.append(f"      ⚠️ _(file not on disk — may be stale index)_")
+                        else:
+                            imp_ev = _ev_import_lines(imp, path)
+                            if imp_ev:
+                                lines.append(f"      📋 `{imp_ev[0]['text']}`")
                 if len(direct) > 10:
                     lines.append(f"    ... و {len(direct) - 10} ملف آخر")
             trans = report.get("transitive_impact", [])
@@ -6294,9 +6538,86 @@ def _r_structure() -> dict:
     return {"text": "\n".join(lines), "data": s}
 
 
-def _r_routes() -> dict:
+def _r_routes(msg: str = "") -> dict:
+    """
+    PHASE 2 — Evidence-first router lookup.
+
+    When a specific concept is in the query:
+      1. Search real router files for matching @router decorators
+      2. Verify router file exists on disk
+      3. Extract decorator line as evidence
+      4. Build mandatory Verification Report
+
+    When no specific concept: list all routes (no inference).
+    """
     routes = detect_routes()
-    lines  = [f"🌐 **{len(routes)} مسار في لوحة التحكم:**\n"]
+
+    # ── Concept-specific lookup ───────────────────────────────────────────────
+    if msg and _EV_OK:
+        ml = msg.lower()
+        # Extract the concept from the query (strip question words)
+        concept_m = re.sub(
+            r"(?:what|which|who)\s+router\s+(?:serves?|handles?|manages?|is\s+responsible\s+for)?",
+            "", ml, flags=re.IGNORECASE,
+        ).strip(" ?./")
+        concept_m = re.sub(r"\s+", " ", concept_m).strip()
+
+        if concept_m and len(concept_m) > 2:
+            router_hits = _ev_router_concept(concept_m)
+            if router_hits:
+                best = router_hits[0]
+                rf   = best["router_file"]
+                exists = _ev_file_exists(rf)
+
+                # Evidence: read the decorator line from the real file
+                ev_lines: list = []
+                if exists:
+                    ev_lines.append({"line_no": best["line_no"], "text": best["evidence_line"]})
+                    if best.get("include_evidence"):
+                        ev_lines.append({"line_no": 0, "text": best["include_evidence"]})
+
+                confidence = _ev_confidence(
+                    file_exists=exists,
+                    functions_found=[best["function"]] if best["function"] != "unknown" else [],
+                    evidence_lines=ev_lines,
+                )
+                subsystem = _ev_subsystem(rf)
+
+                extra: list = []
+                if best.get("prefix"):
+                    extra.append(f"🔗 **Route prefix:** `{best['prefix']}`")
+                extra.append(f"🛣️ **Matched route:** `{best['route']}`")
+                if len(router_hits) > 1:
+                    others = [f"`{h['router_file']}`" for h in router_hits[1:3]]
+                    extra.append(f"📂 **Other matches:** {', '.join(others)}")
+
+                verify_block = _ev_format(
+                    subsystem=subsystem,
+                    file_path=rf,
+                    function_name=best["function"] if best["function"] != "unknown" else None,
+                    evidence_lines=ev_lines,
+                    confidence=confidence,
+                    extra_lines=extra,
+                )
+
+                summary = (
+                    f"🌐 **Router for concept `{concept_m}`:**\n\n"
+                    f"⚙️ **Router file:** `{rf}`\n"
+                    f"🛣️ **Route:** `{best['route']}`\n"
+                    f"⚙️ **Function:** `{best['function']}()`\n"
+                )
+                if best.get("prefix"):
+                    summary += f"🔗 **Prefix:** `{best['prefix']}`\n"
+                summary += verify_block
+
+                return {
+                    "text": summary,
+                    "data": {"routes": routes, "router_hit": best,
+                             "verification": {"confidence": confidence}},
+                }
+
+    # ── Fallback: full route list ─────────────────────────────────────────────
+    lines = [f"🌐 **{len(routes)} مسار في لوحة التحكم:**\n"]
     for r in routes:
         lines.append(f"• `{r['route']}` → `{r['template']}` — {r['description']}")
     return {"text": "\n".join(lines), "data": {"routes": routes}}
