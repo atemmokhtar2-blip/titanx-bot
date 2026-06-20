@@ -11,10 +11,19 @@ _here        = os.path.dirname(os.path.abspath(__file__))
 _pythonlibs  = os.path.join(_here, ".pythonlibs", "lib", "python3.12", "site-packages")
 _extracted   = os.path.join(_here, "extracted_project")
 
-# .pythonlibs must be first so installed packages shadow the older Nix-store versions
-for _p in (_pythonlibs, _extracted):
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
+# Strip conflicting Nix-store packages, then prepend .pythonlibs
+_conflict_pkgs = [
+    "typing-extensions", "typing_extensions",
+    "pydantic", "pydantic_core",
+    "starlette", "fastapi",
+    "annotated_types", "annotated-types",
+]
+sys.path = [_pythonlibs] + [
+    p for p in sys.path
+    if not (p.startswith("/nix/store") and any(pkg in p for pkg in _conflict_pkgs))
+]
+if _extracted not in sys.path:
+    sys.path.insert(1, _extracted)
 
 import uvicorn  # noqa: E402
 from control_panel.app import app  # noqa: E402

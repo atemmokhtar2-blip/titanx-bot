@@ -2,14 +2,19 @@
 import sys
 import os
 
-# Put .pythonlibs FIRST and remove conflicting Nix-store typing_extensions
+# Put .pythonlibs FIRST and strip ALL conflicting Nix-store package paths
 _pythonlibs = "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages"
-# Remove any nix-store paths that might shadow our .pythonlibs packages
+
+_conflict_pkgs = [
+    "typing-extensions", "typing_extensions",
+    "pydantic", "pydantic_core",
+    "starlette", "fastapi",
+    "annotated_types", "annotated-types",
+]
+
 sys.path = [_pythonlibs] + [
     p for p in sys.path
-    if not (p.startswith("/nix/store") and any(
-        pkg in p for pkg in ["typing-extensions", "pydantic", "starlette", "fastapi"]
-    ))
+    if not (p.startswith("/nix/store") and any(pkg in p for pkg in _conflict_pkgs))
 ]
 
 # Ensure extracted_project is importable
