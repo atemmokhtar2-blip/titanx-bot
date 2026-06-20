@@ -16,3 +16,4 @@
 - [AI Pipeline Root Cause Repairs](ai-pipeline-repairs.md) — 5 root causes fixed (A-E): HF broad patterns removed; INTENTS hf_query narrowed; Context Lock added to _step2_search; Evidence Gate added to answer_file_question; _PHASE5_TESTS + Phase 5 runner added. P5: 5/5 ✅, regression 8/8 ✅, total 47/50 (3 pre-existing P3/P4 identity keyword mismatches, out of scope).
 - [Phase 1 Root-Cause Repair](phase1-rootcause.md) — 3 root causes fixed; 22/23 regression (1 pre-existing); 5/5 verification tests pass.
 - [Phase 2 Evidence Engine](phase2-evidence.md) — evidence_engine.py + 7 surgical edits; 23/23 regression; 10/10 criteria; 5/5 tests pass.
+- [Phase 2 Maturity Repair](phase2-maturity-repair.md) — 3 root causes fixed: (1) calc_confidence hard-cap 0.45 when evidence_lines=[]; (2) format_verified overrides VERIFIED→NOT VERIFIED when no code lines; (3) _r_find_file multi-file search, stop-word terms, TemplateResponse float, 17/17 tests pass.

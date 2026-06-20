@@ -6029,12 +6029,19 @@ def _r_find_file(msg: str) -> dict:
     PHASE 2 — Evidence-first file lookup.
 
     Mandatory flow:
-      1. Answer via answer_file_question() (semantic + route graph)
-      2. Verify primary file physically exists on disk
-      3. Find functions in file related to query
-      4. Extract evidence lines (actual code)
-      5. Calculate confidence
-      6. Append mandatory Verification Report block
+      1. Answer via answer_file_question() (semantic + route graph) → file list
+      2. Verify each candidate file exists on disk (skip missing ones)
+      3. Extract search terms from BOTH concept AND full message (wider net)
+      4. Search ALL verified candidate files for source code evidence
+      5. For button/template/route questions: run specialised extractors too
+      6. Build File → Function → Line → Statement response per evidence hit
+      7. Return explicit NO SOURCE CODE EVIDENCE if nothing found in any file
+
+    PHASE 2 ENFORCEMENT:
+        Ownership lists without code lines are FORBIDDEN as final output.
+        If no actual source code lines are found across ALL candidate files →
+        return NO_EVIDENCE_RESPONSE and stop.  Do NOT append a verification
+        block on top of an ownership-only answer.
     """
     update_stats("total_questions")
     base = answer_file_question(msg)
@@ -6051,58 +6058,207 @@ def _r_find_file(msg: str) -> dict:
         return base
 
     if not file_list:
-        # No files found — explicit NO EVIDENCE
         return {
-            "text": _NO_EVIDENCE + f"\n\n_Concept searched: `{concept}`_",
+            "text": _NO_EVIDENCE + f"\n\n_مفهوم البحث: `{concept}`_",
             "data": {"concept": concept, "files": [], "evidence": "NO_FILES_FOUND"},
         }
 
-    # ── Verification: take the primary (highest-relevance) file ──────────────
-    primary   = file_list[0]["path"]
-    exists    = _ev_file_exists(primary)
+    # ── Classify question type first (needed for term injection below) ────────
+    ml = msg.lower()
+    _is_button_q   = any(kw in ml for kw in ["button", "زر", "btn"])
+    _is_template_q = any(kw in ml for kw in [
+        ".html", "template", "templateresponse", "render", "jinja",
+        "access.html", "dashboard.html",
+    ])
+    _is_route_q = any(kw in ml for kw in [
+        "route", "endpoint", "url", "path", "/panel", "/login", "/ai",
+        "decorator", "@app", "@router",
+    ])
 
-    if not exists:
+    # ── PHASE 2 FIX: Stop-word filtered terms from BOTH concept AND message ──
+    # Generic question words ("file", "what", "html") match import lines
+    # everywhere and produce false evidence.  Filter them out so only
+    # discriminating domain keywords survive.
+    _STOP_WORDS: set = {
+        "what", "where", "which", "file", "files", "that", "this", "with",
+        "from", "have", "will", "does", "into", "when", "then", "also",
+        "only", "more", "some", "show", "find", "locate", "creates", "create",
+        "handles", "handle", "manages", "manage", "controls", "control",
+        "renders", "render", "serves", "serve", "loads", "load", "returns",
+        "return", "gets", "sets", "uses", "used", "make", "makes",
+        "responsible", "page", "pages", "html", "code", "exact", "source",
+        "claim", "verify", "check", "look", "view", "here", "there",
+    }
+    _all_words = set((concept.lower() + " " + msg.lower()).split())
+    terms: list = [
+        _w.strip("?./") for _w in _all_words
+        if len(_w.strip("?./")) > 3
+        and _w.strip("?./").isalpha()
+        and _w.strip("?./").lower() not in _STOP_WORDS
+    ][:8]
+
+    # ── For .html filename questions: inject full filename + stem + TemplateResponse
+    # "Where is access.html rendered?" → terms: ["access", "access.html", "TemplateResponse"]
+    # "access.html" as a grep term directly finds TemplateResponse("access.html", ...)
+    _html_filenames: list = []
+    if _is_template_q:
+        for _mw in msg.split():
+            if ".html" in _mw.lower() and len(_mw) > 5:
+                _full = _mw.lower().rstrip("?")          # "access.html"
+                _stem = _full.split(".")[0]              # "access"
+                if _stem not in terms:
+                    terms.append(_stem)
+                if _full not in terms:
+                    terms.append(_full)                  # matches TemplateResponse("access.html"...)
+                _html_filenames.append(_full)
+        if "TemplateResponse" not in terms:
+            terms.append("TemplateResponse")
+
+    # ── PHASE 2 FIX: Multi-file evidence search ───────────────────────────────
+    # Old code only searched primary file.  Now search ALL candidate files.
+    all_evidence: list = []   # list of (file_path, func_name, func_line, ev_lines)
+
+    for file_entry in file_list[:5]:
+        fpath = file_entry["path"]
+        if not _ev_file_exists(fpath):
+            continue
+
+        funcs    = _ev_find_funcs(fpath, terms)
+        ev_lines = _ev_grep(fpath, terms, max_hits=4)
+
+        # For template questions: targeted grep for TemplateResponse + html filenames
+        # (avoid broad terms like "return"/"Response" that match too many lines)
+        if _is_template_q:
+            _tmpl_kw = ["TemplateResponse"] + _html_filenames
+            ev_extra = _ev_grep(fpath, _tmpl_kw, max_hits=5)
+            _seen_ln = {e["line_no"] for e in ev_lines}
+            for ex in ev_extra:
+                if ex["line_no"] not in _seen_ln:
+                    ev_lines.append(ex)
+                    _seen_ln.add(ex["line_no"])
+
+        # For route questions: grep for route decorators
+        elif _is_route_q:
+            _route_kw = ["@app.", "@router.", "@app.post", "@app.get"]
+            ev_extra = _ev_grep(fpath, _route_kw, max_hits=3)
+            _seen_ln = {e["line_no"] for e in ev_lines}
+            for ex in ev_extra:
+                if ex["line_no"] not in _seen_ln:
+                    ev_lines.append(ex)
+                    _seen_ln.add(ex["line_no"])
+
+        if ev_lines:
+            func_name = funcs[0]["name"] if funcs else None
+            func_line = funcs[0]["line_no"] if funcs else None
+            all_evidence.append((fpath, func_name, func_line, ev_lines))
+
+    # ── Specialised: HTML template button search ──────────────────────────────
+    # Pass discriminating terms (not full question) as button concept so the
+    # template scanner searches for e.g. "admin panel" not "what file creates..."
+    if _is_button_q:
+        _btn_concept = " ".join(t for t in terms if t not in {"button", "btn"})
+        tb = _ev_template_buttons(_btn_concept or concept)
+        if tb:
+            for entry in tb[:4]:
+                ev_line = [{"line_no": entry["line_no"], "text": entry["text"]}]
+                all_evidence.append((entry["file"], None, None, ev_line))
+
+    # ── PHASE 2 ENFORCEMENT: No code lines found → NO EVIDENCE ───────────────
+    if not all_evidence:
+        _searched = [f["path"] for f in file_list[:5]]
         return {
-            "text": _NO_EVIDENCE + f"\n\n_File `{primary}` not found on disk._",
-            "data": {"concept": concept, "files": [], "evidence": "FILE_NOT_ON_DISK"},
+            "text": (
+                "⛔ **NO SOURCE CODE EVIDENCE**\n\n"
+                f"الملفات المرشحة لـ `{concept}` موجودة، "
+                "لكن لم نجد أسطر كود تتطابق مع مصطلحات البحث.\n\n"
+                "📂 **الملفات التي تم البحث فيها:**\n"
+                + "\n".join(f"  • `{p}`" for p in _searched)
+                + f"\n\n_مصطلحات البحث: {sorted(terms)}_\n\n"
+                "أعد الصياغة باسم الدالة أو الكلمة المفتاحية الدقيقة."
+            ),
+            "data": {
+                "concept": concept,
+                "files_searched": _searched,
+                "terms": sorted(terms),
+                "evidence": "NO_CODE_LINES_FOUND",
+            },
         }
 
-    # ── Evidence collection ───────────────────────────────────────────────────
-    terms      = [t for t in concept.lower().split() if len(t) > 3][:6]
-    funcs      = _ev_find_funcs(primary, terms)
-    ev_lines   = _ev_grep(primary, terms, max_hits=3)
-    subsystem  = _ev_subsystem(primary)
-    confidence = _ev_confidence(
-        file_exists=exists,
-        functions_found=funcs,
-        evidence_lines=ev_lines,
-    )
-    func_name  = funcs[0]["name"] if funcs else None
+    # ── Build evidence-first response: File → Function → Line → Statement ─────
+    out_lines = [f"🔍 **Source Code Evidence — `{concept}`**\n"]
 
-    # ── Build mandatory verification block ───────────────────────────────────
-    extra = []
-    if len(file_list) > 1:
-        others = [f"`{f['path']}`" for f in file_list[1:4]]
-        extra.append(f"📂 **Related:** {', '.join(others)}")
+    primary_path = primary_func = None
+    primary_evlines: list = []
+
+    for (fpath, func_name, func_line, ev_lines) in all_evidence[:4]:
+        subsystem  = _ev_subsystem(fpath)
+        confidence = _ev_confidence(
+            file_exists=True,
+            functions_found=[{"name": func_name}] if func_name else [],
+            evidence_lines=ev_lines,
+        )
+        icon = "🟢" if confidence >= 0.75 else "🟡" if confidence >= 0.50 else "🔴"
+
+        # For template questions: float TemplateResponse / .html lines to front
+        # so they appear in the first 4 displayed slots regardless of line order.
+        if _is_template_q and ev_lines:
+            _tmpl_first = [
+                e for e in ev_lines
+                if "TemplateResponse" in e.get("text","") or any(f in e.get("text","") for f in _html_filenames)
+            ]
+            _rest       = [e for e in ev_lines if e not in _tmpl_first]
+            ev_lines    = _tmpl_first + _rest
+
+        out_lines.append(f"📁 **File:** `{fpath}` [{subsystem}]")
+        if func_name:
+            _fl = f" (L{func_line})" if func_line else ""
+            out_lines.append(f"⚙️ **Function:** `{func_name}(){_fl}`")
+        out_lines.append("📋 **Evidence (from real file):**")
+        for ev in ev_lines[:4]:                      # show up to 4 lines (not 3)
+            out_lines.append(f"  `L{ev['line_no']}:` `{ev['text']}`")
+        out_lines.append(f"{icon} **Confidence:** `{int(confidence * 100)}%`")
+        out_lines.append("")
+
+        if primary_path is None:
+            primary_path    = fpath
+            primary_func    = func_name
+            primary_evlines = ev_lines
+
+    # ── Append mandatory Verification Report ──────────────────────────────────
+    _p_subsystem  = _ev_subsystem(primary_path)
+    _p_confidence = _ev_confidence(
+        file_exists=True,
+        functions_found=[{"name": primary_func}] if primary_func else [],
+        evidence_lines=primary_evlines,
+    )
+    _extra: list = []
+    if len(all_evidence) > 1:
+        _others = [f"`{fp}`" for fp, _, _, _ in all_evidence[1:4]]
+        _extra.append(f"📂 **Also found in:** {', '.join(_others)}")
 
     verify_block = _ev_format(
-        subsystem=subsystem,
-        file_path=primary,
-        function_name=func_name,
-        evidence_lines=ev_lines,
-        confidence=confidence,
-        extra_lines=extra,
+        subsystem=_p_subsystem,
+        file_path=primary_path,
+        function_name=primary_func,
+        evidence_lines=primary_evlines,
+        confidence=_p_confidence,
+        extra_lines=_extra,
     )
+    out_lines.append(verify_block)
 
     return {
-        "text": base["text"] + verify_block,
-        "data": {**base.get("data", {}), "verification": {
-            "subsystem": subsystem,
-            "primary_file": primary,
-            "function": func_name,
-            "confidence": confidence,
-            "evidence_count": len(ev_lines),
-        }},
+        "text": "\n".join(out_lines),
+        "data": {
+            **base.get("data", {}),
+            "verification": {
+                "subsystem": _p_subsystem,
+                "primary_file": primary_path,
+                "function": primary_func,
+                "confidence": _p_confidence,
+                "evidence_count": len(primary_evlines),
+                "files_with_evidence": len(all_evidence),
+            },
+        },
     }
 
 

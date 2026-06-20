@@ -452,20 +452,54 @@ def calculate_confidence(
     """
     Confidence 0.0–1.0 based only on verified evidence.
     No points awarded for unverified claims.
+
+    PHASE 2 ENFORCEMENT:
+        evidence_lines is MANDATORY to reach 🟢 (≥ 0.75) status.
+        Without actual source code lines the score is hard-capped at 0.45 —
+        the system CANNOT claim VERIFIED without code evidence.
+
+    Score breakdown (evidence present):
+        0.30  file verified on disk
+        0.20  function definition confirmed in file
+        0.35  actual source code lines found  ← MANDATORY signal
+        0.15  import chain verified
+        ────
+        1.00  max
+
+    Score breakdown (no evidence_lines):
+        0.25  file exists on disk
+        0.15  function definition found
+        0.05  import chain
+        0.45  hard cap — never 🟢
     """
     if not file_exists:
         return 0.0
-    score = 0.40                         # File verified on disk
+    # ── PHASE 2: evidence_lines required for VERIFIED status ─────────────────
+    if not evidence_lines:
+        score = 0.25                        # File on disk (unverified content)
+        if functions_found:
+            score += 0.15                   # Function def found — still no code proof
+        if import_lines:
+            score += 0.05                   # Import chain found
+        return round(min(score, 0.45), 2)  # Hard cap: CANNOT reach 🟢 without code lines
+    # ── Full scoring (evidence_lines present) ─────────────────────────────────
+    score = 0.30                            # File verified on disk
     if functions_found:
-        score += 0.35                    # Function definition found in file
-    if evidence_lines:
-        score += 0.15                    # Relevant code lines found
+        score += 0.20                       # Function definition confirmed in file
+    score += 0.35                           # Actual source code lines — MANDATORY
     if import_lines:
-        score += 0.10                    # Import chain verified
+        score += 0.15                       # Import chain verified
     return round(min(score, 1.0), 2)
 
 
 # ── Mandatory answer format (Subsystem/File/Function/Evidence/Confidence) ────
+_VERIFIED_LABELS: set = {
+    "✅ VERIFIED",
+    "VERIFIED FROM SOURCE",
+    "VERIFIED FROM HTML SOURCE",
+    "VERIFIED",
+}
+
 def format_verified_answer(
     subsystem: str,
     file_path: str,
@@ -480,7 +514,16 @@ def format_verified_answer(
 
     Required fields:
         Subsystem · File · Function · Evidence · Confidence Score
+
+    PHASE 2 ENFORCEMENT:
+        The VERIFIED label is FORBIDDEN unless evidence_lines contains at least
+        one real source code entry.  If evidence_lines is empty the label is
+        unconditionally overridden to NOT VERIFIED — no caller can bypass this.
     """
+    # ── PHASE 2: Override VERIFIED when there is no code evidence ────────────
+    if not evidence_lines and label in _VERIFIED_LABELS:
+        label = "⛔ NOT VERIFIED — No source code lines extracted"
+
     icon = "🟢" if confidence >= 0.75 else "🟡" if confidence >= 0.50 else "🔴"
 
     lines: list = [
@@ -502,6 +545,9 @@ def format_verified_answer(
                 lines.append(f"  `L{ev['line_no']}:` `{ev['text']}`")
             elif isinstance(ev, str):
                 lines.append(f"  `{ev}`")
+    else:
+        lines.append("⚠️ **Reason:** No source code lines found matching search terms.")
+        lines.append("📌 **Next step:** Rephrase using the exact function name or keyword.")
 
     if extra_lines:
         lines.extend(extra_lines)
