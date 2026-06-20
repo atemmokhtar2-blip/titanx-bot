@@ -55,6 +55,7 @@ try:
         find_import_lines        as _ev_import_lines,
         find_router_for_concept  as _ev_router_concept,
         find_keyboard_functions  as _ev_keyboards,
+        find_template_buttons    as _ev_template_buttons,
         calculate_confidence     as _ev_confidence,
         format_verified_answer   as _ev_format,
         detect_subsystem         as _ev_subsystem,
@@ -4199,7 +4200,7 @@ def answer_file_question(msg: str) -> dict:
 
     return {
         "text": "\n".join(lines),
-        "data": {"concept": concept, "files": file_list},
+        "data": {"concept": concept, "files": file_list, "evidence": "VERIFIED"},
     }
 
 
@@ -6015,7 +6016,52 @@ def _r_find_function(msg: str) -> dict:
         "handler", "command", "معالج", "أمر",
     ])
 
-    # ── Case 1: keyboard functions ────────────────────────────────────────────
+    # ── Project Understanding: Disambiguate web-UI vs Telegram keyboard ───────
+    # "Admin Panel button", "control panel button", "login button" etc. refer to
+    # HTML elements in templates — NOT Telegram InlineKeyboardButtons.
+    # Mandatory verification flow: identify subsystem BEFORE dispatching.
+    _WEB_UI_SIGNALS = [
+        "admin panel", "control panel", "dashboard", "panel button",
+        "login button", "html", "template", "web", "page button",
+    ]
+    is_web_ui_button = is_keyboard and any(sig in ml for sig in _WEB_UI_SIGNALS)
+
+    # ── Case 0: web-UI button (HTML template) — must check BEFORE Telegram kb ─
+    if is_web_ui_button and _EV_OK:
+        concept = re.sub(
+            r"what|which|function|creates?|button|makes?|the|file|owns?",
+            " ", ml,
+        ).strip()
+        tb = _ev_template_buttons(concept)
+        if tb:
+            lines_out: list = [
+                f"🖥️ **Web-UI Buttons matching `{concept.strip()}`:** {len(tb)} found\n",
+                "_(verified by reading real HTML template files)_\n",
+            ]
+            for entry in tb[:8]:
+                ev_lines = [{"line_no": entry["line_no"], "text": entry["text"]}]
+                exists   = _ev_file_exists(entry["file"])
+                conf     = _ev_confidence(
+                    file_exists=exists,
+                    functions_found=[],
+                    evidence_lines=ev_lines,
+                )
+                block = _ev_format(
+                    subsystem=_ev_subsystem(entry["file"]),
+                    file_path=entry["file"],
+                    function_name=None,
+                    evidence_lines=ev_lines,
+                    confidence=conf,
+                    extra_lines=[f"🏷️ **Element type:** `{entry['element_type']}`"],
+                    label="VERIFIED FROM HTML SOURCE",
+                )
+                lines_out.append(block)
+                lines_out.append("")
+            return {"text": "\n".join(lines_out), "data": {"template_buttons": tb[:8]}}
+        # No HTML buttons matched — fall through to Telegram keyboard search
+        # so the user still gets an answer rather than silence
+
+    # ── Case 1: Telegram keyboard functions ───────────────────────────────────
     if is_keyboard:
         kb_funcs = _ev_keyboards()
         if not kb_funcs:

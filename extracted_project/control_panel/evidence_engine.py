@@ -249,6 +249,54 @@ def find_router_for_concept(concept: str) -> list:
             except Exception:
                 pass
 
+    # ── Step 2: scan app.py for direct @app.get/post routes ─────────────────
+    # Routes defined directly on the FastAPI `app` object (login, panel, etc.)
+    # are invisible to the routers-directory scan above.  Scan app.py explicitly.
+    if app_py.exists():
+        try:
+            content    = app_py.read_text(errors="ignore")
+            file_lines = content.splitlines()
+            rel_app    = "control_panel/app.py"
+
+            for i, line in enumerate(file_lines):
+                stripped = line.strip()
+                dm = re.match(
+                    r'@app\.(get|post|put|delete|patch)\(["\']([^"\']*)["\']',
+                    stripped,
+                )
+                if dm:
+                    route_path = dm.group(2)
+                    route_norm = route_path.lower()
+
+                    score = sum(
+                        1
+                        for cp in concept_parts
+                        if cp in route_norm
+                    )
+                    if score == 0:
+                        score = 1 if concept_lower in route_norm else 0
+
+                    if score > 0:
+                        func_name = None
+                        for j in range(i + 1, min(i + 8, len(file_lines))):
+                            fm = re.match(r"\s*(?:async\s+)?def\s+(\w+)", file_lines[j])
+                            if fm:
+                                func_name = fm.group(1)
+                                break
+
+                        results.append({
+                            "router_file":      rel_app,
+                            "prefix":           "",
+                            "function":         func_name or "unknown",
+                            "route":            route_path,
+                            "evidence_line":    stripped[:120],
+                            "line_no":          i + 1,
+                            "include_evidence": f"direct @app route in {rel_app}",
+                            "score":            score + 1,  # boost: direct app routes are authoritative
+                        })
+        except Exception:
+            pass
+
     results.sort(key=lambda x: x["score"], reverse=True)
     # Deduplicate by router_file (keep highest-scored entry per file)
     seen: set = set()
@@ -338,6 +386,58 @@ def find_keyboard_functions() -> list:
                 "evidence":      current_func_ev,
                 "keyboard_type": kb_type,
             })
+
+    return results
+
+
+# ── HTML template button / link finder ──────────────────────────────────────
+_TEMPLATE_SKIP = {"__pycache__", ".git", "node_modules"}
+
+def find_template_buttons(concept: str) -> list:
+    """
+    Find HTML button/link elements in Jinja2 templates matching concept.
+
+    Verified by reading real .html files — no inference.
+    Returns list of {file, line_no, text, element_type}.
+
+    Used when the question is about a web-UI button (control panel / HTML page),
+    NOT a Telegram keyboard button.
+    """
+    templates_dir = _PROJ_ROOT / "control_panel" / "templates"
+    if not templates_dir.exists():
+        templates_dir = _PROJ_ROOT.parent / "control_panel" / "templates"
+
+    concept_parts = [p for p in re.split(r"[\s/_\-]+", concept.lower()) if len(p) > 2]
+    results: list = []
+
+    if not templates_dir.exists():
+        return results
+
+    for html_file in sorted(templates_dir.glob("*.html")):
+        try:
+            content    = html_file.read_text(errors="ignore")
+            file_lines = content.splitlines()
+            rel        = f"control_panel/templates/{html_file.name}"
+
+            for i, line in enumerate(file_lines, 1):
+                stripped   = line.strip()
+                is_element = re.search(
+                    r"<(?:button|a\s|input[^>]*type=[\"']button[\"']|input[^>]*type=[\"']submit[\"'])",
+                    stripped, re.IGNORECASE,
+                )
+                if not is_element:
+                    continue
+                line_lower = stripped.lower()
+                if any(cp in line_lower for cp in concept_parts) or not concept_parts:
+                    elem_type = "button" if "<button" in line_lower else "link"
+                    results.append({
+                        "file":         rel,
+                        "line_no":      i,
+                        "text":         stripped[:150],
+                        "element_type": elem_type,
+                    })
+        except Exception:
+            pass
 
     return results
 
