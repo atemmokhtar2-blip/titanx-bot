@@ -1757,13 +1757,13 @@ class AgentReasoningChain:
                 pass
 
         # ── CONTEXT LOCK: high-confidence context filters cross-subsystem files ─
-        # When ContextEngine is confident about a subsystem (conf > 0.45),
-        # semantic and indexer files that belong to a DIFFERENT subsystem are
-        # removed.  ctx_files (from ProjectIndexer.context_files) always pass —
-        # they are already subsystem-scoped by the indexer.
-        # The lock is skipped if it would empty the list entirely, preventing
-        # silent failures on edge-case questions.
-        if ctx_name != "general" and ctx_conf > 0.45:
+        # REPAIR (Problem 2): threshold lowered from 0.45 → 0.25.
+        # At 0.45 most messages never triggered the lock, allowing cross-subsystem
+        # file leakage (e.g. Telegram question pulling control_panel files).
+        # At 0.25 any clear single-signal match activates context isolation.
+        # The lock is still skipped if it would empty the list entirely, so
+        # edge-case questions never go silently unanswered.
+        if ctx_name != "general" and ctx_conf > 0.25:
             _SUBSYSTEM_GUARD: dict = {
                 "telegram_bot":   lambda f: any(s in f for s in (
                     "handlers/", "bot.py", "support_bot/", "keyboards/", "commands/")),
@@ -3408,19 +3408,48 @@ def detect_intent(msg: str) -> str:
     if any(re.search(p, ml) for p in _IDENTITY_P):
         return "identity"
 
-    # ── HF intent: ONLY fires when Hugging Face is EXPLICITLY named ──────────
-    # Broad patterns ("are you connected", "متصل", "space.*connected") have been
-    # REMOVED.  They bypass intent scoring and mis-route database / Telegram /
-    # control-panel questions to hf_query.  Only unambiguous HF-specific phrases
-    # trigger this early return.  Everything else falls through to scoring.
-    _HF_P = [
+    # ── HF intent: two-path gate — status vs action ───────────────────────────
+    # REPAIR (Problem 3): The old single early-return was a keyword bypass that
+    # skipped Intent Detection → Confidence → Verification → Execution.
+    #
+    # New rule:
+    #   • Message explicitly names HF/Hugging Face AND contains an action verb
+    #     (analyze, audit, scan, check, inspect, review) → intent = "analyze"
+    #     so the handler calls call_hf_analyze() with the actual query.
+    #   • Message explicitly names HF/Hugging Face with NO action verb
+    #     → pure status/connection check → intent = "hf_query".
+    #   • Ambiguous messages that don't explicitly name HF → fall through to
+    #     full scoring below (no early return, no keyword bypass).
+    _HF_EXPLICIT_P = [
         r"hugging.?face",
         r"هوجينج\s*فيس",
         r"\bhf\s+(?:space|connected|status|working|online)\b",
         r"(?:connected|اتصال|متصل)\s*(?:to|with|بـ|مع)?\s*(?:hugging.?face|hf\s+space)\b",
     ]
-    if any(re.search(p, ml) for p in _HF_P):
+    _HF_ACTION_P = [
+        r"(?:using|use|via|through|بواسطة|استخدم|استخدام)\s+hf\b",
+        r"(?:using|use|via|through|بواسطة|استخدم|استخدام)\s+hugging.?face",
+        r"\bhf\s+(?:analyze|audit|check|scan|review|inspect|analyse)\b",
+        r"hugging.?face\s+(?:analyze|audit|check|scan|review|inspect|analyse)",
+        r"(?:analyze|audit|inspect|scan|review|فحص|حلل|راجع).{0,35}(?:\bhf\b|hugging.?face)",
+    ]
+    if any(re.search(p, ml) for p in _HF_EXPLICIT_P):
+        if any(re.search(p, ml) for p in _HF_ACTION_P):
+            # User wants HF to DO something (analyze/audit/etc.) — route to
+            # analyze handler which calls call_hf_analyze() with the real query
+            return "analyze"
+        # Pure status / connection question — return hf_query
         return "hf_query"
+
+    # ── Short "hf" combined with action verb (e.g. "using hf analyze...") ────
+    # Catches cases where the user writes "hf" (lowercase/short) without
+    # the full "hugging face" phrase — only fires when paired with a clear
+    # action verb so bare "hf" mentions don't trigger this gate.
+    _HF_SHORT_ACTION = r"(?:using|use|via|through|استخدم)\s+hf\b|" \
+                       r"\bhf\s+(?:analyze|audit|check|scan|review|inspect|analyse)\b|" \
+                       r"(?:analyze|audit|inspect|scan|review|حلل|فحص)\s+.{0,20}\bhf\b"
+    if re.search(_HF_SHORT_ACTION, ml):
+        return "analyze"
 
     # ── Priority -0·6: Early reuse check — before conditional override ──────────
     # "لو أنشأت بوت X ما الأنظمة التي يمكن إعادة استخدامها" must map to
@@ -3612,6 +3641,38 @@ def detect_intent(msg: str) -> str:
     if any(re.search(p, ml) for p in _DEP_P):
         return "dependency"
 
+    # ── Routes intent — must run BEFORE _FILE_Q ──────────────────────────────
+    # REPAIR (Problem 1 + 5): "what route" in _FILE_Q was grabbing "what router"
+    # questions, routing them to find_file instead of routes.  Explicit router
+    # patterns are now checked first so "What router serves AI Workspace?" → routes.
+    _ROUTES_P = [
+        r"what\s+router\s+(?:serves?|handles?|manages?|is\s+responsible|routes?)",
+        r"which\s+router\s+(?:serves?|handles?|manages?|is\s+responsible|routes?)",
+        r"what\s+router\b",   # catches "what router serves the..."
+        r"which\s+router\b",  # catches "which router handles..."
+        r"(?:show|list|display|print)\s+(?:all\s+)?routes?",
+        r"(?:what|which)\s+routes?\s+(?:are\s+)?(?:available|registered|defined|exist)",
+        r"ما\s+(?:الروتر|الراوتر).{0,30}(?:يخدم|يعالج|يتحكم|المسؤول)",
+        r"أي\s+(?:روتر|راوتر).{0,30}(?:يخدم|يعالج|يتحكم)",
+    ]
+    if any(re.search(p, ml) for p in _ROUTES_P):
+        return "routes"
+
+    # ── Database schema questions — before _FILE_Q ────────────────────────────
+    # REPAIR (Problem 4): "What database table stores users?" fell to general
+    # because no pattern caught it.  Route these to arch (structure knowledge).
+    _SCHEMA_P = [
+        r"what\s+(?:database\s+)?table\s+(?:stores?|has|contains?|holds?|is\s+for)",
+        r"which\s+(?:database\s+)?table\s+(?:stores?|has|contains?|holds?)",
+        r"what\s+table.{0,20}(?:user|row|column|schema|record)",
+        r"which\s+table.{0,20}(?:user|row|column|schema|record)",
+        r"database\s+(?:table|schema|model|structure).{0,20}(?:for|stores?|user|bot)",
+        r"ما\s+(?:الجدول|جدول).{0,20}(?:يخزن|يحتوي|يحفظ)",
+        r"جدول\s+(?:المستخدمين|البيانات|الرسائل)",
+    ]
+    if any(re.search(p, ml) for p in _SCHEMA_P):
+        return "arch"
+
     # ── Priority 1: file-awareness patterns (must run first) ──────────────────
     _FILE_Q = [
         r"what file.{0,25}control",
@@ -3632,9 +3693,9 @@ def detect_intent(msg: str) -> str:
         r"what files?.{0,20}(?:should|need|must).{0,20}(?:modify|change|edit|update)",
         r"what files?.{0,20}(?:to|for).{0,20}(?:redesign|rebuild|modify|change)",
         r"files?.{0,20}(?:must|should|need).{0,20}(?:change|modify)",
-        r"what route",
-        r"which route",
-        r"what.{0,10}route.{0,20}(?:loads?|serves?|handles?)",
+        # NOTE: "what route" / "which route" removed — caught above by _ROUTES_P
+        # so "what router serves..." no longer falls here as find_file.
+        r"what.{0,10}route.{0,25}(?:loads?|serves?|handles?)\s+(?:the\s+)?(?:page|view|html|template)",
         r"find.{0,25}(?:page|file|route|template)",
         r"where.{0,10}(?:is|are).{0,20}(?:the\s+)?(?:homepage|dashboard|sidebar|colors?|login|css|js|backup|ai|bot|download|support|github|user|setting|log)",
         r"locate.{0,25}(?:page|file|route)",
@@ -5319,6 +5380,51 @@ def process_chat(msg: str) -> dict:
             )
         except Exception as _re:
             _ai_log.debug("AgentReasoningChain (non-fatal): %s", _re)
+
+    # ── REPAIR (Problem 1): Intent Confidence Gate ────────────────────────────
+    # Execute BEFORE handler dispatch — never after.
+    # Pipeline: Intent Detection → Confidence Score → Verification → Execution.
+    #
+    # If confidence < 0.30 for a project intent, the agent must NOT guess.
+    # Return a clarification request instead of executing with wrong intent.
+    #
+    # Exempt intents are unambiguous by nature (greeting, identity, hf_query,
+    # status, help) and do not need a confidence gate.
+    _CONFIDENCE_EXEMPT = {
+        "greeting", "conversation", "identity", "capabilities",
+        "hf_query", "status", "help", "self_test", "memory",
+        "stats", "backup", "restore", "general",
+    }
+    if intent in _PROJECT_INTENTS and intent not in _CONFIDENCE_EXEMPT:
+        if _CE_OK and _IC is not None:
+            _pre_conf = _IC.score(intent, msg)
+            if _pre_conf < 0.30:
+                _ai_log.warning(
+                    "IntentConfidenceGate: BLOCKED intent='%s' conf=%.2f — "
+                    "asking for clarification instead of executing.",
+                    intent, _pre_conf,
+                )
+                _clarify_resp = {
+                    "text": (
+                        "🔍 **لم أستطع تحديد طلبك بثقة كافية.**\n\n"
+                        f"فهمت النية على أنها: **`{intent}`** "
+                        f"(ثقة: {_pre_conf:.0%}) — وهذا أقل من الحد الأدنى المطلوب (30%).\n\n"
+                        "**يرجى إعادة الصياغة بشكل أوضح، مثلاً:**\n"
+                        "  • ما الملف المسؤول عن ...\n"
+                        "  • ما التبعيات بين ... و ...\n"
+                        "  • كيف يتدفق ... من ... إلى ...\n"
+                        "  • لو حذفت ... ماذا سيتأثر؟\n\n"
+                        "*النظام لن ينفذ أي عملية قبل التأكد من فهم طلبك بدقة.*"
+                    ),
+                    "data": {
+                        "intent": intent,
+                        "intent_confidence": _pre_conf,
+                        "gate": "IntentConfidenceGate",
+                        "action": "clarification_requested",
+                    },
+                }
+                _persist_turn(msg, _clarify_resp["text"][:500])
+                return _clarify_resp
 
     handlers = {
         # ── Conversational (NEVER touches project files) ──────────────────────

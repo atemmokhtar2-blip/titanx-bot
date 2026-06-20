@@ -109,25 +109,31 @@ _CONTEXTS: dict = {
         "weight": 1.0,
     },
     "ai_layer": {
-        "description": "AI intelligence layer (ai_engine.py, reasoning, memory, intent)",
+        "description": "AI intelligence layer (ai_engine.py, reasoning, memory, intent, HF space)",
         "signals": [
             "ai_engine", "ai engine", "reasoning", "intent", "memory",
             "knowledge graph", "call graph", "dependency graph", "process_chat",
             "detect_intent", "agent", "ai workspace", "ai operator",
             "ذاكرة", "استدلال", "نية", "مشغل الذكاء",
             "engineering agent", "context engine",
+            # REPAIR (Problem 2): HF signals belong here, NOT in deployment.
+            # HF/Hugging Face is the AI backend, not a deployment target.
+            "hugging face", "huggingface", "hf space", "hf_space",
+            "هوجينج فيس", "call_hf_analyze", "call_hf_assistant",
         ],
         "file_patterns": ["ai_engine.py", "ai_workspace.py", "call_graph.py",
                           "knowledge_graph.py", "context_engine.py"],
         "weight": 1.0,
     },
     "deployment": {
-        "description": "Deployment layer (Replit, HuggingFace, production, scaling)",
+        "description": "Deployment layer (Replit, production, scaling, server config)",
         "signals": [
-            "deploy", "deployment", "production", "hugging face", "huggingface",
-            "replit", "نشر", "إنتاج", "hosting", "space", "docker",
+            "deploy", "deployment", "production",
+            "replit", "نشر", "إنتاج", "hosting", "docker",
             "port", "gunicorn", "scaling", "load balancer", "cdn",
-            "hf space", "publish", "go live",
+            "publish", "go live",
+            # NOTE: "hugging face"/"hf space" intentionally removed — they belong
+            # to ai_layer (the AI backend), not deployment infrastructure.
         ],
         "file_patterns": ["scripts/", ".replit"],
         "weight": 1.0,
@@ -247,13 +253,15 @@ class IntentConfidence:
     # Signals per intent that indicate a strong, unambiguous match
     _STRONG_SIGNALS: dict = {
         "dependency":    ["تبعيات", "dependency", "depends on", "import chain",
-                          "what does", "who imports", "يعتمد"],
+                          "what does", "who imports", "يعتمد", "import", "depends"],
         "find_file":     ["which file", "what file", "أي ملف", "ما الملف",
-                          "where is", "أين", "locate"],
+                          "where is", "أين", "locate", "which class", "what class"],
         "who_depends":   ["who depends", "من يستورد", "من يعتمد", "what uses",
                           "dependency chain"],
-        "impact":        ["what breaks", "ماذا يكسر", "if i change", "لو حذفت",
-                          "impact of", "تأثير"],
+        "impact":        ["what breaks", "what would break", "what will break",
+                          "ماذا يكسر", "ماذا يتأثر", "if i change", "if i delete",
+                          "if i remove", "لو حذفت", "لو حذف", "impact of", "تأثير",
+                          "يتأثر", "سيتأثر", "would be affected"],
         "root_cause":    ["why", "لماذا", "debug", "broken", "not working",
                           "سبب الخطأ"],
         "data_flow":     ["data flow", "تدفق", "how does data", "مسار البيانات",
@@ -261,20 +269,37 @@ class IntentConfidence:
         "project_mod":   ["احذف", "أضف", "غير", "عدل", "أنشئ", "delete",
                           "remove", "modify", "change"],
         "arch":          ["architecture", "معمارية", "هيكل", "structure",
-                          "how does", "explain"],
-        "routes":        ["router", "routes", "روتر", "مسارات", "endpoints"],
-        "dependency":    ["تبعيات", "dependency", "import", "depends"],
+                          "how does", "explain", "database table", "which table",
+                          "what table", "which column", "stores users", "stores",
+                          "جدول", "جداول"],
+        "routes":        ["router", "routes", "روتر", "مسارات", "endpoints",
+                          "what router", "which router", "serves", "serves the",
+                          "handles the route", "route for"],
     }
 
     @classmethod
     def score(cls, intent: str, msg: str) -> float:
-        """Return confidence score 0.0–1.0 for the selected intent."""
+        """Return confidence score 0.0–1.0 for the selected intent.
+
+        REPAIR (Problem 1): Old formula divided hits by total signal count,
+        so a single match on a 7-signal intent gave 1/7 = 0.14 — below the
+        0.30 gate threshold, causing false-positive blocks on clear questions.
+
+        New rule:
+          • 0 hits  → 0.0   (no evidence — gate should block if needed)
+          • ≥1 hit  → max(hits / max(len(signals), 3), 0.35)
+            ↳ Any single strong-signal match floors at 0.35, passing the gate.
+            ↳ Multiple matches scale up toward 1.0.
+        """
         ml      = msg.lower()
         signals = cls._STRONG_SIGNALS.get(intent, [])
         if not signals:
             return 0.7  # default for intents without a signal list
         hits = sum(1 for s in signals if s.lower() in ml)
-        return round(min(hits / max(len(signals), 3), 1.0), 4)
+        if hits == 0:
+            return 0.0
+        # Floor at 0.35 so any clear single-signal match passes the 0.30 gate
+        return round(max(hits / max(len(signals), 3), 0.35), 4)
 
 
 class ClassificationAudit:
