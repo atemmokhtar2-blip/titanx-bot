@@ -46,6 +46,14 @@ except Exception:
     _IC  = None                # type: ignore
     _CE_OK = False
 
+# ─── Phase 1: Project Indexer (fail-safe import) ─────────────────────────────
+try:
+    from control_panel.project_indexer import ProjectIndexer as _PI
+    _PI_OK = True
+except Exception:
+    _PI     = None   # type: ignore
+    _PI_OK  = False
+
 # ─── Arabic Text Normalizer ───────────────────────────────────────────────────
 def _normalize_ar(text: str) -> str:
     """Normalize Arabic text before regex matching.
@@ -1665,9 +1673,9 @@ class AgentReasoningChain:
     """
 
     @classmethod
-    def execute(cls, msg: str, intent: str) -> dict:
+    def execute(cls, msg: str, intent: str, ctx_result: dict = None) -> dict:
         und    = cls._step1_understand(msg)
-        search = cls._step2_search(msg, und)
+        search = cls._step2_search(msg, und, ctx_result)
         ctx    = cls._step3_context(search)
         deps   = cls._step4_deps(search.get("files", []))
         impact = cls._step5_impact(search.get("files", []))
@@ -1706,15 +1714,67 @@ class AgentReasoningChain:
         }
 
     @classmethod
-    def _step2_search(cls, msg: str, und: dict) -> dict:
-        concept     = und.get("target_concept")
-        files_found: list = []
+    def _step2_search(cls, msg: str, und: dict, ctx_result: dict = None) -> dict:
+        """
+        Phase 10 — Telegram Priority Rule + Context-Aware File Selection.
+
+        Priority order:
+          1. Context-based files (ProjectIndexer.context_files) — ALWAYS first
+             when context confidence > 0.05.  Telegram_bot context forces bot
+             files before any keyword search so the agent never opens panel
+             files when the user is asking about the Telegram bot.
+          2. Semantic map (concept match) — fallback when context yields nothing.
+          3. Keyword / _find_concept — last resort.
+
+        Files are de-duplicated and capped at 8.
+        """
+        ctx_name  = (ctx_result or {}).get("detected", "general")
+        ctx_conf  = (ctx_result or {}).get("confidence", 0.0)
+        concept   = und.get("target_concept")
+
+        # ── Step A: Context-priority files (Phase 10) ─────────────────────────
+        ctx_files: list = []
+        if ctx_name != "general" and ctx_conf > 0.05 and _PI_OK and _PI is not None:
+            try:
+                ctx_files = _PI.context_files(ctx_name, limit=4)
+            except Exception:
+                pass
+
+        # ── Step B: Semantic / keyword search ─────────────────────────────────
+        semantic_files: list = []
         if concept and concept in _SEMANTIC_MAP:
-            files_found = [e[0] for e in _SEMANTIC_MAP[concept] if isinstance(e, (list, tuple))]
-        if not files_found:
-            files_found = [p for p, _, _ in _find_concept(msg)]
-        return {"files": files_found[:8], "concept": concept,
-                "search_method": "semantic" if concept else "keyword"}
+            semantic_files = [e[0] for e in _SEMANTIC_MAP[concept]
+                              if isinstance(e, (list, tuple))]
+        if not semantic_files:
+            semantic_files = [p for p, _, _ in _find_concept(msg)]
+
+        # ── Step C: Indexer keyword search as extra signal ────────────────────
+        indexer_files: list = []
+        if _PI_OK and _PI is not None and not semantic_files:
+            try:
+                indexer_files = _PI.search(msg, limit=4)
+            except Exception:
+                pass
+
+        # ── Merge: context first, then semantic, then indexer ─────────────────
+        seen: set = set()
+        merged: list = []
+        for f in ctx_files + semantic_files + indexer_files:
+            if f and f not in seen:
+                seen.add(f)
+                merged.append(f)
+
+        search_method = ("context+" + ("semantic" if concept else "keyword")
+                         if ctx_files else ("semantic" if concept else "keyword"))
+
+        return {
+            "files":         merged[:8],
+            "concept":       concept,
+            "search_method": search_method,
+            "ctx_files":     ctx_files,
+            "ctx_name":      ctx_name,
+            "ctx_conf":      round(ctx_conf, 3),
+        }
 
     @classmethod
     def _step3_context(cls, search: dict) -> dict:
@@ -5090,10 +5150,43 @@ def process_chat(msg: str) -> dict:
     # Phase 3: Record to session memory BEFORE routing so handlers can read context
     AIMemoryLayer.record("user", msg, intent)
 
+    # ── ENGINEERING MODE LOCK (Phase 12) ─────────────────────────────────────
+    # If ContextEngine detected a specific subsystem with confidence > 0.15
+    # AND intent fell into 'general' or 'conversation', the agent would normally
+    # give a generic answer.  This lock re-routes it to the correct project
+    # handler so Engineering Mode is preserved.
+    #
+    # Telegram Priority Rule (Phase 10): if context=telegram_bot, always
+    # redirect 'general'/'conversation' to 'arch' (structured project answer).
+    if intent in ("general", "conversation"):
+        _lock_ctx  = _ctx_result.get("detected", "general")
+        _lock_conf = _ctx_result.get("confidence", 0.0)
+        if _lock_ctx != "general" and _lock_conf > 0.15:
+            _LOCK_REDIRECT = {
+                "telegram_bot":   "arch",
+                "control_panel":  "arch",
+                "database":       "arch",
+                "router_layer":   "routes",
+                "api_layer":      "routes",
+                "frontend_layer": "find_file",
+                "infrastructure": "find_file",
+                "ai_layer":       "arch",
+                "support_system": "arch",
+                "deployment":     "arch",
+            }
+            _redirected = _LOCK_REDIRECT.get(_lock_ctx)
+            if _redirected:
+                _ai_log.info(
+                    "EngineeringLock: intent='%s' → '%s' (ctx=%s conf=%.2f)",
+                    intent, _redirected, _lock_ctx, _lock_conf,
+                )
+                intent = _redirected
+
     # ── AGENT GATE 2: 7-step reasoning chain for all project intents ─────────
     # Rule 1 (Scan-First) + Rule 4 (Dependency Graph) + Rule 5 (Runtime Graph)
     # Chain result stored in _ACTIVE_CHAIN so handlers can read pre-built evidence
     # without needing a parameter change — eliminates the chain injection gap.
+    # ctx_result is NOW passed so _step2_search applies Telegram Priority Rule.
     _PROJECT_INTENTS = {
         "find_file", "plan_modify", "dependency", "who_depends", "data_flow",
         "reuse_systems", "impact", "root_cause", "arch", "security", "analyze",
@@ -5105,7 +5198,7 @@ def process_chat(msg: str) -> dict:
     }
     if intent in _PROJECT_INTENTS:
         try:
-            _ACTIVE_CHAIN = AgentReasoningChain.execute(msg, intent)
+            _ACTIVE_CHAIN = AgentReasoningChain.execute(msg, intent, _ctx_result)
             AIMemoryLayer.record(
                 "assistant",
                 f"[reasoning: {', '.join(_ACTIVE_CHAIN.get('steps_done', [])[:4])}]",
@@ -5170,7 +5263,10 @@ def process_chat(msg: str) -> dict:
     resp = fn()
     resp["intent"] = intent
 
-    # ── Phase 18: Self-Correction Engine — verify evidence before returning ───
+    # ── Phase 18: Self-Correction Engine — verify evidence AND ACT ───────────
+    # Root-cause fix: issues were logged but response was returned unchanged.
+    # Now: if issues found for a project intent, append a correction notice so
+    # the user knows the agent flagged a gap and what triggered it.
     _chain_files = _ACTIVE_CHAIN.get("search", {}).get("files", []) if _ACTIVE_CHAIN else []
     _correction: dict = {"ok": True, "issues": [], "warnings": [], "evidence_score": 0.0}
     if _CE_OK and _SCE is not None:
@@ -5186,6 +5282,19 @@ def process_chat(msg: str) -> dict:
                     "SelfCorrection issues for intent=%s: %s",
                     intent, _correction["issues"]
                 )
+                # ACTION: append correction notice if this is a project intent
+                if intent in _PROJECT_INTENTS and resp.get("text"):
+                    _issue_lines = "\n".join(
+                        f"  ⚠️ {iss}" for iss in _correction["issues"][:3]
+                    )
+                    resp["text"] = (
+                        resp["text"].rstrip()
+                        + "\n\n─────────────────────────────────\n"
+                        "🔍 **ملاحظة تدقيق الاستجابة (Self-Correction):**\n"
+                        + _issue_lines
+                        + "\n*راجع الملفات المذكورة أعلاه للتحقق من دقة هذه الإجابة.*"
+                    )
+                    resp.setdefault("data", {})["correction_issues"] = _correction["issues"]
         except Exception as _sc_err:
             _ai_log.debug("SelfCorrectionEngine (non-fatal): %s", _sc_err)
 
