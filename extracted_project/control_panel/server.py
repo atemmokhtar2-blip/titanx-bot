@@ -2,10 +2,15 @@
 import sys
 import os
 
-# Put .pythonlibs first so installed packages shadow the older Nix-store versions
+# Put .pythonlibs FIRST and remove conflicting Nix-store typing_extensions
 _pythonlibs = "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages"
-if _pythonlibs not in sys.path:
-    sys.path.insert(0, _pythonlibs)
+# Remove any nix-store paths that might shadow our .pythonlibs packages
+sys.path = [_pythonlibs] + [
+    p for p in sys.path
+    if not (p.startswith("/nix/store") and any(
+        pkg in p for pkg in ["typing-extensions", "pydantic", "starlette", "fastapi"]
+    ))
+]
 
 # Ensure extracted_project is importable
 _here = os.path.dirname(os.path.abspath(__file__))

@@ -3,10 +3,18 @@ import logging
 import sys
 import os
 
+# Put .pythonlibs FIRST and remove conflicting Nix-store versions
+_pythonlibs = "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages"
+sys.path = [_pythonlibs] + [
+    p for p in sys.path
+    if not (p.startswith("/nix/store") and any(
+        pkg in p for pkg in ["typing-extensions", "pydantic", "starlette", "fastapi"]
+    ))
+]
 # Make support_bot/ the primary import root so its packages shadow the main bot's
 _here = os.path.dirname(os.path.abspath(__file__))
 if _here not in sys.path:
-    sys.path.insert(0, _here)
+    sys.path.insert(1, _here)
 
 from telegram import Update
 from telegram.ext import (

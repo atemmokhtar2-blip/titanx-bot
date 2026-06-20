@@ -3,7 +3,15 @@ import logging
 import sys
 import os
 
-sys.path.insert(0, os.path.dirname(__file__))
+# Put .pythonlibs FIRST and remove conflicting Nix-store versions
+_pythonlibs = "/home/runner/workspace/.pythonlibs/lib/python3.12/site-packages"
+sys.path = [_pythonlibs] + [
+    p for p in sys.path
+    if not (p.startswith("/nix/store") and any(
+        pkg in p for pkg in ["typing-extensions", "pydantic", "starlette", "fastapi"]
+    ))
+]
+sys.path.insert(1, os.path.dirname(__file__))
 
 from telegram import Update
 from telegram.ext import (

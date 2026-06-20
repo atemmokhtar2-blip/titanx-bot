@@ -1,6 +1,6 @@
 {
-  "built_at": "2026-06-20T05:26:26.319647",
-  "files_scanned": 123,
+  "built_at": "2026-06-20T06:31:34.179578",
+  "files_scanned": 124,
   "forward": {
     "admin_bot/__init__.py": [],
     "admin_bot/bot.py": [
@@ -85,6 +85,7 @@
       "control_panel/call_graph.py",
       "control_panel/knowledge_graph.py",
       "control_panel/context_engine.py",
+      "control_panel/evidence_engine.py",
       "control_panel/project_indexer.py"
     ],
     "control_panel/app.py": [
@@ -100,6 +101,7 @@
     "control_panel/db_utils.py": [
       "control_panel/config.py"
     ],
+    "control_panel/evidence_engine.py": [],
     "control_panel/knowledge_graph.py": [],
     "control_panel/project_indexer.py": [],
     "control_panel/routers/__init__.py": [],
@@ -548,6 +550,9 @@
       "control_panel/routers/dashboard.py",
       "control_panel/routers/db_manager.py",
       "control_panel/routers/users.py"
+    ],
+    "control_panel/evidence_engine.py": [
+      "control_panel/ai_engine.py"
     ],
     "control_panel/knowledge_graph.py": [
       "control_panel/ai_engine.py"
