@@ -110,146 +110,6 @@
   "chat_history": [
     {
       "role": "user",
-      "text": "If I delete the Admin Panel button what would break?",
-      "ts": "2026-06-20T06:02:41.046189"
-    },
-    {
-      "role": "assistant",
-      "text": "🔍 **لم أستطع تحديد طلبك بثقة كافية.**\n\nفهمت النية على أنها: **`impact`** (ثقة: 0%) — وهذا أقل من الحد الأدنى المطلوب (30%).\n\n**يرجى إعادة الصياغة بشكل أوضح، مثلاً:**\n  • ما الملف المسؤول عن ...\n  • ما التبعيات بين ... و ...\n  • كيف يتدفق ... من ... إلى ...\n  • لو حذفت ... ماذا سيتأثر؟\n\n*النظام لن ينفذ أي عملية قبل التأكد من فهم طلبك بدقة.*",
-      "ts": "2026-06-20T06:02:41.046189"
-    },
-    {
-      "role": "user",
-      "text": "Using HF analyze this project",
-      "ts": "2026-06-20T06:02:41.465654"
-    },
-    {
-      "role": "assistant",
-      "text": "🔬 **تحليل المشروع الكامل**\n\n📁 إجمالي الملفات: 152\n🌐 المسارات المعروفة: 20\n🧠 المفاهيم الدلالية: 68\n🎨 القوالب: 20\n⚙️ الـ Routers: 15\n🤖 المعالجات: 39\n🗄️ نماذج DB: 17\n\n🔧 10 مشاكل في الكود",
-      "ts": "2026-06-20T06:02:41.465654"
-    },
-    {
-      "role": "user",
-      "text": "What database table stores users?",
-      "ts": "2026-06-20T06:02:41.933700"
-    },
-    {
-      "role": "assistant",
-      "text": "🧠 **X AI Operator** · X Control Center\n\nلم أستطع تحديد نوع طلبك بدقة كافية.\n\n**أعد الصياغة بإحدى هذه الطرق:**\n  • **سؤال تقني** — \"اشرح FastAPI\" · \"الفرق بين Python و JavaScript\"\n  • **تحليل تأثير** — \"لو عدلت style.css ماذا سيحدث؟\"\n  • **إنشاء ميزة** — \"كيف أضيف بوت إشعارات؟\"\n  • **تقييم المشروع** — \"هل بنية المشروع جيدة؟\"\n  • **إصلاح مشكلة** — \"إصلاح خطأ في صفحة الإعدادات\"",
-      "ts": "2026-06-20T06:02:41.933700"
-    },
-    {
-      "role": "user",
-      "text": "What router serves AI Workspace?",
-      "ts": "2026-06-20T06:02:41.944032"
-    },
-    {
-      "role": "assistant",
-      "text": "🔍 **لم أستطع تحديد طلبك بثقة كافية.**\n\nفهمت النية على أنها: **`find_file`** (ثقة: 0%) — وهذا أقل من الحد الأدنى المطلوب (30%).\n\n**يرجى إعادة الصياغة بشكل أوضح، مثلاً:**\n  • ما الملف المسؤول عن ...\n  • ما التبعيات بين ... و ...\n  • كيف يتدفق ... من ... إلى ...\n  • لو حذفت ... ماذا سيتأثر؟\n\n*النظام لن ينفذ أي عملية قبل التأكد من فهم طلبك بدقة.*",
-      "ts": "2026-06-20T06:02:41.944032"
-    },
-    {
-      "role": "user",
-      "text": "خذ البيانات",
-      "ts": "2026-06-20T06:02:42.226161"
-    },
-    {
-      "role": "assistant",
-      "text": "🧠 **X AI Operator** · X Control Center\n\nلم أستطع تحديد نوع طلبك بدقة كافية.\n\n**أعد الصياغة بإحدى هذه الطرق:**\n  • **سؤال تقني** — \"اشرح FastAPI\" · \"الفرق بين Python و JavaScript\"\n  • **تحليل تأثير** — \"لو عدلت style.css ماذا سيحدث؟\"\n  • **إنشاء ميزة** — \"كيف أضيف بوت إشعارات؟\"\n  • **تقييم المشروع** — \"هل بنية المشروع جيدة؟\"\n  • **إصلاح مشكلة** — \"إصلاح خطأ في صفحة الإعدادات\"",
-      "ts": "2026-06-20T06:02:42.226161"
-    },
-    {
-      "role": "user",
-      "text": "What file creates the Admin Panel button?",
-      "ts": "2026-06-20T06:04:38.699568"
-    },
-    {
-      "role": "assistant",
-      "text": "📍 **الملفات المسؤولة عن: `What file creates the Admin Panel button?`**\n\n🌐 **الرابط:** `صفحة الدخول / المصادقة`\n  ⚙️ **ROUTER**: `control_panel/app.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/access.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/panel/login`, `/panel/api/change-password`\n\n📂 **الملفات المرتبطة:**\n  🤖 **HANDLER**: `handlers/admin.py` — أوامر المدير — /panel, stats, ban, broadcast, reports\n  🎨 **TEMPLATE**:",
-      "ts": "2026-06-20T06:04:38.699568"
-    },
-    {
-      "role": "user",
-      "text": "If I delete the Admin Panel button what would break?",
-      "ts": "2026-06-20T06:04:38.707634"
-    },
-    {
-      "role": "assistant",
-      "text": "💥 **تحليل التأثير الكامل: `handlers/admin.py`** — من قراءة مباشرة للكود\n\n🟡 **مستوى الخطر:** MEDIUM\n📥 **يستورده مباشرة:** 2 ملف\n  ↳ `bot.py`\n  ↳ `support_bot/bot.py`\n\n💣 **التأثير الإجمالي عند الحذف:** 2 ملف\n  ⚠️ `bot.py`\n  ⚠️ `support_bot/bot.py`",
-      "ts": "2026-06-20T06:04:38.707634"
-    },
-    {
-      "role": "user",
-      "text": "Using HF analyze this project",
-      "ts": "2026-06-20T06:04:39.129968"
-    },
-    {
-      "role": "assistant",
-      "text": "🔬 **تحليل المشروع الكامل**\n\n📁 إجمالي الملفات: 152\n🌐 المسارات المعروفة: 20\n🧠 المفاهيم الدلالية: 68\n🎨 القوالب: 20\n⚙️ الـ Routers: 15\n🤖 المعالجات: 39\n🗄️ نماذج DB: 17\n\n🔧 10 مشاكل في الكود",
-      "ts": "2026-06-20T06:04:39.129968"
-    },
-    {
-      "role": "user",
-      "text": "What database table stores users?",
-      "ts": "2026-06-20T06:04:39.134659"
-    },
-    {
-      "role": "assistant",
-      "text": "🏗️ **معمارية: DATABASE**\n\nSQLite — two separate databases\n\n**main:** database/bot.db — users, downloads, cache, favorites, referrals, reports, achievements, activity\n**support:** support_bot/database/support.db — tickets, messages\n**init:** database/db.py init_db() — called on bot startup, creates tables and runs migrations",
-      "ts": "2026-06-20T06:04:39.134659"
-    },
-    {
-      "role": "user",
-      "text": "What router serves AI Workspace?",
-      "ts": "2026-06-20T06:04:39.140209"
-    },
-    {
-      "role": "assistant",
-      "text": "🌐 **20 مسار في لوحة التحكم:**\n\n• `/` → `control_panel/templates/dashboard.html` — الصفحة الرئيسية / لوحة التحكم\n• `/dashboard` → `control_panel/templates/dashboard.html` — لوحة التحكم الرئيسية\n• `/panel` → `control_panel/templates/access.html` — صفحة الدخول / المصادقة\n• `/panel/login` → `control_panel/templates/access.html` — معالج تسجيل الدخول\n• `/users` → `control_panel/templates/users.html` — إدارة المستخدمين\n• `/broadcast` → `control_panel/templates/broadcast.html` — نظام البث للمستخدمين\n• `",
-      "ts": "2026-06-20T06:04:39.140209"
-    },
-    {
-      "role": "user",
-      "text": "What file creates the Admin Panel button?",
-      "ts": "2026-06-20T06:12:04.759637"
-    },
-    {
-      "role": "assistant",
-      "text": "📍 **الملفات المسؤولة عن: `What file creates the Admin Panel button?`**\n\n🌐 **الرابط:** `صفحة الدخول / المصادقة`\n  ⚙️ **ROUTER**: `control_panel/app.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/access.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/panel/login`, `/panel/api/change-password`\n\n📂 **الملفات المرتبطة:**\n  🤖 **HANDLER**: `handlers/admin.py` — أوامر المدير — /panel, stats, ban, broadcast, reports\n  🎨 **TEMPLATE**:",
-      "ts": "2026-06-20T06:12:04.759637"
-    },
-    {
-      "role": "user",
-      "text": "What imports config/settings.py?",
-      "ts": "2026-06-20T06:12:04.771057"
-    },
-    {
-      "role": "assistant",
-      "text": "🔗 **تحليل التبعيات — قراءة مباشرة من الكود**\n\n\n📁 `config/settings.py` [config] — إعدادات البوت الرئيسي\n  📥 **يستورده (33 ملف):**\n    ↳ `admin_bot/bot.py`\n    ↳ `admin_bot/database/db.py`\n    ↳ `admin_bot/handlers/auth.py`\n    ↳ `admin_bot/handlers/settings_h.py`\n    ↳ `admin_bot/handlers/support.py`\n    ↳ `bot.py`\n    ↳ `config/__init__.py`\n    ↳ `database/achievements.py`\n    ↳ `database/db.py`\n    ↳ `database/users.py`\n    ... و 23 ملف آخر\n  🔴 **التأثير الإجمالي:** 65 ملف — خطر: CRITICAL\n\n📁 `c",
-      "ts": "2026-06-20T06:12:04.771057"
-    },
-    {
-      "role": "user",
-      "text": "What router serves AI Workspace?",
-      "ts": "2026-06-20T06:12:04.776711"
-    },
-    {
-      "role": "assistant",
-      "text": "🌐 **20 مسار في لوحة التحكم:**\n\n• `/` → `control_panel/templates/dashboard.html` — الصفحة الرئيسية / لوحة التحكم\n• `/dashboard` → `control_panel/templates/dashboard.html` — لوحة التحكم الرئيسية\n• `/panel` → `control_panel/templates/access.html` — صفحة الدخول / المصادقة\n• `/panel/login` → `control_panel/templates/access.html` — معالج تسجيل الدخول\n• `/users` → `control_panel/templates/users.html` — إدارة المستخدمين\n• `/broadcast` → `control_panel/templates/broadcast.html` — نظام البث للمستخدمين\n• `",
-      "ts": "2026-06-20T06:12:04.776711"
-    },
-    {
-      "role": "user",
-      "text": "What file owns the login page?",
-      "ts": "2026-06-20T06:12:04.787590"
-    },
-    {
-      "role": "assistant",
-      "text": "📍 **الملفات المسؤولة عن: `What file owns the login page?`**\n\n🌐 **الرابط:** `صفحة الدخول / المصادقة`\n  ⚙️ **ROUTER**: `control_panel/app.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/access.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/panel/login`, `/panel/api/change-password`\n\n📂 **الملفات المرتبطة:**",
-      "ts": "2026-06-20T06:12:04.787590"
-    },
-    {
-      "role": "user",
       "text": "What function creates this keyboard?",
       "ts": "2026-06-20T06:12:05.500741"
     },
@@ -357,6 +217,146 @@
       "role": "assistant",
       "text": "⌨️ **Keyboard Functions Found: 122**\n\n_(verified by reading real file content)_\n\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🔍 **Verification Report** — VERIFIED FROM SOURCE\n\n🏗️ **Subsystem:** `telegram_bot`\n📁 **File:** `admin_bot/handlers/broadcast.py`\n⚙️ **Function:** `broadcast_menu_keyboard()`\n📋 **Evidence (verified from source):**\n  `L9:` `def broadcast_menu_keyboard(lang: str) -> InlineKeyboardMarkup:`\n🎹 **Keyboard type:** `InlineKeyboardMarkup`\n\n🟢 **Confidence:** `90%`\n\n\n━━━━━━━━━━━━━━━━━━━━━━━",
       "ts": "2026-06-20T06:21:20.036238"
+    },
+    {
+      "role": "user",
+      "text": "احذف زر اداره لوحه المفاتيح في البوت الرسميه",
+      "ts": "2026-06-20T07:05:54.663903"
+    },
+    {
+      "role": "assistant",
+      "text": "# ✨ إنشاء ميزة\n\n> 📝 **الطلب:** `احذف زر اداره لوحه المفاتيح في البوت الرسميه`\n\n---\n## 🔍 الخطوة 1 — مسح المشروع\n**153 ملف** تم فحصها · 15 راوتر · 20 قالب · 39 handler · 3 service\n\n## 🧠 الخطوة 2 — فهم الطلب\n**نوع العملية:** ✨ إنشاء ميزة | **العملية:** create\n\n## 💥 الخطوة 3 — حساب التأثير\n**الملفات المتأثرة:**\n  🟡 `control_panel/app.py` **[ENTRY]** `MAYBE` — تسجيل الميزة إذا كانت صفحة أو API\n  🟢 `control_panel/templates/base.html` **[NAV]** `MAYBE` — إضافة رابط في القائمة إذا كانت الميزة تحتاج صفحة",
+      "ts": "2026-06-20T07:05:54.663903"
+    },
+    {
+      "role": "user",
+      "text": "نعم",
+      "ts": "2026-06-20T07:06:50.656456"
+    },
+    {
+      "role": "assistant",
+      "text": "✅ **تمت الموافقة — الخطة مفعّلة**\n\n📋 **الطلب:** `احذف زر اداره لوحه المفاتيح في البوت الرسميه`\n\n**📌 قائمة التحقق بعد التنفيذ (Verification Checklist):**\n  1️⃣ راجع كل ملف متأثر يدوياً بعد التعديل\n  2️⃣ افتح `/logs` في لوحة التحكم — تحقق من غياب الأخطاء\n  3️⃣ إذا عدّلت handler بوت → أعِد تشغيل workflow البوت\n  4️⃣ إذا عدّلت router لوحة → أعِد تشغيل TitanX Control Panel\n  5️⃣ إذا عدّلت database/db.py → تحقق من init_db() تعمل بدون خطأ\n  6️⃣ خذ نسخة احتياطية من `/backups` بعد التحقق\n\n🔍 **حالة التبعي",
+      "ts": "2026-06-20T07:06:50.656456"
+    },
+    {
+      "role": "user",
+      "text": "What file creates the Admin Panel button in the main Telegram bot?\n\nDo not guess.\n\nShow:\n\n1. Exact file\n2. Exact function\n3. Exact keyboard builder\n4. Evidence\n5. Confidence score",
+      "ts": "2026-06-20T07:09:14.119791"
+    },
+    {
+      "role": "assistant",
+      "text": "📍 **الملفات المسؤولة عن: `What file creates the Admin Panel button in the main Telegram bot?\n\nDo not guess.\n\nShow:\n\n1. Exact file\n2. Exact function\n3. Exact keyboard builder\n4. Evidence\n5. Confidence score`**\n\n🌐 **الرابط:** `صفحة الدخول / المصادقة`\n  ⚙️ **ROUTER**: `control_panel/app.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/access.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/panel/login`, `/panel/api/change-passwor",
+      "ts": "2026-06-20T07:09:14.119791"
+    },
+    {
+      "role": "user",
+      "text": "Show the exact line that renders access.html.\n\nDo not show imports.\n\nDo not show related files.\n\nShow only:\n\nFile\nFunction\nLine\nEvidence",
+      "ts": "2026-06-20T07:10:40.294946"
+    },
+    {
+      "role": "assistant",
+      "text": "🔗 **تحليل التبعيات — قراءة مباشرة من الكود**\n\n📄 **Template:** `control_panel/templates/access.html`\n  ↳ يرث من: `None`\n⚙️ **Router:** `control_panel/app.py`\n🎨 **CSS:** `control_panel/static/css/style.css`\n📜 **JS:** `control_panel/static/js/app.js`\n  🔌 API: `/panel/login`\n  🔌 API: `/panel/api/change-password`\n\n📁 `control_panel/templates/access.html` [template] — صفحة الدخول / المصادقة\n  ℹ️ لا ملفات تستورده مباشرة\n\n📁 `control_panel/app.py` [app] — route GET /panel + POST /panel/login\n  📥 **يستورده",
+      "ts": "2026-06-20T07:10:40.294946"
+    },
+    {
+      "role": "user",
+      "text": "Show the exact source code evidence proving that access.html is rendered.\n\nRequirements:\n\n1. Exact file\n2. Exact function\n3. Exact line\n4. Exact render statement\n\nDo not show imports.\nDo not show related files.\nDo not show dependency analysis.\n\nEvidence only.",
+      "ts": "2026-06-20T07:11:37.564396"
+    },
+    {
+      "role": "assistant",
+      "text": "🔗 **تحليل التبعيات — قراءة مباشرة من الكود**\n\n📄 **Template:** `control_panel/templates/access.html`\n  ↳ يرث من: `None`\n⚙️ **Router:** `control_panel/app.py`\n🎨 **CSS:** `control_panel/static/css/style.css`\n📜 **JS:** `control_panel/static/js/app.js`\n  🔌 API: `/panel/login`\n  🔌 API: `/panel/api/change-password`\n\n📁 `control_panel/templates/access.html` [template] — صفحة الدخول / المصادقة\n  ℹ️ لا ملفات تستورده مباشرة\n\n📁 `control_panel/app.py` [app] — route GET /panel + POST /panel/login\n  📥 **يستورده",
+      "ts": "2026-06-20T07:11:37.564396"
+    },
+    {
+      "role": "user",
+      "text": "Show only source code evidence.\n\nQuestion:\n\nWhere is access.html rendered?\n\nRequirements:\n\n1. Exact file\n2. Exact function\n3. Exact line number\n4. Exact statement\n\nOutput ONLY:\n\nFile\nFunction\nLine\nStatement\n\nDo not show:\n\nDependencies\nOwnership\nRelated files\nImpact analysis\nRouters\nTemplates\n\nIf source code evidence is not found return:\n\nNO EVIDENCE FOUND",
+      "ts": "2026-06-20T07:12:36.443737"
+    },
+    {
+      "role": "assistant",
+      "text": "🔍 **لم أستطع تحديد طلبك بثقة كافية.**\n\nفهمت النية على أنها: **`dependency`** (ثقة: 0%) — وهذا أقل من الحد الأدنى المطلوب (30%).\n\n**يرجى إعادة الصياغة بشكل أوضح، مثلاً:**\n  • ما الملف المسؤول عن ...\n  • ما التبعيات بين ... و ...\n  • كيف يتدفق ... من ... إلى ...\n  • لو حذفت ... ماذا سيتأثر؟\n\n*النظام لن ينفذ أي عملية قبل التأكد من فهم طلبك بدقة.*",
+      "ts": "2026-06-20T07:12:36.443737"
+    },
+    {
+      "role": "user",
+      "text": "What file owns the login page?",
+      "ts": "2026-06-20T07:27:11.172412"
+    },
+    {
+      "role": "assistant",
+      "text": "📍 **الملفات المسؤولة عن: `What file owns the login page?`**\n\n🌐 **الرابط:** `صفحة الدخول / المصادقة`\n  ⚙️ **ROUTER**: `control_panel/app.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/access.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/panel/login`, `/panel/api/change-password`\n\n📂 **الملفات المرتبطة:**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🔍 **Verification Report** — ✅ VERIFIED\n\n🏗️ **Subsystem:** `control_panel`\n📁 **File:*",
+      "ts": "2026-06-20T07:27:11.172412"
+    },
+    {
+      "role": "user",
+      "text": "Show exact line.",
+      "ts": "2026-06-20T07:27:11.240339"
+    },
+    {
+      "role": "assistant",
+      "text": "⛔ **NO EVIDENCE FOUND**\n\nلا يوجد دليل موثق يدعم هذه الإجابة.\nالنظام لا يخمن ولا يستنتج.\n\nأعد الصياغة أو استخدم: `structure` · `routes` · `arch`\n\n_Concept searched: `Show exact line.`_\n\n─────────────────────────────────\n🔍 **ملاحظة تدقيق الاستجابة (Self-Correction):**\n  ⚠️ Response uses generic fallback marker 'أعد الصياغة' despite project intent 'find_file' — handler may have failed.\n*راجع الملفات المذكورة أعلاه للتحقق من دقة هذه الإجابة.*",
+      "ts": "2026-06-20T07:27:11.240339"
+    },
+    {
+      "role": "user",
+      "text": "What router serves AI Workspace?",
+      "ts": "2026-06-20T07:27:11.289726"
+    },
+    {
+      "role": "assistant",
+      "text": "🌐 **Router for concept `ai workspace`:**\n\n⚙️ **Router file:** `control_panel/routers/ai_workspace.py`\n🛣️ **Route:** `/ai`\n⚙️ **Function:** `ai_page()`\n🔗 **Prefix:** `/ai`\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🔍 **Verification Report** — ✅ VERIFIED\n\n🏗️ **Subsystem:** `ai_engine`\n📁 **File:** `control_panel/routers/ai_workspace.py`\n⚙️ **Function:** `ai_page()`\n📋 **Evidence (verified from source):**\n  `L244:` `@router.get(\"\", response_class=HTMLResponse)`\n  `L0:` `app.include_router(ai_workspace.rou",
+      "ts": "2026-06-20T07:27:11.289726"
+    },
+    {
+      "role": "user",
+      "text": "Show function.",
+      "ts": "2026-06-20T07:27:11.306074"
+    },
+    {
+      "role": "assistant",
+      "text": "🌐 **20 مسار في لوحة التحكم:**\n\n• `/` → `control_panel/templates/dashboard.html` — الصفحة الرئيسية / لوحة التحكم\n• `/dashboard` → `control_panel/templates/dashboard.html` — لوحة التحكم الرئيسية\n• `/panel` → `control_panel/templates/access.html` — صفحة الدخول / المصادقة\n• `/panel/login` → `control_panel/templates/access.html` — معالج تسجيل الدخول\n• `/users` → `control_panel/templates/users.html` — إدارة المستخدمين\n• `/broadcast` → `control_panel/templates/broadcast.html` — نظام البث للمستخدمين\n• `",
+      "ts": "2026-06-20T07:27:11.306074"
+    },
+    {
+      "role": "user",
+      "text": "What file creates Admin Panel button?",
+      "ts": "2026-06-20T07:27:11.316859"
+    },
+    {
+      "role": "assistant",
+      "text": "📍 **الملفات المسؤولة عن: `What file creates Admin Panel button?`**\n\n🌐 **الرابط:** `صفحة الدخول / المصادقة`\n  ⚙️ **ROUTER**: `control_panel/app.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/access.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/panel/login`, `/panel/api/change-password`\n\n📂 **الملفات المرتبطة:**\n  🤖 **HANDLER**: `handlers/admin.py` — أوامر المدير — /panel, stats, ban, broadcast, reports\n  🎨 **TEMPLATE**: `co",
+      "ts": "2026-06-20T07:27:11.316859"
+    },
+    {
+      "role": "user",
+      "text": "Show statement.",
+      "ts": "2026-06-20T07:27:11.324471"
+    },
+    {
+      "role": "assistant",
+      "text": "⛔ **NO EVIDENCE FOUND**\n\nلا يوجد دليل موثق يدعم هذه الإجابة.\nالنظام لا يخمن ولا يستنتج.\n\nأعد الصياغة أو استخدم: `structure` · `routes` · `arch`\n\n_Concept searched: `Show statement.`_\n\n─────────────────────────────────\n🔍 **ملاحظة تدقيق الاستجابة (Self-Correction):**\n  ⚠️ Response uses generic fallback marker 'أعد الصياغة' despite project intent 'find_file' — handler may have failed.\n*راجع الملفات المذكورة أعلاه للتحقق من دقة هذه الإجابة.*",
+      "ts": "2026-06-20T07:27:11.324471"
+    },
+    {
+      "role": "user",
+      "text": "Show evidence.",
+      "ts": "2026-06-20T07:27:11.331995"
+    },
+    {
+      "role": "assistant",
+      "text": "⛔ **NO EVIDENCE FOUND**\n\nلا يوجد دليل موثق يدعم هذه الإجابة.\nالنظام لا يخمن ولا يستنتج.\n\nأعد الصياغة أو استخدم: `structure` · `routes` · `arch`\n\n_Concept searched: `Show evidence.`_\n\n─────────────────────────────────\n🔍 **ملاحظة تدقيق الاستجابة (Self-Correction):**\n  ⚠️ Response uses generic fallback marker 'أعد الصياغة' despite project intent 'find_file' — handler may have failed.\n*راجع الملفات المذكورة أعلاه للتحقق من دقة هذه الإجابة.*",
+      "ts": "2026-06-20T07:27:11.331995"
+    },
+    {
+      "role": "user",
+      "text": "Show exact line.",
+      "ts": "2026-06-20T07:27:11.339782"
+    },
+    {
+      "role": "assistant",
+      "text": "⛔ **NO EVIDENCE FOUND**\n\nلا يوجد دليل موثق يدعم هذه الإجابة.\nالنظام لا يخمن ولا يستنتج.\n\nأعد الصياغة أو استخدم: `structure` · `routes` · `arch`\n\n_Concept searched: `Show exact line.`_\n\n─────────────────────────────────\n🔍 **ملاحظة تدقيق الاستجابة (Self-Correction):**\n  ⚠️ Response uses generic fallback marker 'أعد الصياغة' despite project intent 'find_file' — handler may have failed.\n*راجع الملفات المذكورة أعلاه للتحقق من دقة هذه الإجابة.*",
+      "ts": "2026-06-20T07:27:11.339782"
     }
   ],
   "analysis_cache": {},
@@ -367,7 +367,7 @@
     "errors_found": 57,
     "last_scan": null
   },
-  "updated": "2026-06-20T06:21:20.036238",
+  "updated": "2026-06-20T07:27:11.339782",
   "project": {
     "name": "X Control Center",
     "main_bot": "PrimeDownloader Bot (bot.py)",
@@ -383,9 +383,9 @@
   },
   "stats": {
     "total_scans": 88,
-    "total_plans": 15,
-    "total_questions": 19,
-    "total_chats": 464
+    "total_plans": 16,
+    "total_questions": 26,
+    "total_chats": 478
   },
   "created": "2026-06-19T09:05:02.173299",
   "decisions": [],

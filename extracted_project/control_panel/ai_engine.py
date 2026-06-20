@@ -498,6 +498,11 @@ class FutureExecutionArchitecture:
 # ═══════════════════════════════════════════════════════════════════════════════
 _ACTIVE_CHAIN: dict = {}
 
+# ── AI Maturity Phase 1: Last-Chain Preservation ──────────────────────────────
+# Saved BEFORE _ACTIVE_CHAIN is reset, so follow-up turns can inherit the
+# chain evidence from the previous successful project question.
+_LAST_CHAIN: dict = {}
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # PROJECT BRAIN — Phase 3 Core: Living Cached Project Model
@@ -3247,6 +3252,87 @@ _ALIASES: dict = {
 # INTENT DETECTION
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# AI MATURITY PHASE 1 — Follow-up / Continuation Detection
+#
+# Problem: detect_intent() returns "conversation" for short follow-up phrases
+# ("show exact line", "prove it", "which function") because they contain no
+# project entity keywords that pass the _PF_REGEX / _PF_SUB gate.
+#
+# Solution: _detect_followup() matches a dedicated phrase list and consults
+# AIMemoryLayer._history to inherit the prior project intent.  Runs INSIDE
+# process_chat() AFTER detect_intent() — only when intent == "conversation"
+# or "general".
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_FOLLOWUP_PHRASES: list = [
+    # English show / prove / demonstrate
+    r"^show\s+(exact\s+)?(line|function|statement|code|evidence|proof|it)\b",
+    r"^show\s+me\s+(the\s+)?(line|function|code|statement|evidence)\b",
+    r"^prove\s+(it|that|this)\b",
+    r"^which\s+(function|line|statement|file)\b",
+    r"^where\s+exactly\b",
+    r"^what\s+(statement|function|line|code|is\s+it)\b",
+    r"^(exact\s+)?line\s*(number|please)?\s*$",
+    r"^more\s+details?\b",
+    r"^expand(\s+on\s+(that|this))?\b",
+    r"^elaborate\b",
+    r"^give\s+me\s+(more\s+)?(details?|evidence|proof)\b",
+    r"^which\s+one\b",
+    r"^what\s+line\b",
+    r"^show\s+statement\b",
+    r"^and\s+(the\s+)?line\b",
+    r"^can\s+you\s+show\s+(the\s+)?(line|function|code|statement|evidence)\b",
+    r"^(in\s+)?which\s+(file|line|function)\b",
+    r"^show\s+evidence\b",
+    r"^show\s+proof\b",
+    r"^show\s+exact\s+line\b",
+    r"^show\s+the\s+(line|function|code|statement)\b",
+    # Arabic follow-up phrases
+    r"^أرني\s+(السطر|الكود|الدالة|الدليل|البرهان)",
+    r"^(أين\s+بالضبط|السطر\s+بالضبط|أظهر\s+السطر)",
+    r"^أثبت\s+ذلك",
+    r"^أي\s+(دالة|سطر|ملف|تعليمة)",
+    r"^أظهر\s+(السطر|الدالة|الكود|الدليل)",
+    r"^ما\s+(السطر|الدالة|التعليمة)\b",
+    r"^المزيد\s+من\s+التفاصيل",
+    r"^وضح\s+أكثر",
+]
+
+# Intents that are NOT project intents — a follow-up to these makes no sense
+_NON_PROJECT_INTENTS: frozenset = frozenset({
+    "conversation", "greeting", "identity", "capabilities",
+    "hf_query", "status", "help", "self_test", "memory",
+    "stats", "backup", "restore", "general", "follow_up", "",
+})
+
+
+def _detect_followup(msg: str, history: list) -> tuple:
+    """
+    Detect whether `msg` is a short continuation of a prior project question.
+
+    Returns:
+        (is_followup: bool, inherited_intent: str, inherited_prev_msg: str)
+
+    Rules:
+      1. Message must match at least one _FOLLOWUP_PHRASES pattern.
+      2. There must be a prior user turn with a project intent in AIMemoryLayer history.
+      3. The prior intent must not be in _NON_PROJECT_INTENTS.
+    """
+    ml = msg.strip().lower()
+    if not any(re.search(p, ml) for p in _FOLLOWUP_PHRASES):
+        return False, "", ""
+    # Walk history newest-first to find the most recent project-intent user turn
+    for entry in reversed(history):
+        if entry.get("role") != "user":
+            continue
+        prev_intent = entry.get("intent", "")
+        prev_text   = entry.get("text", "")
+        if prev_intent and prev_intent not in _NON_PROJECT_INTENTS:
+            return True, prev_intent, prev_text
+    return False, "", ""
+
+
 INTENTS: dict = {
     "errors":      [r"أخطاء", r"خطأ", r"errors?", r"bugs?", r"مشاكل", r"مشكلة", r"broken", r"يعطل", r"كسور"],
     "analyze":     [r"افحص", r"حلل", r"analyze", r"scan", r"فحص", r"تحليل", r"inspect", r"اكتشف"],
@@ -5317,8 +5403,10 @@ def process_chat(msg: str) -> dict:
     6. Scan-usage verification: inject evidence footer if handler used live data
     7. Record response + persist turn
     """
-    global _ACTIVE_CHAIN
-    _ACTIVE_CHAIN = {}  # Rule 3: reset chain cache on every new request
+    global _ACTIVE_CHAIN, _LAST_CHAIN
+    if _ACTIVE_CHAIN:
+        _LAST_CHAIN = _ACTIVE_CHAIN   # AI Maturity Phase 1: preserve for follow-up inheritance
+    _ACTIVE_CHAIN = {}                # Rule 3: reset chain cache on every new request
 
     # ── AGENT GATE 1: pending plan approval / rejection ──────────────────────
     if AgentPlanningGate.has_pending():
@@ -5334,6 +5422,28 @@ def process_chat(msg: str) -> dict:
             return resp
 
     intent = detect_intent(msg)
+
+    # ── AI Maturity Phase 1: Follow-up / Continuation Override ───────────────
+    # detect_intent() returns "conversation" for short follow-up phrases like
+    # "show exact line", "prove it", "which function" — they contain no project
+    # entity keywords and fail the _PF_REGEX / _PF_SUB gate.
+    #
+    # Fix: consult AIMemoryLayer._history here and inherit the previous project
+    # intent when a follow-up pattern is matched.  This is the ONLY place that
+    # can recover context without bypassing the full intent pipeline.
+    _is_followup_turn: bool = False
+    if intent in ("conversation", "general"):
+        _fu, _fu_intent, _fu_prev = _detect_followup(msg, AIMemoryLayer._history)
+        if _fu and _fu_intent:
+            _ai_log.info(
+                "FollowUpDetector: '%s' → inheriting intent='%s' from prior project turn",
+                msg, _fu_intent,
+            )
+            intent            = _fu_intent
+            _is_followup_turn = True
+            # Restore last known chain so handler has pre-built scan evidence
+            if _LAST_CHAIN and not _ACTIVE_CHAIN:
+                _ACTIVE_CHAIN = dict(_LAST_CHAIN)
 
     # ── Phase 12: Context Engine — detect subsystem before reasoning ──────────
     _ctx_result: dict = {"detected": "general", "confidence": 0.0, "evidence": []}
@@ -5428,8 +5538,14 @@ def process_chat(msg: str) -> dict:
         "greeting", "conversation", "identity", "capabilities",
         "hf_query", "status", "help", "self_test", "memory",
         "stats", "backup", "restore", "general",
+        "follow_up",  # AI Maturity Phase 1: follow-ups bypass the confidence gate
     }
-    if intent in _PROJECT_INTENTS and intent not in _CONFIDENCE_EXEMPT:
+    # AI Maturity Phase 1: follow-up turns already verified against history.
+    # The short phrase ("show exact line") will score 0% against project signals,
+    # but context was inherited from a prior verified turn — gate is not applicable.
+    if (not _is_followup_turn
+            and intent in _PROJECT_INTENTS
+            and intent not in _CONFIDENCE_EXEMPT):
         if _CE_OK and _IC is not None:
             _pre_conf = _IC.score(intent, msg)
             if _pre_conf < 0.30:
