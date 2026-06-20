@@ -111,56 +111,6 @@
     {
       "role": "user",
       "text": "What function creates this keyboard?",
-      "ts": "2026-06-20T06:12:05.500741"
-    },
-    {
-      "role": "assistant",
-      "text": "🧠 **أنا TitanX Engineering Agent — Agent Foundation v16**\n\n**ما أنا؟**\nوكيل هندسي متخصص مدمج في **X Control Center v5.0**.\nأعمل بـ 16 قاعدة صارمة: الفحص أولاً، الأدلة قبل الإجابة، الموافقة قبل التنفيذ، التحقق بعده.\n\n**بروتوكول التفكير (7 خطوات إلزامية لكل طلب مشروع):**\n  1️⃣ Understand — استخراج الكيانات وتصنيف النية\n  2️⃣ Search — فحص حي للملفات ذات الصلة\n  3️⃣ Context — تحديد أدوار الملفات وفئاتها\n  4️⃣ Deps — رسم بيان التبعيات من AST graph\n  5️⃣ Impact — تقييم مستوى المخاطرة والملفات المتأثرة",
-      "ts": "2026-06-20T06:12:05.500741"
-    },
-    {
-      "role": "user",
-      "text": "What file creates the Admin Panel button?",
-      "ts": "2026-06-20T06:20:47.397185"
-    },
-    {
-      "role": "assistant",
-      "text": "📍 **الملفات المسؤولة عن: `What file creates the Admin Panel button?`**\n\n🌐 **الرابط:** `صفحة الدخول / المصادقة`\n  ⚙️ **ROUTER**: `control_panel/app.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/access.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/panel/login`, `/panel/api/change-password`\n\n📂 **الملفات المرتبطة:**\n  🤖 **HANDLER**: `handlers/admin.py` — أوامر المدير — /panel, stats, ban, broadcast, reports\n  🎨 **TEMPLATE**:",
-      "ts": "2026-06-20T06:20:47.397185"
-    },
-    {
-      "role": "user",
-      "text": "What imports config/settings.py?",
-      "ts": "2026-06-20T06:20:47.428963"
-    },
-    {
-      "role": "assistant",
-      "text": "🔗 **تحليل التبعيات — قراءة مباشرة من الكود**\n\n\n📁 `config/settings.py` [config] — إعدادات البوت الرئيسي\n  📥 **يستورده (33 ملف):**\n    ↳ `admin_bot/bot.py`\n      📋 `from config.settings import ADMIN_BOT_TOKEN`\n    ↳ `admin_bot/database/db.py`\n      📋 `from config.settings import MAIN_DB_PATH, SUPPORT_DB_PATH`\n    ↳ `admin_bot/handlers/auth.py`\n      📋 `from config.settings import OWNER_ID, ADMIN_IDS`\n    ↳ `admin_bot/handlers/settings_h.py`\n      📋 `from config.settings import (`\n    ↳ `admin_bot/",
-      "ts": "2026-06-20T06:20:47.428963"
-    },
-    {
-      "role": "user",
-      "text": "What router serves AI Workspace?",
-      "ts": "2026-06-20T06:20:47.478050"
-    },
-    {
-      "role": "assistant",
-      "text": "🌐 **Router for concept `ai workspace`:**\n\n⚙️ **Router file:** `control_panel/routers/ai_workspace.py`\n🛣️ **Route:** `/ai`\n⚙️ **Function:** `ai_page()`\n🔗 **Prefix:** `/ai`\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🔍 **Verification Report** — ✅ VERIFIED\n\n🏗️ **Subsystem:** `ai_engine`\n📁 **File:** `control_panel/routers/ai_workspace.py`\n⚙️ **Function:** `ai_page()`\n📋 **Evidence (verified from source):**\n  `L244:` `@router.get(\"\", response_class=HTMLResponse)`\n  `L0:` `app.include_router(ai_workspace.rou",
-      "ts": "2026-06-20T06:20:47.478050"
-    },
-    {
-      "role": "user",
-      "text": "What file owns the login page?",
-      "ts": "2026-06-20T06:20:47.489539"
-    },
-    {
-      "role": "assistant",
-      "text": "📍 **الملفات المسؤولة عن: `What file owns the login page?`**\n\n🌐 **الرابط:** `صفحة الدخول / المصادقة`\n  ⚙️ **ROUTER**: `control_panel/app.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/access.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/panel/login`, `/panel/api/change-password`\n\n📂 **الملفات المرتبطة:**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n🔍 **Verification Report** — ✅ VERIFIED\n\n🏗️ **Subsystem:** `control_panel`\n📁 **File:*",
-      "ts": "2026-06-20T06:20:47.489539"
-    },
-    {
-      "role": "user",
-      "text": "What function creates this keyboard?",
       "ts": "2026-06-20T06:20:47.608980"
     },
     {
@@ -357,6 +307,56 @@
       "role": "assistant",
       "text": "⛔ **NO EVIDENCE FOUND**\n\nلا يوجد دليل موثق يدعم هذه الإجابة.\nالنظام لا يخمن ولا يستنتج.\n\nأعد الصياغة أو استخدم: `structure` · `routes` · `arch`\n\n_Concept searched: `Show exact line.`_\n\n─────────────────────────────────\n🔍 **ملاحظة تدقيق الاستجابة (Self-Correction):**\n  ⚠️ Response uses generic fallback marker 'أعد الصياغة' despite project intent 'find_file' — handler may have failed.\n*راجع الملفات المذكورة أعلاه للتحقق من دقة هذه الإجابة.*",
       "ts": "2026-06-20T07:27:11.339782"
+    },
+    {
+      "role": "user",
+      "text": "Show only source code evidence.\n\nQuestion:\n\nWhere is access.html rendered?\n\nRequirements:\n\n1. Exact file\n2. Exact function\n3. Exact line number\n4. Exact statement\n\nOutput ONLY:\n\nFile\nFunction\nLine\nStatement\n\nDo not show:\n\nDependencies\nOwnership\nRelated files\nImpact analysis\nRouters\nTemplates\n\nIf source code evidence is not found return:\n\nNO EVIDENCE FOUND",
+      "ts": "2026-06-20T07:31:25.714325"
+    },
+    {
+      "role": "assistant",
+      "text": "🔍 **لم أستطع تحديد طلبك بثقة كافية.**\n\nفهمت النية على أنها: **`dependency`** (ثقة: 0%) — وهذا أقل من الحد الأدنى المطلوب (30%).\n\n**يرجى إعادة الصياغة بشكل أوضح، مثلاً:**\n  • ما الملف المسؤول عن ...\n  • ما التبعيات بين ... و ...\n  • كيف يتدفق ... من ... إلى ...\n  • لو حذفت ... ماذا سيتأثر؟\n\n*النظام لن ينفذ أي عملية قبل التأكد من فهم طلبك بدقة.*",
+      "ts": "2026-06-20T07:31:25.714325"
+    },
+    {
+      "role": "user",
+      "text": "What file creates the Admin Panel button in the main Telegram bot?\n\nDo not guess.\n\nShow:\n\n1. Exact file\n2. Exact function\n3. Exact keyboard builder\n4. Evidence\n5. Confidence score",
+      "ts": "2026-06-20T07:31:47.469519"
+    },
+    {
+      "role": "assistant",
+      "text": "📍 **الملفات المسؤولة عن: `What file creates the Admin Panel button in the main Telegram bot?\n\nDo not guess.\n\nShow:\n\n1. Exact file\n2. Exact function\n3. Exact keyboard builder\n4. Evidence\n5. Confidence score`**\n\n🌐 **الرابط:** `صفحة الدخول / المصادقة`\n  ⚙️ **ROUTER**: `control_panel/app.py` ✅\n  🎨 **TEMPLATE**: `control_panel/templates/access.html` ✅\n  🎨 **CSS**: `control_panel/static/css/style.css`\n  📜 **JS**: `control_panel/static/js/app.js`\n  🔌 **APIs**: `/panel/login`, `/panel/api/change-passwor",
+      "ts": "2026-06-20T07:31:47.469519"
+    },
+    {
+      "role": "user",
+      "text": "شيل ذرار لوحه الاداره من البوت الرئيسي احذفوا نهائي",
+      "ts": "2026-06-20T07:32:56.542685"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **X AI Operator** · X Control Center\n\nلم أستطع تحديد نوع طلبك بدقة كافية.\n\n**أعد الصياغة بإحدى هذه الطرق:**\n  • **سؤال تقني** — \"اشرح FastAPI\" · \"الفرق بين Python و JavaScript\"\n  • **تحليل تأثير** — \"لو عدلت style.css ماذا سيحدث؟\"\n  • **إنشاء ميزة** — \"كيف أضيف بوت إشعارات؟\"\n  • **تقييم المشروع** — \"هل بنية المشروع جيدة؟\"\n  • **إصلاح مشكلة** — \"إصلاح خطأ في صفحة الإعدادات\"",
+      "ts": "2026-06-20T07:32:56.542685"
+    },
+    {
+      "role": "user",
+      "text": "Delete the admin panel button from the main boot menu.",
+      "ts": "2026-06-20T07:33:58.352938"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **X AI Operator** · X Control Center\n\nلم أستطع تحديد نوع طلبك بدقة كافية.\n\n**أعد الصياغة بإحدى هذه الطرق:**\n  • **سؤال تقني** — \"اشرح FastAPI\" · \"الفرق بين Python و JavaScript\"\n  • **تحليل تأثير** — \"لو عدلت style.css ماذا سيحدث؟\"\n  • **إنشاء ميزة** — \"كيف أضيف بوت إشعارات؟\"\n  • **تقييم المشروع** — \"هل بنية المشروع جيدة؟\"\n  • **إصلاح مشكلة** — \"إصلاح خطأ في صفحة الإعدادات\"",
+      "ts": "2026-06-20T07:33:58.352938"
+    },
+    {
+      "role": "user",
+      "text": ".",
+      "ts": "2026-06-20T07:40:07.296156"
+    },
+    {
+      "role": "assistant",
+      "text": "🧠 **X AI Operator** · X Control Center\n\nلم أستطع تحديد نوع طلبك بدقة كافية.\n\n**أعد الصياغة بإحدى هذه الطرق:**\n  • **سؤال تقني** — \"اشرح FastAPI\" · \"الفرق بين Python و JavaScript\"\n  • **تحليل تأثير** — \"لو عدلت style.css ماذا سيحدث؟\"\n  • **إنشاء ميزة** — \"كيف أضيف بوت إشعارات؟\"\n  • **تقييم المشروع** — \"هل بنية المشروع جيدة؟\"\n  • **إصلاح مشكلة** — \"إصلاح خطأ في صفحة الإعدادات\"",
+      "ts": "2026-06-20T07:40:07.296156"
     }
   ],
   "analysis_cache": {},
@@ -367,7 +367,7 @@
     "errors_found": 57,
     "last_scan": null
   },
-  "updated": "2026-06-20T07:27:11.339782",
+  "updated": "2026-06-20T07:40:07.296156",
   "project": {
     "name": "X Control Center",
     "main_bot": "PrimeDownloader Bot (bot.py)",
@@ -384,8 +384,8 @@
   "stats": {
     "total_scans": 88,
     "total_plans": 16,
-    "total_questions": 26,
-    "total_chats": 478
+    "total_questions": 27,
+    "total_chats": 483
   },
   "created": "2026-06-19T09:05:02.173299",
   "decisions": [],

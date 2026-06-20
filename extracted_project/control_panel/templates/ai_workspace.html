@@ -1,94 +1,144 @@
 {% extends "base.html" %}
-{% block title %}X AI — مركز الذكاء الاصطناعي{% endblock %}
-{% block page_title %}🧠 TitanX Engineering Agent{% endblock %}
+{% block title %}X AI Workspace{% endblock %}
+{% block page_title %}🧠 AI Workspace{% endblock %}
 
 {% block content %}
-<div class="ai-chat-wrap">
+<div class="xai-workspace" id="xai-workspace">
 
-  <!-- Sidebar -->
-  <aside class="ai-chat-sidebar">
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="xai-sidebar" id="xai-sidebar">
+
+    <!-- Agent Identity -->
+    <div class="xai-agent-card">
+      <div class="xai-agent-avatar">
+        <div class="xai-agent-pulse"></div>
+        🧠
+      </div>
+      <div class="xai-agent-info">
+        <div class="xai-agent-name">X Engineering Agent</div>
+        <div class="xai-agent-status-row" id="xai-agent-status">
+          <span class="xai-sdot xai-sdot-ready" id="xai-sdot-main"></span>
+          <span class="xai-agent-status-text" id="xai-agent-status-text">جاهز</span>
+        </div>
+      </div>
+      <button class="xai-collapse-btn" id="xai-collapse-btn" onclick="toggleXaiSidebar()" title="طي الشريط">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+    </div>
+
+    <!-- New Chat -->
+    <button class="xai-new-session-btn" onclick="newSession()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      محادثة جديدة
+    </button>
+
+    <!-- Sessions -->
+    <div class="xai-sb-section">
+      <div class="xai-sb-label">
+        <span>المحادثات الأخيرة</span>
+        <span class="xai-session-count" id="xai-session-count"></span>
+      </div>
+      <div class="xai-session-list" id="xai-session-list">
+        <div class="xai-no-sessions">لا توجد محادثات سابقة</div>
+      </div>
+    </div>
+
+    <!-- Spacer -->
+    <div style="flex:1;min-height:12px"></div>
 
     <!-- Connection Status -->
-    <div class="ai-conn-block">
-      <div class="ai-conn-row">
-        <span class="ai-conn-dot ai-conn-green" id="hf-dot"></span>
-        <span class="ai-conn-label">Hugging Face</span>
-        <span class="ai-conn-val" id="hf-val">—</span>
+    <div class="xai-conn-panel">
+      <div class="xai-sb-label" style="margin-bottom:6px">الاتصالات</div>
+      <div class="xai-conn-row">
+        <span class="xai-cdot" id="hf-cdot"></span>
+        <span>Hugging Face</span>
+        <span class="xai-conn-val" id="hf-cval">—</span>
       </div>
-      <div class="ai-conn-row">
-        <span class="ai-conn-dot ai-conn-green"></span>
-        <span class="ai-conn-label">Reasoning Engine</span>
-        <span class="ai-conn-val" style="color:var(--neon,#00d4ff)">نشط</span>
+      <div class="xai-conn-row">
+        <span class="xai-cdot xai-cdot-on"></span>
+        <span>Reasoning Engine</span>
+        <span class="xai-conn-val" style="color:var(--green)">نشط</span>
       </div>
-      <div class="ai-conn-row">
-        <span class="ai-conn-dot ai-conn-green"></span>
-        <span class="ai-conn-label">AI Memory</span>
-        <span class="ai-conn-val" id="mem-turns">—</span>
+      <div class="xai-conn-row">
+        <span class="xai-cdot xai-cdot-on"></span>
+        <span>AI Memory</span>
+        <span class="xai-conn-val" id="xai-mem-turns">0 دورة</span>
       </div>
+    </div>
+
+    <!-- Context Panel -->
+    <div class="xai-ctx-panel">
+      <div class="xai-sb-label" style="margin-bottom:6px">السياق الحالي</div>
+      <div class="xai-ctx-row"><span class="xai-ctx-k">النية</span><span class="xai-ctx-v" id="ctx-intent">—</span></div>
+      <div class="xai-ctx-row"><span class="xai-ctx-k">الثقة</span><span class="xai-ctx-v" id="ctx-conf">—</span></div>
+      <div class="xai-ctx-row"><span class="xai-ctx-k">السياق</span><span class="xai-ctx-v" id="ctx-context">—</span></div>
+      <div class="xai-ctx-row"><span class="xai-ctx-k">الدورة</span><span class="xai-ctx-v" id="ctx-session">0</span></div>
     </div>
 
   </aside>
 
-  <!-- Main Chat -->
-  <main class="ai-chat-main">
+  <!-- ═══════════ MAIN ═══════════ -->
+  <main class="xai-main">
 
-    <!-- Header -->
-    <div class="ai-chat-header">
-      <div class="ai-chat-header-left">
-        <div class="ai-avatar-lg">
-          <div class="ai-avatar-pulse"></div>
-          🧠
-        </div>
-        <div>
-          <div class="ai-chat-title">TitanX Engineering Agent <span class="ai-phase-tag">P3</span></div>
-          <div class="ai-chat-sub">محادثة عامة · معرفة مشروع · تخطيط · تشخيص</div>
-        </div>
-      </div>
-      <div class="ai-chat-header-right">
-        <button class="ai-new-chat-btn" onclick="newChat()" style="margin-bottom:0">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          محادثة جديدة
+    <!-- TOP BAR -->
+    <div class="xai-topbar">
+      <div class="xai-tb-start">
+        <button class="xai-tb-btn" onclick="toggleXaiSidebar()" title="القائمة">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
-        <div class="ai-status-dot"></div>
-        <span style="font-size:.75rem;color:var(--green)">جاهز</span>
-        <button class="ai-icon-btn" onclick="clearChat()" title="مسح المحادثة">🗑️</button>
-      </div>
-    </div>
-
-    <!-- Messages -->
-    <div class="ai-messages" id="ai-messages">
-      <div class="ai-msg ai-msg-bot ai-msg-appear" id="welcome-msg">
-        <div class="ai-msg-avatar">🧠</div>
-        <div class="ai-msg-bubble">
-          <div class="ai-msg-content" id="welcome-content"></div>
-          <div class="ai-msg-time">الآن</div>
+        <div class="xai-tb-title">
+          <span class="xai-tb-name">X AI Workspace</span>
+          <span class="xai-tb-badge" id="xai-tb-badge">
+            <span class="xai-sdot xai-sdot-ready"></span>جاهز للعمل
+          </span>
         </div>
       </div>
-    </div>
-
-    <!-- Typing Indicator -->
-    <div class="ai-typing" id="ai-typing" style="display:none">
-      <div class="ai-msg-avatar" style="width:32px;height:32px;font-size:.9rem">🧠</div>
-      <div class="ai-typing-bubble">
-        <div class="ai-typing-dot"></div>
-        <div class="ai-typing-dot"></div>
-        <div class="ai-typing-dot"></div>
+      <div class="xai-tb-end">
+        <button class="xai-tb-btn" id="theme-btn" onclick="toggleTheme()" title="تبديل الثيم">☀️</button>
+        <button class="xai-tb-btn xai-tb-danger" onclick="confirmClear()" title="مسح المحادثة">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>
+        </button>
       </div>
     </div>
 
-    <!-- Input -->
-    <div class="ai-input-wrap">
-      <div class="ai-input-box">
-        <textarea class="ai-textarea" id="ai-input"
-          placeholder="اكتب رسالتك... مثال: اشرح FastAPI · Python vs JS · Create notification bot"
+    <!-- MESSAGES -->
+    <div class="xai-messages" id="xai-messages"></div>
+
+    <!-- THINKING -->
+    <div class="xai-thinking-wrap" id="xai-thinking" style="display:none">
+      <div class="xai-thinking-avatar">🧠</div>
+      <div class="xai-thinking-body">
+        <div class="xai-thinking-step-row" id="xai-step-row">
+          <span class="xai-tstep xai-tstep-active" id="ts0">تحليل الطلب</span>
+          <span class="xai-tstep" id="ts1">قراءة السياق</span>
+          <span class="xai-tstep" id="ts2">فحص الذاكرة</span>
+          <span class="xai-tstep" id="ts3">التحقق من الأدلة</span>
+          <span class="xai-tstep" id="ts4">توليد الإجابة</span>
+        </div>
+        <div class="xai-tdots"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+    <!-- INPUT AREA -->
+    <div class="xai-input-area">
+      <div class="xai-chips" id="xai-chips">
+        <button class="xai-chip" onclick="sendChip('ما هيكل المشروع؟')">🗂 هيكل المشروع</button>
+        <button class="xai-chip" onclick="sendChip('اشرح كيف يعمل النظام')">⚙️ شرح النظام</button>
+        <button class="xai-chip" onclick="sendChip('أي ملف يتحكم في المصادقة؟')">🔐 المصادقة</button>
+        <button class="xai-chip" onclick="sendChip('ما مسارات API المتاحة؟')">🔌 مسارات API</button>
+        <button class="xai-chip" onclick="sendChip('ابحث عن أخطاء محتملة')">🔍 أخطاء</button>
+      </div>
+      <div class="xai-input-box" id="xai-input-box">
+        <textarea class="xai-textarea" id="xai-input"
+          placeholder="اكتب رسالتك... مثال: ما الملف المسؤول عن صفحة تسجيل الدخول؟"
           rows="1"
-          onkeydown="handleKey(event)"
-          oninput="autoResize(this)"></textarea>
-        <div class="ai-input-actions">
-          <button class="ai-send-btn" id="ai-send-btn" onclick="sendMessage()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          onkeydown="xaiHandleKey(event)"
+          oninput="xaiAutoResize(this);xaiCountChars(this)"></textarea>
+        <div class="xai-input-right">
+          <span class="xai-char-count" id="xai-char-count">0</span>
+          <button class="xai-send-btn" id="xai-send-btn" onclick="xaiSend()">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
             </svg>
           </button>
         </div>
@@ -100,278 +150,1221 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-var _busy   = false;
-var _chatEl = document.getElementById('ai-messages');
+<style>
+/* ═══════════════════════════════════════════════
+   X AI WORKSPACE — Premium Redesign
+   Scope: .xai-* only. No global overrides.
+   ═══════════════════════════════════════════════ */
 
-// ── Sidebar status CSS ────────────────────────────────────────────────────────
-(function injectSidebarStyles() {
-  var css = `
-    .ai-identity-card {
-      display: flex; align-items: center; gap: 10px;
-      background: rgba(0,212,255,0.04);
-      border: 1px solid rgba(0,212,255,0.12);
-      border-radius: 10px; padding: 10px 12px; margin-bottom: 10px;
-    }
-    .ai-identity-avatar { font-size: 1.6rem; line-height: 1; }
-    .ai-identity-name { font-size: .82rem; font-weight: 700; color: #00d4ff;
-      text-shadow: 0 0 10px rgba(0,212,255,0.5); }
-    .ai-identity-phase { font-size: .68rem; color: rgba(0,212,255,0.55);
-      font-family: 'JetBrains Mono',monospace; }
-    .ai-conn-block {
-      background: rgba(0,0,0,0.25); border: 1px solid rgba(0,212,255,0.08);
-      border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; display: flex;
-      flex-direction: column; gap: 5px;
-    }
-    .ai-conn-row { display: flex; align-items: center; gap: 6px;
-      font-size: .72rem; }
-    .ai-conn-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
-      animation: xPulseBreathe 2.5s ease-in-out infinite; }
-    .ai-conn-green { background: #00ff88;
-      box-shadow: 0 0 6px rgba(0,255,136,0.7); }
-    .ai-conn-yellow { background: #ffaa00;
-      box-shadow: 0 0 6px rgba(255,170,0,0.7); }
-    .ai-conn-label { flex: 1; color: var(--text2); }
-    .ai-conn-val { font-family: 'JetBrains Mono',monospace; font-size: .68rem;
-      color: var(--green); }
-    .ai-p3-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-    .ai-p3-badge {
-      font-size: .67rem; padding: 4px 6px; border-radius: 6px;
-      background: rgba(0,212,255,0.06); border: 1px solid rgba(0,212,255,0.15);
-      color: #00d4ff; text-align: center; font-weight: 600;
-      transition: background 0.2s;
-    }
-    .ai-p3-badge:hover { background: rgba(0,212,255,0.12); }
-    .ai-p3-dim { opacity: 0.45; }
-    .ai-quick-action {
-      width: 100%; text-align: right; background: rgba(0,212,255,0.03);
-      border: 1px solid rgba(0,212,255,0.10); border-radius: 7px;
-      padding: 7px 10px; font-size: .75rem; color: var(--text2);
-      cursor: pointer; margin-bottom: 4px; font-family: inherit;
-      transition: border-color 0.2s, background 0.2s, color 0.2s;
-      direction: rtl;
-    }
-    .ai-quick-action:hover {
-      border-color: rgba(0,212,255,0.35); background: rgba(0,212,255,0.07);
-      color: #00d4ff;
-    }
-    .ai-quick-action:active { transform: scale(0.97); }
-    .ai-phase-tag {
-      font-size: .6rem; font-weight: 800; background: rgba(0,212,255,0.15);
-      color: #00d4ff; border: 1px solid rgba(0,212,255,0.3);
-      border-radius: 4px; padding: 1px 5px; vertical-align: middle;
-      font-family: 'JetBrains Mono',monospace;
-    }
-  `;
-  var el = document.createElement('style');
-  el.textContent = css;
-  document.head.appendChild(el);
-})();
-
-// ── Welcome message ───────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-  var welcome = '🧠 **TitanX Engineering Agent** — جاهز. اكتب رسالتك.';
-  document.getElementById('welcome-content').innerHTML = renderMd(welcome);
-  loadStatus();
-});
-
-// ── Load sidebar HF status ────────────────────────────────────────────────────
-async function loadStatus() {
-  try {
-    var d = await apiGet('/ai/api/hf/status');
-    var dot = document.getElementById('hf-dot');
-    var val = document.getElementById('hf-val');
-    if (d && d.connected) {
-      if (dot) { dot.className = 'ai-conn-dot ai-conn-green'; }
-      if (val) { val.textContent = 'متصل ✅'; val.style.color = '#00ff88'; }
-    } else {
-      if (dot) { dot.className = 'ai-conn-dot ai-conn-yellow'; }
-      if (val) { val.textContent = 'منقطع'; val.style.color = '#ffaa00'; }
-    }
-  } catch(e) {
-    var val = document.getElementById('hf-val');
-    if (val) { val.textContent = '—'; }
-  }
-
-  // Memory turns
-  try {
-    var mem = document.getElementById('mem-turns');
-    if (mem) { mem.textContent = '0 دورة'; }
-  } catch(e) {}
+/* ── Layout ─────────────────────────────────── */
+.xai-workspace {
+  display: flex;
+  height: calc(100vh - var(--header-h) - 32px);
+  min-height: 520px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--card);
+  position: relative;
 }
 
-// ── Send / receive ────────────────────────────────────────────────────────────
-async function sendMessage() {
-  if (_busy) return;
-  var inp = document.getElementById('ai-input');
+/* ── Sidebar ─────────────────────────────────── */
+.xai-sidebar {
+  width: 248px;
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 12px;
+  gap: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.28s cubic-bezier(0.4,0,0.2,1), padding 0.28s;
+  scrollbar-width: none;
+}
+.xai-sidebar::-webkit-scrollbar { display:none; }
+.xai-sidebar.xai-collapsed {
+  width: 0;
+  padding: 0;
+  border-left: none;
+}
+
+/* Agent Card */
+.xai-agent-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
+  background: linear-gradient(135deg, rgba(59,130,246,0.06), rgba(168,85,247,0.04));
+  border: 1px solid rgba(59,130,246,0.15);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+.xai-agent-avatar {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem;
+  position: relative;
+  flex-shrink: 0;
+}
+.xai-agent-pulse {
+  position: absolute; inset: -3px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  opacity: 0.35;
+  animation: xai-pulse 2.5s ease-in-out infinite;
+}
+@keyframes xai-pulse {
+  0%,100% { opacity: 0.35; transform: scale(1); }
+  50%      { opacity: 0.6;  transform: scale(1.06); }
+}
+.xai-agent-info { flex: 1; min-width: 0; }
+.xai-agent-name {
+  font-size: .78rem; font-weight: 800;
+  color: var(--accent2); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.xai-agent-status-row {
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 2px;
+}
+.xai-agent-status-text { font-size: .68rem; color: var(--text3); }
+
+/* Status dots */
+.xai-sdot {
+  width: 6px; height: 6px; border-radius: 50%;
+  display: inline-block; flex-shrink: 0;
+  animation: xai-blink 2.5s ease-in-out infinite;
+}
+@keyframes xai-blink {
+  0%,100% { opacity: 1; } 50% { opacity: 0.45; }
+}
+.xai-sdot-ready   { background: var(--green);  box-shadow: 0 0 6px rgba(34,197,94,0.7); }
+.xai-sdot-think   { background: var(--yellow); box-shadow: 0 0 6px rgba(245,158,11,0.7); animation-duration: 0.8s; }
+.xai-sdot-analyze { background: var(--cyan);   box-shadow: 0 0 6px rgba(6,182,212,0.7);  animation-duration: 0.6s; }
+.xai-sdot-error   { background: var(--red);    box-shadow: 0 0 6px rgba(239,68,68,0.7); animation: none; }
+
+/* Collapse button */
+.xai-collapse-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); padding: 4px; border-radius: 5px;
+  transition: var(--trans); flex-shrink: 0;
+  display: flex; align-items: center;
+}
+.xai-collapse-btn:hover { color: var(--text); background: var(--bg3); }
+
+/* New Chat Button */
+.xai-new-session-btn {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  color: #fff; border: none; border-radius: var(--radius-sm);
+  padding: 9px 14px; font-size: .82rem; font-weight: 700;
+  cursor: pointer; margin-bottom: 14px;
+  transition: var(--trans); font-family: 'Cairo', sans-serif;
+  flex-shrink: 0;
+}
+.xai-new-session-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+
+/* Sidebar section */
+.xai-sb-section { flex-shrink: 0; margin-bottom: 4px; }
+.xai-sb-label {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: .62rem; font-weight: 800; color: var(--text3);
+  text-transform: uppercase; letter-spacing: .1em;
+  margin-bottom: 7px; padding: 0 2px;
+}
+.xai-session-count {
+  background: var(--accent); color: #fff;
+  font-size: .58rem; font-weight: 800;
+  padding: 1px 6px; border-radius: 99px; font-family: 'JetBrains Mono', monospace;
+}
+
+/* Session list */
+.xai-session-list { display: flex; flex-direction: column; gap: 2px; }
+.xai-no-sessions { font-size: .72rem; color: var(--text3); padding: 8px 4px; text-align: center; }
+.xai-session-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 10px; border-radius: var(--radius-xs);
+  cursor: pointer; transition: var(--trans-fast);
+  border: 1px solid transparent; position: relative;
+}
+.xai-session-item:hover {
+  background: var(--bg3); border-color: var(--border);
+}
+.xai-session-item.xai-active {
+  background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.25);
+}
+.xai-session-icon { font-size: .8rem; flex-shrink: 0; }
+.xai-session-title {
+  flex: 1; min-width: 0; font-size: .74rem; color: var(--text2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.xai-session-item.xai-active .xai-session-title { color: var(--accent2); font-weight: 600; }
+.xai-session-pin { font-size: .65rem; color: var(--yellow); opacity: 0.8; }
+.xai-session-del {
+  background: none; border: none; cursor: pointer;
+  opacity: 0; font-size: .7rem; color: var(--text3);
+  transition: var(--trans-fast); padding: 2px 4px;
+  border-radius: 4px; flex-shrink: 0;
+}
+.xai-session-item:hover .xai-session-del { opacity: 1; }
+.xai-session-del:hover { color: var(--red); background: rgba(239,68,68,0.1); }
+
+/* Connection panel */
+.xai-conn-panel {
+  background: rgba(0,0,0,0.18);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 9px 10px; margin-bottom: 8px;
+  flex-shrink: 0;
+}
+.xai-conn-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: .70rem; color: var(--text2); padding: 3px 0;
+}
+.xai-conn-row span:nth-child(3) { margin-right: auto; }
+.xai-cdot {
+  width: 6px; height: 6px; border-radius: 50%;
+  flex-shrink: 0; background: var(--border3);
+}
+.xai-cdot-on  { background: var(--green); box-shadow: 0 0 5px rgba(34,197,94,0.6); animation: xai-blink 2.5s infinite; }
+.xai-cdot-off { background: var(--yellow); }
+.xai-conn-val { font-family: 'JetBrains Mono', monospace; font-size: .65rem; color: var(--text3); }
+
+/* Context panel */
+.xai-ctx-panel {
+  background: rgba(0,0,0,0.18);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 9px 10px;
+  flex-shrink: 0;
+}
+.xai-ctx-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 3px 0; font-size: .70rem;
+}
+.xai-ctx-k { color: var(--text3); }
+.xai-ctx-v {
+  color: var(--accent2); font-family: 'JetBrains Mono', monospace;
+  font-size: .65rem; font-weight: 600; max-width: 110px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ── Main Area ───────────────────────────────── */
+.xai-main {
+  flex: 1; display: flex; flex-direction: column; min-width: 0;
+  background: var(--card);
+}
+
+/* Top Bar */
+.xai-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  flex-shrink: 0;
+  gap: 10px;
+}
+.xai-tb-start { display: flex; align-items: center; gap: 10px; }
+.xai-tb-end   { display: flex; align-items: center; gap: 6px; }
+.xai-tb-title { display: flex; align-items: center; gap: 10px; }
+.xai-tb-name  { font-size: .88rem; font-weight: 800; color: var(--text); }
+.xai-tb-badge {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25);
+  color: var(--green); font-size: .68rem; font-weight: 700;
+  padding: 3px 9px; border-radius: 99px;
+  transition: var(--trans);
+}
+.xai-tb-badge.xai-badge-think {
+  background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.25);
+  color: var(--yellow);
+}
+.xai-tb-btn {
+  width: 32px; height: 32px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--radius-xs); cursor: pointer; color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; transition: var(--trans);
+}
+.xai-tb-btn:hover { background: var(--bg2); border-color: var(--border2); color: var(--text); }
+.xai-tb-danger:hover { border-color: rgba(239,68,68,0.4); color: var(--red); background: rgba(239,68,68,0.08); }
+
+/* ── Messages ────────────────────────────────── */
+.xai-messages {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  padding: 20px 20px 8px;
+  display: flex; flex-direction: column; gap: 16px;
+  scroll-behavior: smooth;
+}
+.xai-messages::-webkit-scrollbar { width: 4px; }
+.xai-messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* Message row */
+.xai-msg { display: flex; gap: 10px; align-items: flex-start; animation: xai-fadein .28s ease both; }
+.xai-msg-user { flex-direction: row-reverse; }
+@keyframes xai-fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Avatar */
+.xai-msg-av {
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(168,85,247,0.15));
+  border: 1px solid rgba(59,130,246,0.2);
+}
+.xai-msg-user .xai-msg-av {
+  background: linear-gradient(135deg, rgba(59,130,246,0.25), rgba(168,85,247,0.2));
+  border-color: rgba(59,130,246,0.3);
+  font-size: .75rem; font-weight: 800;
+  color: var(--accent2);
+}
+
+/* Bubble */
+.xai-bubble {
+  max-width: 74%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px 14px 14px 14px;
+  padding: 12px 15px 10px;
+  position: relative;
+  word-break: break-word;
+}
+.xai-msg-user .xai-bubble {
+  background: linear-gradient(135deg, rgba(59,130,246,0.14), rgba(168,85,247,0.09));
+  border-color: rgba(59,130,246,0.28);
+  border-radius: 14px 4px 14px 14px;
+}
+.xai-bubble-error   { border-color: rgba(239,68,68,0.4)!important;  background: rgba(239,68,68,0.06)!important; }
+.xai-bubble-success { border-color: rgba(34,197,94,0.4)!important;  background: rgba(34,197,94,0.06)!important; }
+
+/* Message content */
+.xai-msg-text {
+  font-size: .855rem; color: var(--text); line-height: 1.72;
+  direction: rtl;
+}
+.xai-msg-text strong { color: var(--text); font-weight: 700; }
+.xai-msg-text em     { color: var(--text2); font-style: italic; }
+.xai-msg-text h3     { font-size: .92rem; font-weight: 800; color: var(--accent2); margin: 10px 0 4px; }
+.xai-msg-text h4     { font-size: .84rem; font-weight: 700; color: var(--text); margin: 8px 0 3px; }
+
+/* Inline code */
+.xai-inline-code {
+  background: rgba(6,182,212,0.12);
+  border: 1px solid rgba(6,182,212,0.22);
+  color: var(--cyan);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .78em; padding: 1px 6px;
+  border-radius: 4px; white-space: nowrap;
+}
+
+/* Code blocks */
+.xai-code-block {
+  background: var(--bg); border: 1px solid var(--border2);
+  border-radius: var(--radius-xs); margin: 10px 0;
+  overflow: hidden; direction: ltr;
+}
+.xai-code-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid var(--border);
+}
+.xai-code-lang { font-size: .68rem; color: var(--text3); font-family: 'JetBrains Mono', monospace; }
+.xai-code-copy {
+  background: none; border: 1px solid var(--border2); cursor: pointer;
+  font-size: .68rem; color: var(--text3); padding: 2px 8px;
+  border-radius: 4px; transition: var(--trans-fast); font-family: 'Cairo', sans-serif;
+}
+.xai-code-copy:hover { color: var(--accent2); border-color: var(--accent); }
+.xai-code-body {
+  padding: 12px 14px; overflow-x: auto; font-size: .78rem;
+  font-family: 'JetBrains Mono', monospace; color: var(--text2);
+  line-height: 1.6; direction: ltr; text-align: left;
+  white-space: pre;
+}
+.xai-code-body::-webkit-scrollbar { height: 3px; }
+.xai-code-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* Syntax colours (minimal) */
+.xc-k  { color: #c792ea; } /* keyword */
+.xc-s  { color: #c3e88d; } /* string  */
+.xc-c  { color: #546e7a; } /* comment */
+.xc-n  { color: #82aaff; } /* number  */
+.xc-f  { color: #82aaff; } /* function*/
+.xc-d  { color: #f07178; } /* define  */
+
+/* List items */
+.xai-list-item {
+  display: flex; gap: 7px; align-items: flex-start;
+  padding: 2px 0;
+}
+.xai-list-dot { color: var(--accent); flex-shrink: 0; margin-top: 1px; font-size: .85rem; }
+
+/* Evidence Cards */
+.xai-evidence-cards { display: flex; flex-direction: column; gap: 7px; margin: 10px 0 4px; }
+.xai-ev-card {
+  background: rgba(59,130,246,0.05);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: var(--radius-xs);
+  padding: 9px 12px;
+  transition: var(--trans-fast);
+}
+.xai-ev-card:hover { border-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.09); }
+.xai-ev-card-head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 5px;
+}
+.xai-ev-type {
+  font-size: .6rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .08em; padding: 2px 7px; border-radius: 99px;
+}
+.xai-ev-type-file   { background: rgba(59,130,246,0.15);  color: var(--accent2); }
+.xai-ev-type-func   { background: rgba(168,85,247,0.15);  color: #c084fc; }
+.xai-ev-type-route  { background: rgba(6,182,212,0.15);   color: var(--cyan); }
+.xai-ev-type-line   { background: rgba(34,197,94,0.15);   color: var(--green); }
+.xai-ev-path {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .76rem; color: var(--text2); flex: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  direction: ltr; text-align: left;
+}
+.xai-ev-desc { font-size: .74rem; color: var(--text3); line-height: 1.5; }
+
+/* Message footer */
+.xai-msg-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 8px; gap: 6px;
+}
+.xai-msg-time { font-size: .63rem; color: var(--text3); flex-shrink: 0; }
+.xai-msg-acts { display: flex; gap: 4px; opacity: 0; transition: var(--trans-fast); }
+.xai-bubble:hover .xai-msg-acts { opacity: 1; }
+.xai-act-btn {
+  background: none; border: 1px solid var(--border);
+  cursor: pointer; font-size: .68rem; color: var(--text3);
+  padding: 3px 8px; border-radius: 5px;
+  transition: var(--trans-fast); font-family: 'Cairo', sans-serif;
+}
+.xai-act-btn:hover { color: var(--accent2); border-color: var(--accent); background: rgba(59,130,246,0.08); }
+
+/* API action buttons */
+.xai-action-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
+.xai-api-btn {
+  font-size: .74rem; font-weight: 600; padding: 5px 13px;
+  background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3);
+  color: var(--accent2); border-radius: 99px; cursor: pointer;
+  transition: var(--trans); font-family: 'Cairo', sans-serif; text-decoration: none;
+  display: inline-flex; align-items: center;
+}
+.xai-api-btn:hover { background: rgba(59,130,246,0.2); transform: translateY(-1px); }
+
+/* ── Thinking Indicator ──────────────────────── */
+.xai-thinking-wrap {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 6px 20px 10px;
+  flex-shrink: 0;
+  animation: xai-fadein .2s ease both;
+}
+.xai-thinking-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(168,85,247,0.15));
+  border: 1px solid rgba(59,130,246,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem; flex-shrink: 0;
+}
+.xai-thinking-body {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 4px 14px 14px 14px;
+  padding: 9px 14px;
+}
+.xai-thinking-step-row {
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: nowrap; overflow: hidden;
+}
+.xai-tstep {
+  font-size: .72rem; color: var(--text3);
+  white-space: nowrap;
+  transition: color 0.3s, opacity 0.3s;
+  opacity: 0.4;
+}
+.xai-tstep.xai-tstep-active {
+  color: var(--accent2); opacity: 1; font-weight: 600;
+}
+.xai-tstep.xai-tstep-done {
+  color: var(--green); opacity: 0.55;
+}
+.xai-tstep-sep { color: var(--border3); font-size: .7rem; opacity: 0.5; }
+.xai-tdots {
+  display: flex; gap: 3px; align-items: center; flex-shrink: 0;
+}
+.xai-tdots span {
+  width: 6px; height: 6px;
+  background: var(--accent); border-radius: 50%;
+  animation: xai-tdot 1.2s ease-in-out infinite;
+}
+.xai-tdots span:nth-child(2) { animation-delay: .15s; }
+.xai-tdots span:nth-child(3) { animation-delay: .3s; }
+@keyframes xai-tdot {
+  0%,80%,100% { transform: scale(0.7); opacity: 0.5; }
+  40%          { transform: scale(1.0); opacity: 1; }
+}
+
+/* ── Input Area ──────────────────────────────── */
+.xai-input-area {
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--border);
+  background: var(--card);
+  flex-shrink: 0;
+}
+.xai-chips {
+  display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto;
+  padding-bottom: 8px; scrollbar-width: none;
+}
+.xai-chips::-webkit-scrollbar { display: none; }
+.xai-chip {
+  font-size: .72rem; font-weight: 600; padding: 4px 11px;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--text2); border-radius: 99px; cursor: pointer;
+  transition: var(--trans); font-family: 'Cairo', sans-serif;
+  white-space: nowrap; flex-shrink: 0;
+}
+.xai-chip:hover {
+  background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.35);
+  color: var(--accent2); transform: translateY(-1px);
+}
+.xai-input-box {
+  display: flex; gap: 8px; align-items: flex-end;
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: 14px; padding: 10px 10px 10px 16px;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.xai-input-box:focus-within {
+  border-color: rgba(59,130,246,0.5);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.09), 0 2px 12px rgba(59,130,246,0.08);
+}
+.xai-textarea {
+  flex: 1; background: none; border: none; outline: none;
+  color: var(--text); font-family: 'Cairo', sans-serif;
+  font-size: .875rem; resize: none;
+  min-height: 26px; max-height: 150px;
+  line-height: 1.55; direction: rtl;
+  scrollbar-width: none;
+}
+.xai-textarea::-webkit-scrollbar { display: none; }
+.xai-textarea::placeholder { color: var(--text3); }
+.xai-input-right { display: flex; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.xai-char-count { font-size: .62rem; color: var(--text3); font-family: 'JetBrains Mono', monospace; padding-bottom: 4px; }
+.xai-send-btn {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border: none; border-radius: 10px; color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--trans); flex-shrink: 0;
+}
+.xai-send-btn:hover   { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(59,130,246,0.35); }
+.xai-send-btn:active  { transform: scale(0.95); }
+.xai-send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* Welcome message area */
+.xai-welcome {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex: 1; text-align: center; padding: 40px 20px;
+  animation: xai-fadein .4s ease both;
+}
+.xai-welcome-icon { font-size: 3.2rem; margin-bottom: 16px; opacity: 0.85; }
+.xai-welcome-title { font-size: 1.4rem; font-weight: 900; color: var(--text); margin-bottom: 8px; }
+.xai-welcome-sub { font-size: .85rem; color: var(--text2); max-width: 380px; line-height: 1.65; }
+
+/* ── Responsive / Mobile ─────────────────────── */
+@media (max-width: 820px) {
+  .xai-workspace { height: calc(100vh - var(--header-h) - 24px); border-radius: var(--radius-sm); }
+  .xai-sidebar {
+    position: absolute; right: 0; top: 0; bottom: 0;
+    z-index: 50; box-shadow: var(--shadow-lg);
+    width: 260px;
+  }
+  .xai-sidebar.xai-mobile-hidden { width: 0; padding: 0; border-left: none; }
+  .xai-tb-name { font-size: .78rem; }
+  .xai-bubble { max-width: 88%; }
+  .xai-chips { }
+  .xai-messages { padding: 14px 12px 6px; }
+  .xai-input-area { padding: 8px 12px 12px; }
+  .xai-topbar { padding: 8px 12px; }
+  .xai-thinking-step-row { gap: 3px; }
+  .xai-tstep { font-size: .65rem; }
+}
+@media (max-width: 480px) {
+  .xai-tb-badge { display: none; }
+  .xai-msg-acts { display: none !important; }
+  .xai-bubble { max-width: 94%; }
+}
+
+/* Light theme overrides for workspace */
+[data-theme="light"] .xai-agent-card { background: linear-gradient(135deg,rgba(59,130,246,0.06),rgba(168,85,247,0.04)); }
+[data-theme="light"] .xai-conn-panel { background: rgba(0,0,0,0.03); }
+[data-theme="light"] .xai-ctx-panel  { background: rgba(0,0,0,0.03); }
+[data-theme="light"] .xai-code-block { background: #1a1f2e; }
+[data-theme="light"] .xai-code-body  { color: #cdd5e0; }
+[data-theme="light"] .xai-inline-code { background: rgba(6,182,212,0.1); }
+</style>
+
+<script>
+/* ═══════════════════════════════════════════════
+   X AI WORKSPACE — Premium JS Engine
+   ═══════════════════════════════════════════════ */
+
+var _xBusy   = false;
+var _xMsgs   = document.getElementById('xai-messages');
+var _xTurnCount = 0;
+var _xThinkTimer = null;
+var _xThinkStep  = 0;
+
+/* ── Sessions (localStorage) ──────────────────── */
+var _SKEY = 'xai_sessions';
+var _CKEY = 'xai_current';
+
+function _loadSessions() {
+  try { return JSON.parse(localStorage.getItem(_SKEY) || '[]'); } catch(e) { return []; }
+}
+function _saveSessions(s) {
+  try { localStorage.setItem(_SKEY, JSON.stringify(s.slice(0,30))); } catch(e) {}
+}
+function _getCurrentId() {
+  return localStorage.getItem(_CKEY) || null;
+}
+function _setCurrentId(id) {
+  try { localStorage.setItem(_CKEY, id); } catch(e) {}
+}
+function _getSession(id) {
+  return _loadSessions().find(function(s){ return s.id === id; }) || null;
+}
+function _saveSession(sess) {
+  var all = _loadSessions();
+  var idx = all.findIndex(function(s){ return s.id === sess.id; });
+  if (idx >= 0) all[idx] = sess;
+  else all.unshift(sess);
+  _saveSessions(all);
+}
+function _mkId() {
+  return 'xai_' + Date.now() + '_' + Math.random().toString(36).slice(2,7);
+}
+
+function _currentSession() {
+  var id = _getCurrentId();
+  if (id) {
+    var s = _getSession(id);
+    if (s) return s;
+  }
+  return null;
+}
+
+function newSession() {
+  var id = _mkId();
+  var sess = { id: id, title: 'محادثة جديدة', messages: [], ts: Date.now(), pinned: false };
+  _saveSession(sess);
+  _setCurrentId(id);
+  _xMsgs.innerHTML = '';
+  _xTurnCount = 0;
+  _renderWelcome();
+  _renderSidebar();
+  _updateCtx({});
+}
+
+function loadSession(id) {
+  _setCurrentId(id);
+  var sess = _getSession(id);
+  if (!sess) return;
+  _xMsgs.innerHTML = '';
+  _xTurnCount = 0;
+  if (!sess.messages || !sess.messages.length) {
+    _renderWelcome();
+  } else {
+    sess.messages.forEach(function(m) {
+      if (m.role === 'user') _appendUser(m.text, m.ts, false);
+      else _appendBot(m.text, m.type || '', [], m.ts, false);
+    });
+    _scrollToBottom();
+  }
+  _renderSidebar();
+}
+
+function deleteSession(id, e) {
+  e.stopPropagation();
+  var all = _loadSessions().filter(function(s){ return s.id !== id; });
+  _saveSessions(all);
+  if (_getCurrentId() === id) {
+    if (all.length) loadSession(all[0].id);
+    else newSession();
+  } else {
+    _renderSidebar();
+  }
+}
+
+function _saveMsgToSession(role, text, type) {
+  var id = _getCurrentId();
+  if (!id) return;
+  var sess = _getSession(id);
+  if (!sess) return;
+  sess.messages = sess.messages || [];
+  sess.messages.push({ role: role, text: text, type: type||'', ts: Date.now() });
+  if (sess.messages.length === 2) {
+    var firstUser = sess.messages.find(function(m){ return m.role === 'user'; });
+    if (firstUser) sess.title = firstUser.text.slice(0,40) || 'محادثة';
+  }
+  sess.ts = Date.now();
+  _saveSession(sess);
+}
+
+function _renderSidebar() {
+  var all = _loadSessions();
+  var curId = _getCurrentId();
+  var list = document.getElementById('xai-session-list');
+  var cnt  = document.getElementById('xai-session-count');
+  if (!list) return;
+  if (!all.length) {
+    list.innerHTML = '<div class="xai-no-sessions">لا توجد محادثات سابقة</div>';
+    if (cnt) cnt.textContent = '';
+    return;
+  }
+  if (cnt) cnt.textContent = all.length;
+  var html = '';
+  all.forEach(function(s) {
+    var icon = s.pinned ? '📌' : '💬';
+    html += '<div class="xai-session-item'+(s.id===curId?' xai-active':'')+'" onclick="loadSession(\''+s.id+'\')">' +
+      '<span class="xai-session-icon">'+icon+'</span>' +
+      '<span class="xai-session-title" title="'+escHtml(s.title||'محادثة')+'">'+escHtml(s.title||'محادثة')+'</span>' +
+      (s.pinned ? '<span class="xai-session-pin">📌</span>' : '') +
+      '<button class="xai-session-del" onclick="deleteSession(\''+s.id+'\',event)" title="حذف">✕</button>' +
+      '</div>';
+  });
+  list.innerHTML = html;
+}
+
+/* ── Welcome screen ──────────────────────────── */
+function _renderWelcome() {
+  _xMsgs.innerHTML =
+    '<div class="xai-welcome">' +
+    '<div class="xai-welcome-icon">🧠</div>' +
+    '<div class="xai-welcome-title">X Engineering Agent</div>' +
+    '<div class="xai-welcome-sub">مرحباً! اسألني عن أي شيء في المشروع — الملفات، المسارات، التبعيات، البنية، الأخطاء، وأكثر.</div>' +
+    '</div>';
+}
+
+/* ── Thinking steps animation ────────────────── */
+var _STEPS = ['ts0','ts1','ts2','ts3','ts4'];
+var _STEP_TEXTS = ['تحليل الطلب','قراءة السياق','فحص الذاكرة','التحقق من الأدلة','توليد الإجابة'];
+var _STEP_DELAYS = [0, 900, 2000, 3400, 5200];
+
+function _showThinking() {
+  var el = document.getElementById('xai-thinking');
+  if (!el) return;
+  el.style.display = 'flex';
+  _xThinkStep = 0;
+  _STEPS.forEach(function(id) {
+    var s = document.getElementById(id);
+    if (s) { s.className = 'xai-tstep'; }
+  });
+  var s0 = document.getElementById('ts0');
+  if (s0) s0.className = 'xai-tstep xai-tstep-active';
+  _setTopStatus('think');
+  _xThinkTimer = _STEP_DELAYS.slice(1).reduce(function(_, delay, i) {
+    return setTimeout(function() {
+      var prevEl = document.getElementById('ts'+i);
+      var nextEl = document.getElementById('ts'+(i+1));
+      if (prevEl) prevEl.className = 'xai-tstep xai-tstep-done';
+      if (nextEl) nextEl.className = 'xai-tstep xai-tstep-active';
+    }, _STEP_DELAYS[i+1]);
+  }, null);
+  _scrollToBottom();
+}
+
+function _hideThinking() {
+  var el = document.getElementById('xai-thinking');
+  if (el) el.style.display = 'none';
+  if (_xThinkTimer) { clearTimeout(_xThinkTimer); _xThinkTimer = null; }
+  _setTopStatus('ready');
+}
+
+function _setTopStatus(state) {
+  var badge = document.getElementById('xai-tb-badge');
+  var sdot  = document.getElementById('xai-sdot-main');
+  var stext = document.getElementById('xai-agent-status-text');
+  var states = {
+    'ready':   { label:'جاهز للعمل',  dot:'xai-sdot-ready',   bdg:'', text:'جاهز' },
+    'think':   { label:'يفكر...',      dot:'xai-sdot-think',   bdg:'xai-badge-think', text:'يفكر...' },
+    'analyze': { label:'يحلل...',      dot:'xai-sdot-analyze', bdg:'xai-badge-think', text:'يحلل...' },
+    'error':   { label:'خطأ',          dot:'xai-sdot-error',   bdg:'', text:'خطأ' },
+  };
+  var st = states[state] || states['ready'];
+  if (badge) { badge.className = 'xai-tb-badge '+ st.bdg; badge.innerHTML = '<span class="xai-sdot '+st.dot+'"></span>'+st.label; }
+  if (sdot)  sdot.className = 'xai-sdot '+st.dot;
+  if (stext) stext.textContent = st.text;
+}
+
+/* ── Send / receive ──────────────────────────── */
+function xaiSend() {
+  if (_xBusy) return;
+  var inp = document.getElementById('xai-input');
   var msg = inp.value.trim();
   if (!msg) return;
   inp.value = '';
-  autoResize(inp);
+  xaiAutoResize(inp);
+  document.getElementById('xai-char-count').textContent = '0';
+  _xBusy = true;
+  document.getElementById('xai-send-btn').disabled = true;
 
-  _busy = true;
-  document.getElementById('ai-send-btn').disabled = true;
+  // Remove welcome screen if present
+  var welcome = _xMsgs.querySelector('.xai-welcome');
+  if (welcome) welcome.remove();
 
-  appendUserMsg(msg);
-  showTyping(true);
+  _appendUser(msg, Date.now(), true);
+  _saveMsgToSession('user', msg, '');
+  _showThinking();
+  _hideChips();
 
-  if (msg === 'create_backup') { await doCreateBackup(); return; }
-  if (msg === 'list_backups')  { await doListBackups();  return; }
+  if (msg === 'create_backup') { _doBackup(); return; }
+  if (msg === 'list_backups')  { _doListBackups(); return; }
 
-  try {
-    var d = await apiPost('/ai/api/chat', { message: msg });
-    showTyping(false);
-    if (d.ok) {
-      appendBotMsg(d.text, d.type, d.actions || []);
-    } else {
-      appendBotMsg('❌ ' + (d.error || 'حدث خطأ'), 'error', []);
-    }
-  } catch(e) {
-    showTyping(false);
-    appendBotMsg('❌ تعذّر الاتصال بمحرك الذكاء. تحقق من أن الخادم يعمل.', 'error', []);
-  }
-
-  _busy = false;
-  document.getElementById('ai-send-btn').disabled = false;
-
-  // Update memory turns counter
-  var mt = document.getElementById('mem-turns');
-  if (mt) {
-    var n = parseInt(mt.textContent) || 0;
-    mt.textContent = (n + 1) + ' دورة';
-  }
+  apiPost('/ai/api/chat', { message: msg })
+    .then(function(d) {
+      _hideThinking();
+      var text = d.ok ? (d.text || '') : ('❌ ' + (d.error || 'حدث خطأ'));
+      var type = d.ok ? (d.type || '') : 'error';
+      _appendBot(text, type, d.actions || [], Date.now(), true);
+      _saveMsgToSession('bot', text, type);
+      if (d.data) _updateCtx(d.data);
+      _renderSidebar();
+      _xTurnCount++;
+      var mt = document.getElementById('xai-mem-turns');
+      if (mt) mt.textContent = _xTurnCount + ' دورة';
+    })
+    .catch(function() {
+      _hideThinking();
+      var errText = '❌ تعذّر الاتصال بمحرك الذكاء. تحقق من أن الخادم يعمل.';
+      _appendBot(errText, 'error', [], Date.now(), true);
+      _saveMsgToSession('bot', errText, 'error');
+      _setTopStatus('error');
+      setTimeout(function(){ _setTopStatus('ready'); }, 3000);
+    })
+    .finally(function() {
+      _xBusy = false;
+      document.getElementById('xai-send-btn').disabled = false;
+    });
 }
 
-async function doCreateBackup() {
-  showTyping(true);
+async function _doBackup() {
   try {
-    var d = await apiPost('/ai/api/backup/create', { description: 'نسخة من مركز الذكاء الاصطناعي' });
-    showTyping(false);
-    if (d.ok) {
-      appendBotMsg('✅ **تم إنشاء النسخة الاحتياطية**\n\n📦 المعرف: `' + d.id + '`\n📄 الملفات: ' + d.files + '\n💾 الحجم: ' + d.size_h, 'success', []);
-    } else {
-      appendBotMsg('❌ فشل: ' + (d.error||''), 'error', []);
-    }
-  } catch(e) {
-    showTyping(false);
-    appendBotMsg('❌ فشل الاتصال', 'error', []);
-  }
-  _busy = false;
-  document.getElementById('ai-send-btn').disabled = false;
+    var d = await apiPost('/ai/api/backup/create', { description: 'نسخة من مساحة العمل' });
+    _hideThinking();
+    var t = d.ok ? '✅ **تم إنشاء النسخة الاحتياطية**\n\n📦 المعرف: `'+d.id+'`\n📄 الملفات: '+d.files+'\n💾 الحجم: '+d.size_h : '❌ فشل: '+(d.error||'');
+    _appendBot(t, d.ok?'success':'error', [], Date.now(), true);
+  } catch(e) { _hideThinking(); _appendBot('❌ فشل الاتصال','error',[],Date.now(),true); }
+  _xBusy = false; document.getElementById('xai-send-btn').disabled = false;
 }
 
-async function doListBackups() {
-  showTyping(true);
+async function _doListBackups() {
   try {
     var bks = await apiGet('/ai/api/backup/list');
-    showTyping(false);
-    var txt = '💾 **النسخ الاحتياطية** (' + bks.length + ')\n\n';
-    if (!bks.length) { txt += 'لا توجد نسخ احتياطية بعد.'; }
-    else {
-      bks.slice(0,5).forEach(function(b,i) {
-        txt += (i+1)+'. `'+b.id+'`\n   📅 '+b.datetime+' · '+b.files+' ملف · '+b.size_h+'\n\n';
-      });
-    }
-    appendBotMsg(txt, 'info', []);
-  } catch(e) {
-    showTyping(false);
-    appendBotMsg('❌ فشل التحميل', 'error', []);
-  }
-  _busy = false;
-  document.getElementById('ai-send-btn').disabled = false;
+    _hideThinking();
+    var txt = '💾 **النسخ الاحتياطية** ('+bks.length+')\n\n';
+    if (!bks.length) txt += 'لا توجد نسخ بعد.';
+    else bks.slice(0,5).forEach(function(b,i){ txt += (i+1)+'. `'+b.id+'`\n   📅 '+b.datetime+' · '+b.files+' ملف · '+b.size_h+'\n\n'; });
+    _appendBot(txt,'info',[],Date.now(),true);
+  } catch(e) { _hideThinking(); _appendBot('❌ فشل التحميل','error',[],Date.now(),true); }
+  _xBusy = false; document.getElementById('xai-send-btn').disabled = false;
 }
 
-function sendQuick(cmd) {
-  document.getElementById('ai-input').value = cmd;
-  sendMessage();
+function sendChip(cmd) {
+  document.getElementById('xai-input').value = cmd;
+  xaiSend();
 }
 
-function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+function _hideChips() {
+  var ch = document.getElementById('xai-chips');
+  if (ch) ch.style.display = 'none';
 }
 
-function autoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
-}
-
-// ── DOM helpers ───────────────────────────────────────────────────────────────
-function appendUserMsg(text) {
+/* ── DOM message builders ────────────────────── */
+function _appendUser(text, ts, animate) {
   var el = document.createElement('div');
-  el.className = 'ai-msg ai-msg-user ai-msg-appear';
-  el.innerHTML = '<div class="ai-msg-bubble ai-msg-bubble-user"><div class="ai-msg-content">' + escHtml(text) + '</div><div class="ai-msg-time">' + nowStr() + '</div></div>';
-  _chatEl.appendChild(el);
-  scrollChat();
+  el.className = 'xai-msg xai-msg-user' + (animate?' xai-fadein':'');
+  el.innerHTML =
+    '<div class="xai-msg-av">أنت</div>' +
+    '<div class="xai-bubble">' +
+      '<div class="xai-msg-text">' + escHtml(text) + '</div>' +
+      '<div class="xai-msg-footer">' +
+        '<span class="xai-msg-time">' + _fmtTime(ts) + '</span>' +
+        '<div class="xai-msg-acts">' +
+          '<button class="xai-act-btn" onclick="xaiCopyMsg(this)">نسخ</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  _xMsgs.appendChild(el);
+  if (animate) _scrollToBottom();
 }
 
-function appendBotMsg(text, type, actions) {
+function _appendBot(text, type, actions, ts, animate) {
+  var welcome = _xMsgs.querySelector('.xai-welcome');
+  if (welcome) welcome.remove();
+
   var el = document.createElement('div');
-  el.className = 'ai-msg ai-msg-bot ai-msg-appear';
-  var typeClass = type === 'error' ? 'ai-bubble-error' : type === 'success' ? 'ai-bubble-success' : '';
-  var actHtml = '';
+  el.className = 'xai-msg' + (animate?' xai-fadein':'');
+
+  var bubbleClass = 'xai-bubble';
+  if (type === 'error')   bubbleClass += ' xai-bubble-error';
+  if (type === 'success') bubbleClass += ' xai-bubble-success';
+
+  var rendered = xaiRender(text);
+  var actHtml  = '';
   if (actions && actions.length) {
-    actHtml = '<div class="ai-msg-actions">';
+    actHtml = '<div class="xai-action-row">';
     actions.forEach(function(a) {
-      if (a.link) {
-        actHtml += '<a href="'+a.link+'" class="ai-action-btn">'+escHtml(a.label)+'</a>';
-      } else {
-        actHtml += '<button class="ai-action-btn" onclick="sendQuick(\''+a.cmd.replace(/'/g,"\\'")+'\')" >'+escHtml(a.label)+'</button>';
-      }
+      if (a.link) actHtml += '<a href="'+a.link+'" class="xai-api-btn">'+escHtml(a.label)+'</a>';
+      else actHtml += '<button class="xai-api-btn" onclick="sendChip(\''+a.cmd.replace(/'/g,"\\'")+'\')">'+escHtml(a.label)+'</button>';
     });
     actHtml += '</div>';
   }
-  var copyBtn = '<button class="ai-copy-btn" onclick="copyMsg(this)" title="نسخ">⧉</button>';
-  el.innerHTML = '<div class="ai-msg-avatar">🧠</div><div class="ai-msg-bubble '+typeClass+'"><div class="ai-msg-content">'+renderMd(text)+'</div>'+actHtml+'<div class="ai-msg-footer"><div class="ai-msg-time">'+nowStr()+'</div>'+copyBtn+'</div></div>';
-  _chatEl.appendChild(el);
-  scrollChat();
+
+  el.innerHTML =
+    '<div class="xai-msg-av">🧠</div>' +
+    '<div class="'+bubbleClass+'">' +
+      '<div class="xai-msg-text">' + rendered + '</div>' +
+      actHtml +
+      '<div class="xai-msg-footer">' +
+        '<span class="xai-msg-time">' + _fmtTime(ts) + '</span>' +
+        '<div class="xai-msg-acts">' +
+          '<button class="xai-act-btn" onclick="xaiCopyMsg(this)">نسخ</button>' +
+          '<button class="xai-act-btn" onclick="xaiRegen(this)">إعادة</button>' +
+          '<button class="xai-act-btn" onclick="xaiPinMsg(this)">تثبيت</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  _xMsgs.appendChild(el);
+
+  // Attach copy handlers to code blocks
+  el.querySelectorAll('.xai-code-copy').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var pre = btn.closest('.xai-code-block').querySelector('.xai-code-body');
+      if (pre) navigator.clipboard.writeText(pre.innerText || pre.textContent).then(function() {
+        btn.textContent = 'تم ✅'; setTimeout(function(){ btn.textContent = 'نسخ'; }, 1800);
+      });
+    });
+  });
+
+  if (animate) _scrollToBottom();
 }
 
-function showTyping(v) {
-  document.getElementById('ai-typing').style.display = v ? 'flex' : 'none';
-  if (v) scrollChat();
+/* ── Message actions ─────────────────────────── */
+function xaiCopyMsg(btn) {
+  var txt = btn.closest('.xai-bubble').querySelector('.xai-msg-text').innerText || '';
+  navigator.clipboard.writeText(txt).then(function() {
+    btn.textContent = 'تم ✅';
+    setTimeout(function(){ btn.textContent = 'نسخ'; }, 1800);
+    showToast('تم النسخ', 'success', 2000);
+  });
 }
 
-function scrollChat() {
-  setTimeout(function() { _chatEl.scrollTop = _chatEl.scrollHeight; }, 60);
+function xaiRegen(btn) {
+  // Find the previous user message and resend
+  var allMsgs = Array.from(_xMsgs.querySelectorAll('.xai-msg'));
+  var curIdx  = allMsgs.indexOf(btn.closest('.xai-msg'));
+  if (curIdx > 0) {
+    for (var i = curIdx - 1; i >= 0; i--) {
+      if (allMsgs[i].classList.contains('xai-msg-user')) {
+        var prevText = allMsgs[i].querySelector('.xai-msg-text');
+        if (prevText) {
+          document.getElementById('xai-input').value = prevText.innerText || prevText.textContent;
+          xaiSend();
+          return;
+        }
+      }
+    }
+  }
+  showToast('لا يوجد سياق للإعادة', 'info', 2000);
 }
 
-function newChat() {
-  _chatEl.innerHTML = '';
-  document.getElementById('ai-input').value = '';
-  var mt = document.getElementById('mem-turns');
-  if (mt) mt.textContent = '0 دورة';
+function xaiPinMsg(btn) {
+  var bubble = btn.closest('.xai-bubble');
+  if (bubble) {
+    bubble.style.borderColor = 'rgba(245,158,11,0.5)';
+    bubble.style.background  = 'rgba(245,158,11,0.05)';
+    btn.textContent = 'مثبّت 📌';
+    btn.disabled = true;
+    showToast('تم تثبيت الرسالة', 'success', 2000);
+  }
 }
 
-function clearChat() {
-  if (confirm('مسح المحادثة الحالية؟')) newChat();
+/* ── Smart Markdown + Evidence Renderer ───────── */
+function xaiRender(text) {
+  if (!text) return '';
+
+  // Code blocks (``` ... ```)
+  text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, function(_, lang, code) {
+    var safeLang = escHtml(lang || 'code');
+    var safeCode = escHtml(code.trim());
+    safeCode = _syntaxHighlight(safeCode, lang);
+    return '<div class="xai-code-block"><div class="xai-code-header"><span class="xai-code-lang">' +
+      safeLang + '</span><button class="xai-code-copy">نسخ</button></div>' +
+      '<pre class="xai-code-body">' + safeCode + '</pre></div>';
+  });
+
+  // Escape remaining HTML (except code blocks already processed)
+  var parts = text.split(/(<div class="xai-code-block">[\s\S]*?<\/div>)/g);
+  parts = parts.map(function(part, i) {
+    if (i % 2 === 1) return part; // code block — already safe
+    return _renderInline(part);
+  });
+  text = parts.join('');
+
+  // Evidence cards — detect file/function/route/line blocks
+  text = _injectEvidenceCards(text);
+
+  return text;
 }
 
-function copyMsg(btn) {
-  var txt = btn.closest('.ai-msg-bubble').querySelector('.ai-msg-content').innerText;
-  navigator.clipboard.writeText(txt).then(function() { showToast('تم النسخ ✅','success',2000); });
+function _renderInline(text) {
+  var h = escHtml(text);
+
+  // Headings
+  h = h.replace(/^###\s+(.+)$/gm, '<h4>$1</h4>');
+  h = h.replace(/^##\s+(.+)$/gm,  '<h3>$1</h3>');
+
+  // Bold, italic
+  h = h.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\*([^*\n]+)\*/g,     '<em>$1</em>');
+
+  // Inline code
+  h = h.replace(/`([^`\n]+)`/g, '<code class="xai-inline-code">$1</code>');
+
+  // Numbered list
+  h = h.replace(/^\d+\.\s+(.+)$/gm, '<div class="xai-list-item"><span class="xai-list-dot">◆</span>$1</div>');
+
+  // Bullet list (  ·  /  •)
+  h = h.replace(/^[\s]*[·•▪▸→]\s+(.+)$/gm, '<div class="xai-list-item"><span class="xai-list-dot">•</span>$1</div>');
+
+  // Horizontal rule
+  h = h.replace(/^─{3,}$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">');
+
+  // Line breaks
+  h = h.replace(/\n/g, '<br>');
+
+  return h;
 }
 
-function nowStr() {
-  return new Date().toLocaleTimeString('ar-SA', {hour:'2-digit',minute:'2-digit'});
+function _syntaxHighlight(code, lang) {
+  // Simple token-based highlighter for common languages
+  var keywords = /\b(import|from|def|class|return|if|else|elif|for|while|try|except|with|as|pass|break|continue|async|await|lambda|None|True|False|and|or|not|in|is|global|yield|raise|const|let|var|function|=>|export|default|require|module|null|undefined|true|false|typeof|instanceof)\b/g;
+  var strings  = /(["'`])((?:\\.|(?!\1)[^\\])*)\1/g;
+  var comments = /(#[^\n]*)|(\/\/[^\n]*)|(\/\*[\s\S]*?\*\/)/g;
+  var numbers  = /\b(\d+\.?\d*)\b/g;
+  var funcname = /\b([a-zA-Z_]\w*)\s*(?=\()/g;
+  var decors   = /(@\w+)/g;
+
+  // Apply in order (most specific first to avoid double-tagging)
+  code = code.replace(comments, '<span class="xc-c">$&</span>');
+  code = code.replace(strings,  '<span class="xc-s">$&</span>');
+  code = code.replace(keywords, '<span class="xc-k">$1</span>');
+  code = code.replace(numbers,  function(m, n) { return '<span class="xc-n">'+n+'</span>'; });
+  code = code.replace(funcname, function(m, fn) { return '<span class="xc-f">'+fn+'</span>('; });
+  code = code.replace(decors,   '<span class="xc-d">$1</span>');
+
+  return code;
 }
 
-function setText(id, v) {
+function _injectEvidenceCards(html) {
+  // Detect evidence patterns and wrap them in cards
+  // Patterns: ROUTER:, FILE:, FUNCTION:, LINE:, ROLE:, • path/to/file
+  var lines   = html.split('<br>');
+  var cards   = [];
+  var output  = [];
+  var inEvidence = false;
+
+  lines.forEach(function(line) {
+    var raw = line.replace(/<[^>]+>/g,'').trim();
+
+    // Detect evidence block marker
+    if (/📁\s*\*\*الملفات المسؤولة/.test(raw) || /📁\s*\*\*File/.test(raw)) {
+      inEvidence = true;
+      output.push(line);
+      return;
+    }
+
+    if (inEvidence) {
+      // ⚙️ ROUTER: …
+      var routerM = raw.match(/⚙️\s*ROUTER[:\s]+(.+)/i) || raw.match(/ROUTER[:\s]+(.+)/i);
+      if (routerM) {
+        cards.push({ type:'route', path: routerM[1].trim() });
+        return;
+      }
+      // 🌐 URL: …
+      var urlM = raw.match(/🌐\s*(?:URL|الرابط)[:\s]+(.+)/i);
+      if (urlM) {
+        cards.push({ type:'route', path: urlM[1].trim() });
+        return;
+      }
+      // 📄 FILE or • `path`
+      var fileM = raw.match(/📄\s*(?:FILE|الملف)[:\s]+`?(.+?)`?$/i) ||
+                  raw.match(/^\s*•\s*`([^`]+\.py|[^`]+\.js|[^`]+\.html|[^`]+\.css)`/);
+      if (fileM) { cards.push({ type:'file', path: fileM[1].trim() }); return; }
+      // def / function
+      var fnM = raw.match(/(?:def|async def|function)\s+(\w+)/);
+      if (fnM) { cards.push({ type:'func', path: fnM[1].trim()+'()' }); return; }
+      // Standalone `path` inline code
+      var pathM = raw.match(/`([a-zA-Z_][a-zA-Z0-9_\/.\-]+\.[a-z]{2,4})`/);
+      if (pathM) { cards.push({ type:'file', path: pathM[1].trim() }); return; }
+    }
+
+    output.push(line);
+  });
+
+  if (cards.length) {
+    var cardHtml = '<div class="xai-evidence-cards">';
+    cards.forEach(function(c) {
+      var typeLabel = { file:'ملف', func:'دالة', route:'مسار', line:'سطر' }[c.type] || c.type;
+      var typeClass = 'xai-ev-type-' + c.type;
+      cardHtml += '<div class="xai-ev-card"><div class="xai-ev-card-head">' +
+        '<span class="xai-ev-type '+typeClass+'">'+typeLabel+'</span>' +
+        '<span class="xai-ev-path">'+escHtml(c.path)+'</span>' +
+        '</div></div>';
+    });
+    cardHtml += '</div>';
+    output.push(cardHtml);
+  }
+
+  return output.join('<br>');
+}
+
+/* ── Context panel updater ────────────────────── */
+function _updateCtx(data) {
+  var intent   = data.intent    || (data.data && data.data.intent)    || null;
+  var context  = data.context   || (data.data && data.data.context)   || null;
+  var ctxConf  = data.ctx_conf  || (data.data && data.data.ctx_conf)  || null;
+
+  if (intent)  _setText('ctx-intent',  intent);
+  if (context) _setText('ctx-context', context);
+  if (ctxConf !== null && ctxConf !== undefined) {
+    var pct = typeof ctxConf === 'number' ? Math.round(ctxConf * 100) + '%' : ctxConf;
+    _setText('ctx-conf', pct);
+  }
+  _xTurnCount++;
+  _setText('ctx-session', _xTurnCount + ' دورة');
+}
+
+/* ── HF status ───────────────────────────────── */
+async function _loadHFStatus() {
+  try {
+    var d   = await apiGet('/ai/api/hf/status');
+    var dot = document.getElementById('hf-cdot');
+    var val = document.getElementById('hf-cval');
+    if (d && d.connected) {
+      if (dot) { dot.className = 'xai-cdot xai-cdot-on'; }
+      if (val) { val.textContent = '✅ متصل'; val.style.color = 'var(--green)'; }
+    } else {
+      if (dot) { dot.className = 'xai-cdot xai-cdot-off'; }
+      if (val) { val.textContent = 'منقطع'; val.style.color = 'var(--yellow)'; }
+    }
+  } catch(e) {
+    var dot = document.getElementById('hf-cdot');
+    if (dot) dot.className = 'xai-cdot';
+  }
+}
+
+/* ── Sidebar toggle ──────────────────────────── */
+function toggleXaiSidebar() {
+  var sb = document.getElementById('xai-sidebar');
+  if (!sb) return;
+  if (window.innerWidth <= 820) {
+    sb.classList.toggle('xai-mobile-hidden');
+  } else {
+    sb.classList.toggle('xai-collapsed');
+  }
+}
+
+/* ── Chat controls ───────────────────────────── */
+function confirmClear() {
+  if (confirm('مسح المحادثة الحالية؟')) {
+    newSession();
+  }
+}
+
+/* ── Input helpers ───────────────────────────── */
+function xaiHandleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); xaiSend(); }
+}
+
+function xaiAutoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 150) + 'px';
+}
+
+function xaiCountChars(el) {
+  var cnt = document.getElementById('xai-char-count');
+  if (cnt) cnt.textContent = el.value.length;
+}
+
+/* ── Utilities ───────────────────────────────── */
+function _scrollToBottom() {
+  setTimeout(function() {
+    _xMsgs.scrollTop = _xMsgs.scrollHeight;
+  }, 50);
+}
+
+function _fmtTime(ts) {
+  return new Date(ts).toLocaleTimeString('ar-SA', { hour:'2-digit', minute:'2-digit' });
+}
+
+function _setText(id, val) {
   var el = document.getElementById(id);
-  if (el) el.textContent = v;
+  if (el) el.textContent = val;
 }
 
 function escHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function renderMd(text) {
-  var h = escHtml(text);
-  h = h.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
-  h = h.replace(/`([^`\n]+)`/g, '<code class="ai-inline-code">$1</code>');
-  h = h.replace(/^  ·\s+(.+)$/gm, '<div class="ai-list-item"><span class="ai-list-dot">·</span>$1</div>');
-  h = h.replace(/^  •\s+(.+)$/gm, '<div class="ai-list-item"><span class="ai-list-dot">•</span>$1</div>');
-  h = h.replace(/\n/g, '<br>');
-  return h;
-}
+/* ── Compatibility shims (used by base.html and old code) ── */
+function sendMessage() { xaiSend(); }
+function newChat()     { newSession(); }
+function clearChat()   { confirmClear(); }
+function handleKey(e)  { xaiHandleKey(e); }
+function autoResize(el){ xaiAutoResize(el); }
+function sendQuick(cmd){ sendChip(cmd); }
+
+/* ── Init ─────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  // Theme button init
+  var tBtn = document.getElementById('theme-btn');
+  var cur  = document.documentElement.getAttribute('data-theme') || 'dark';
+  if (tBtn) tBtn.textContent = cur === 'dark' ? '☀️' : '🌙';
+
+  // Sidebar mobile init
+  if (window.innerWidth <= 820) {
+    var sb = document.getElementById('xai-sidebar');
+    if (sb) sb.classList.add('xai-mobile-hidden');
+  }
+
+  // Load or create session
+  var sessions = _loadSessions();
+  if (!sessions.length) {
+    newSession();
+  } else {
+    var curId = _getCurrentId();
+    var valid = sessions.find(function(s){ return s.id === curId; });
+    if (valid) loadSession(valid.id);
+    else { loadSession(sessions[0].id); }
+  }
+
+  _renderSidebar();
+  _loadHFStatus();
+});
 </script>
 {% endblock %}
