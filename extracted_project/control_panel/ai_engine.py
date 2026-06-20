@@ -1756,6 +1756,40 @@ class AgentReasoningChain:
             except Exception:
                 pass
 
+        # ── CONTEXT LOCK: high-confidence context filters cross-subsystem files ─
+        # When ContextEngine is confident about a subsystem (conf > 0.45),
+        # semantic and indexer files that belong to a DIFFERENT subsystem are
+        # removed.  ctx_files (from ProjectIndexer.context_files) always pass —
+        # they are already subsystem-scoped by the indexer.
+        # The lock is skipped if it would empty the list entirely, preventing
+        # silent failures on edge-case questions.
+        if ctx_name != "general" and ctx_conf > 0.45:
+            _SUBSYSTEM_GUARD: dict = {
+                "telegram_bot":   lambda f: any(s in f for s in (
+                    "handlers/", "bot.py", "support_bot/", "keyboards/", "commands/")),
+                "control_panel":  lambda f: ("control_panel/" in f or "panel" in f),
+                "database":       lambda f: any(s in f for s in (
+                    "database/", "db.py", "models.py", "migrations/")),
+                "router_layer":   lambda f: "routers/" in f,
+                "api_layer":      lambda f: ("routers/" in f or "api" in f),
+                "frontend_layer": lambda f: (
+                    f.endswith(".html") or "/static/" in f
+                    or f.endswith(".css") or f.endswith(".js")),
+            }
+            _guard_fn = _SUBSYSTEM_GUARD.get(ctx_name)
+            if _guard_fn is not None:
+                _locked_sem = [f for f in semantic_files if _guard_fn(f)]
+                _locked_idx = [f for f in indexer_files  if _guard_fn(f)]
+                if _locked_sem or ctx_files:
+                    semantic_files = _locked_sem
+                    indexer_files  = _locked_idx
+                    _ai_log.debug(
+                        "ContextLock(%s, conf=%.2f): filtered semantic %d→%d, idx %d→%d",
+                        ctx_name, ctx_conf,
+                        len(semantic_files), len(_locked_sem),
+                        len(indexer_files),  len(_locked_idx),
+                    )
+
         # ── Merge: context first, then semantic, then indexer ─────────────────
         seen: set = set()
         merged: list = []
@@ -3207,6 +3241,8 @@ INTENTS: dict = {
     "help":        [r"مساعدة", r"help", r"ساعد", r"كيف تعمل", r"ماذا تستطيع", r"قدرات"],
     "stats":       [r"إحصائيات", r"stats", r"أرقام", r"numbers", r"\bكم\b", r"how many", r"عدد"],
     "find_file":   [r"find\b", r"where is", r"which file", r"what file", r"locate",
+                    r"who\s+handles?\b", r"what\s+handles?\b", r"what\s+owns?\b",
+                    r"which\s+(?:router|handler|file)\s+owns?\b",
                     r"أين", r"أي ملف", r"ما الملف", r"ابحث عن", r"أين يوجد", r"يتحكم"],
     "plan_modify": [r"plan", r"خطة", r"what.*modify", r"what.*change", r"ماذا.*أعدل",
                     r"redesign", r"إعادة تصميم", r"modify plan", r"how to.*change"],
@@ -3249,10 +3285,9 @@ INTENTS: dict = {
                       r"your capabilities", r"قدراتك", r"إمكانياتك",
                       r"كيف.{0,10}تساعد", r"how can you help", r"your features",
                       r"what are you capable", r"ما.{0,10}(?:قدرات|إمكانيات)"],
-    "hf_query":      [r"hugging.?face", r"هوجينج فيس", r"hf\s+(?:connected|status|working|online)",
-                      r"connected.{0,15}(?:to|with).{0,10}(?:hf|ai|model|space)",
-                      r"are you.{0,20}connected", r"connection.{0,10}status",
-                      r"متصل\b", r"الاتصال\b.{0,10}(?:بـ|مع)", r"نموذج خارجي"],
+    "hf_query":      [r"hugging.?face", r"هوجينج\s*فيس",
+                      r"\bhf\s+(?:space|connected|status|working|online)\b",
+                      r"(?:connected|اتصال|متصل)\s*(?:to|with|بـ|مع)?\s*(?:hugging.?face|hf\s+space)\b"],
     # Phase 2 — Action intent classification
     "create_feature": [
         r"create\b.{0,40}(bot|feature|system|module|command|handler|notification|service)",
@@ -3373,13 +3408,16 @@ def detect_intent(msg: str) -> str:
     if any(re.search(p, ml) for p in _IDENTITY_P):
         return "identity"
 
+    # ── HF intent: ONLY fires when Hugging Face is EXPLICITLY named ──────────
+    # Broad patterns ("are you connected", "متصل", "space.*connected") have been
+    # REMOVED.  They bypass intent scoring and mis-route database / Telegram /
+    # control-panel questions to hf_query.  Only unambiguous HF-specific phrases
+    # trigger this early return.  Everything else falls through to scoring.
     _HF_P = [
-        r"hugging.?face", r"هوجينج فيس",
-        r"hf\s+(?:connected|status|working|online|space)",
-        r"are you.{0,25}connected",
-        r"متصل\b.{0,20}(?:بـ|مع|بـال)", r"الاتصال\b.{0,15}(?:hugging|hf|نموذج)",
-        r"connected.{0,20}(?:hugging|hf|space|model)",
-        r"نموذج خارجي", r"space.*connected",
+        r"hugging.?face",
+        r"هوجينج\s*فيس",
+        r"\bhf\s+(?:space|connected|status|working|online)\b",
+        r"(?:connected|اتصال|متصل)\s*(?:to|with|بـ|مع)?\s*(?:hugging.?face|hf\s+space)\b",
     ]
     if any(re.search(p, ml) for p in _HF_P):
         return "hf_query"
@@ -3995,6 +4033,34 @@ def answer_file_question(msg: str) -> dict:
             "data": {"concept": concept, "files": []},
         }
 
+    # ── EVIDENCE GATE: verify files exist on disk before claiming ownership ────
+    # The semantic index may reference files that have been renamed, moved, or
+    # never existed.  Before asserting ownership the agent MUST confirm each
+    # claimed file is physically present on disk.  If the index returns entries
+    # but NONE survive the disk check → return NOT ENOUGH EVIDENCE rather than
+    # hallucinating a confident-sounding but unverified answer.
+    _PROJ_ROOT = Path(os.environ.get(
+        "PROJECT_ROOT", "/home/runner/workspace/extracted_project"))
+    def _on_disk(path: str) -> bool:
+        p = path.strip("/")
+        return ((_PROJ_ROOT / p).exists()
+                or (_PROJ_ROOT.parent / p).exists()
+                or Path(path).exists())
+
+    _verified = [(p, r, d) for p, r, d in entries if _on_disk(p)]
+    if entries and not _verified:
+        return {
+            "text": (
+                "⛔ **NOT ENOUGH EVIDENCE**\n\n"
+                f"الفهرس الدلالي يقترح ملفات لـ `{concept}` "
+                "لكن لا يوجد أيٌّ منها على القرص الفعلي.\n\n"
+                "لا يمكنني تأكيد الملكية بدون دليل موثق من الكود الحقيقي.\n"
+                "تحقق من اسم المفهوم أو استخدم: `structure`, `routes`, `arch`."
+            ),
+            "data": {"concept": concept, "files": [], "evidence": "INSUFFICIENT"},
+        }
+    entries = _verified
+
     # Build answer text
     lines = [f"📍 **الملفات المسؤولة عن: `{concept}`**\n"]
     file_list = []
@@ -4598,6 +4664,27 @@ _PHASE2_TESTS = [
     ("Create new page",                                         "new_page",       "New Page → new_page"),
 ]
 
+# ── Phase 5 — Misclassification prevention tests (Problem E from spec) ────────
+# These 5 tests verify the SPECIFIC misclassification bugs fixed in this patch:
+#   P5-A  Admin Panel button       — must route to find_file  (NOT hf_query)
+#   P5-B  Telegram handler owner   — must route to find_file  (NOT general/conversation)
+#   P5-C  HF audit (explicit)      — must route to hf_query   (only when HF is named)
+#   P5-D  Database dependency      — must route to dependency  (NOT hf_query)
+#   P5-E  Router ownership         — must route to find_file  (NOT conversation)
+_PHASE5_TESTS = [
+    # (question, expected_intent, description)
+    ("Which file controls the Admin Panel button?",
+     "find_file",   "P5-A: Admin Panel button → find_file (broad HF pattern must NOT intercept)"),
+    ("Who handles the /start command in the Telegram bot?",
+     "find_file",   "P5-B: Telegram handler ownership → find_file (context must stay in telegram_bot)"),
+    ("Is Hugging Face space connected and working?",
+     "hf_query",    "P5-C: HF audit with explicit 'Hugging Face' → hf_query (explicit mention only)"),
+    ("What does the database depend on?",
+     "dependency",  "P5-D: Database dependency → dependency (must NOT be captured by old hf_query patterns)"),
+    ("Which router file owns the /panel route?",
+     "find_file",   "P5-E: Router ownership → find_file (must NOT fall to conversation/general)"),
+]
+
 
 def run_self_tests(extended: bool = True) -> dict:
     """
@@ -4736,12 +4823,31 @@ def run_self_tests(extended: bool = True) -> dict:
                 "phase":            "P4",
             })
 
+    # ── Phase 5: misclassification prevention tests (Problem E) ──────────────
+    p5_results = []
+    p5_passed  = 0
+    for question, expected_intent, description in _PHASE5_TESTS:
+        got_intent = detect_intent(question)
+        intent_ok  = (got_intent == expected_intent)
+        if intent_ok:
+            p5_passed += 1
+        p5_results.append({
+            "question":         question,
+            "expected_intent":  expected_intent,
+            "got_intent":       got_intent,
+            "intent_ok":        intent_ok,
+            "passed":           intent_ok,
+            "description":      description,
+            "keyword_found":    intent_ok,
+            "phase":            "P5",
+        })
+
     p4_total    = len(_AGENT_FOUNDATION_TESTS) if extended else 0
-    all_passed  = p1_passed + p2_passed + p3_passed + p4_passed
+    all_passed  = p1_passed + p2_passed + p3_passed + p4_passed + p5_passed
     all_total   = (len(p1_tests) + len(_PHASE2_TESTS)
                    + (len(_ARABIC_REASONING_TESTS) if extended else 0)
-                   + p4_total)
-    all_results = p1_results + p2_results + p3_results + p4_results
+                   + p4_total + len(_PHASE5_TESTS))
+    all_results = p1_results + p2_results + p3_results + p4_results + p5_results
 
     return {
         "score":     f"{all_passed}/{all_total}",
@@ -4756,6 +4862,7 @@ def run_self_tests(extended: bool = True) -> dict:
         "phase2":    {"passed": p2_passed, "total": len(_PHASE2_TESTS),            "label": "Intent Classification (A-E)"},
         "phase3":    {"passed": p3_passed, "total": len(_ARABIC_REASONING_TESTS) if extended else 0, "label": "Arabic Reasoning"},
         "phase4":    {"passed": p4_passed, "total": p4_total,                     "label": "Agent Foundation (7 Validation Qs)"},
+        "phase5":    {"passed": p5_passed, "total": len(_PHASE5_TESTS),            "label": "Misclassification Prevention (P5-A–E)"},
     }
 
 
