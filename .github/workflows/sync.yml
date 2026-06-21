@@ -16,7 +16,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      # خطوة فحص للتأكد أن الـ GitHub يرى الـ Token الخاص بك
       - name: Verify HF Token
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -40,12 +39,15 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
-          # جربنا هنا الطريقة المباشرة باسم المستخدم لضمان التوافق
+          # 🌟 السطر السحري: حذف المجلد لو كان موجوداً مسبقاً لتفادي الخطأ
+          rm -rf hf_space
+
           git clone https://7atemmmmm:$HF_TOKEN@huggingface.co/spaces/7atemmmmm/titanx-beta hf_space
 
           rsync -av --delete \
             --exclude ".git" \
             --exclude ".github" \
+            --exclude "hf_space" \
             ./ hf_space/
 
           cd hf_space
