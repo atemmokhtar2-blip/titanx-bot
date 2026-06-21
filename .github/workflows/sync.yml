@@ -1,0 +1,39 @@
+name: Sync to Hugging Face
+
+on:
+push:
+branches:
+- main
+workflow_dispatch:
+
+jobs:
+sync:
+runs-on: ubuntu-latest
+
+steps:
+  - name: Checkout Repository
+    uses: actions/checkout@v4
+    with:
+      fetch-depth: 0
+
+  - name: Push To Hugging Face Space
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+    run: |
+      git config --global user.email "github-actions@github.com"
+      git config --global user.name "GitHub Actions"
+
+      git clone https://user:$HF_TOKEN@huggingface.co/spaces/7atemmmmm/titanx-beta hf_space
+
+      rsync -av --delete \
+      --exclude ".git" \
+      --exclude ".github" \
+      ./ hf_space/
+
+      cd hf_space
+
+      git add .
+
+      git diff --cached --quiet || git commit -m "Auto sync from GitHub"
+
+      git push
