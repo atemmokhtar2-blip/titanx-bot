@@ -134,3 +134,28 @@ def build_application() -> Application:
         .build()
     )
     return app
+
+
+def main():
+    app = build_application()
+
+    # جلب معرف الـ Space الخاص بـ Hugging Face تلقائياً لتشغيل الـ Webhook
+    space_id = os.environ.get("SPACE_ID")
+    
+    if space_id:
+        webhook_url = f"https://{space_id.replace('/', '-')}.hf.space/webhook"
+        system_logger.info(f"Starting Webhook on: {webhook_url}")
+        
+        app.run_webhook(
+            listen="0.0.0.0",
+            port=7860,
+            url_path="webhook",
+            webhook_url=webhook_url
+        )
+    else:
+        system_logger.info("Starting Polling locally...")
+        app.run_polling()
+
+
+if __name__ == "__main__":
+    main()
