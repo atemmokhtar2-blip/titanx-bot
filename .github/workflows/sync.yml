@@ -28,19 +28,19 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
-          git clone https://7atemmmmm:$HF_TOKEN@huggingface.co/spaces/7atemmmmm/titanx-beta hf_space
+          # استخدام x مكان اسم المستخدم بيحل مشاكل الحروف وحالة الأحرف مع Git
+          git clone https://x:$HF_TOKEN@huggingface.co/spaces/7atemmmmm/titanx-beta hf_space
 
           rsync -av --delete \
             --exclude ".git" \
             --exclude ".github" \
             ./ hf_space/
 
-          cd titanx-bot
-
+          cd hf_space
           git add .
 
           if ! git diff --cached --quiet; then
             git commit -m "Auto sync from GitHub"
+            # استخدام force-- عشان لو الـ Space فيها ملفات تلقائية زي README ما يحصلش تعارض ويبوظ الرفع
+            git push origin main --force
           fi
-
-          git push
