@@ -16,6 +16,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      # خطوة فحص للتأكد أن الـ GitHub يرى الـ Token الخاص بك
+      - name: Verify HF Token
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "❌ خطأ: الـ HF_TOKEN فارغ تماماً وغير معرف في GitHub Secrets!"
+            exit 1
+          else
+            echo "✅ الـ Token موجود ومقروء من قِبل GitHub."
+          fi
+
       - name: Install rsync
         run: |
           sudo apt-get update
@@ -28,8 +40,8 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git config --global user.name "GitHub Actions"
 
-          # استخدام x مكان اسم المستخدم بيحل مشاكل الحروف وحالة الأحرف مع Git
-          git clone https://x:$HF_TOKEN@huggingface.co/spaces/7atemmmmm/titanx-beta hf_space
+          # جربنا هنا الطريقة المباشرة باسم المستخدم لضمان التوافق
+          git clone https://7atemmmmm:$HF_TOKEN@huggingface.co/spaces/7atemmmmm/titanx-beta hf_space
 
           rsync -av --delete \
             --exclude ".git" \
@@ -41,6 +53,5 @@ jobs:
 
           if ! git diff --cached --quiet; then
             git commit -m "Auto sync from GitHub"
-            # استخدام force-- عشان لو الـ Space فيها ملفات تلقائية زي README ما يحصلش تعارض ويبوظ الرفع
             git push origin main --force
           fi
