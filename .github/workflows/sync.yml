@@ -15,9 +15,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          lfs: true # 🌟 تحميل ملفات الـ LFS الكبيرة بالكامل لمنع نقصانها
 
-          # خطوة الفحص للتأكد من وجود التوكن
       - name: Verify HF Token
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -45,10 +43,13 @@ jobs:
 
           git clone https://7atemmmmm:$HF_TOKEN@huggingface.co/spaces/7atemmmmm/titanx-beta hf_space
 
+          # 🌟 تم إضافة استبعاد لملفات الـ zip ومجلد الـ assets لعدم إرسالها لـ Hugging Face
           rsync -av --delete \
             --exclude ".git" \
             --exclude ".github" \
             --exclude "hf_space" \
+            --exclude "*.zip" \
+            --exclude "attached_assets" \
             ./ hf_space/
 
           cd hf_space
