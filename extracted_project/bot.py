@@ -129,7 +129,7 @@ def build_application() -> Application:
     app = (
         Application.builder()
         .token(BOT_TOKEN)
-        .base_url("https://teleapi.com/bot")
+        .base_url("https://api.pwrtelegram.xyz/bot")
         .post_init(past_init)
         .build()
     )
