@@ -1,7 +1,7 @@
 name: Sync to Hugging Face
 
 on:
-  push:
+push:
 branches:
 - main
 workflow_dispatch:
@@ -16,6 +16,11 @@ steps:
     with:
       fetch-depth: 0
 
+  - name: Install rsync
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y rsync
+
   - name: Push To Hugging Face Space
     env:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
@@ -23,17 +28,19 @@ steps:
       git config --global user.email "github-actions@github.com"
       git config --global user.name "GitHub Actions"
 
-      git clone https://user:$HF_TOKEN@huggingface.co/spaces/7atemmmmm/titanx-beta hf_space
+      git clone https://7atemmmmm:$HF_TOKEN@huggingface.co/spaces/7atemmmmm/titanx-beta hf_space
 
       rsync -av --delete \
-      --exclude ".git" \
-      --exclude ".github" \
-      ./ hf_space/
+        --exclude ".git" \
+        --exclude ".github" \
+        ./ hf_space/
 
       cd hf_space
 
       git add .
 
-      git diff --cached --quiet || git commit -m "Auto sync from GitHub"
+      if ! git diff --cached --quiet; then
+        git commit -m "Auto sync from GitHub"
+      fi
 
       git push
