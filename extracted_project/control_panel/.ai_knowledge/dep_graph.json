@@ -1,6 +1,6 @@
 {
-  "built_at": "2026-06-20T15:13:31.490795",
-  "files_scanned": 125,
+  "built_at": "2026-06-21T01:39:12.507923",
+  "files_scanned": 129,
   "forward": {
     "admin_bot/__init__.py": [],
     "admin_bot/bot.py": [
@@ -103,13 +103,24 @@
     ],
     "control_panel/env_validator.py": [],
     "control_panel/evidence_engine.py": [],
+    "control_panel/image_handler.py": [
+      "control_panel/image_validator.py",
+      "control_panel/image_storage.py",
+      "control_panel/vision_engine.py"
+    ],
+    "control_panel/image_storage.py": [
+      "control_panel/config.py"
+    ],
+    "control_panel/image_validator.py": [],
     "control_panel/knowledge_graph.py": [],
     "control_panel/project_indexer.py": [],
     "control_panel/routers/__init__.py": [],
     "control_panel/routers/ai_workspace.py": [
       "control_panel/auth.py",
       "control_panel/config.py",
-      "control_panel/ai_engine.py"
+      "control_panel/ai_engine.py",
+      "control_panel/image_handler.py",
+      "control_panel/image_storage.py"
     ],
     "control_panel/routers/backups.py": [
       "control_panel/auth.py",
@@ -171,6 +182,7 @@
     "control_panel/server.py": [
       "control_panel/app.py"
     ],
+    "control_panel/vision_engine.py": [],
     "database/__init__.py": [],
     "database/achievements.py": [
       "database/db.py",
@@ -529,6 +541,7 @@
       "control_panel/app.py",
       "control_panel/auth.py",
       "control_panel/db_utils.py",
+      "control_panel/image_storage.py",
       "control_panel/routers/ai_workspace.py",
       "control_panel/routers/backups.py",
       "control_panel/routers/bots.py",
@@ -559,6 +572,16 @@
     "control_panel/evidence_engine.py": [
       "control_panel/ai_engine.py"
     ],
+    "control_panel/image_handler.py": [
+      "control_panel/routers/ai_workspace.py"
+    ],
+    "control_panel/image_storage.py": [
+      "control_panel/image_handler.py",
+      "control_panel/routers/ai_workspace.py"
+    ],
+    "control_panel/image_validator.py": [
+      "control_panel/image_handler.py"
+    ],
     "control_panel/knowledge_graph.py": [
       "control_panel/ai_engine.py"
     ],
@@ -581,6 +604,9 @@
     "control_panel/routers/updates.py": [],
     "control_panel/routers/users.py": [],
     "control_panel/server.py": [],
+    "control_panel/vision_engine.py": [
+      "control_panel/image_handler.py"
+    ],
     "database/__init__.py": [],
     "database/achievements.py": [
       "handlers/download.py",

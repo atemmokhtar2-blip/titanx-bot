@@ -5,8 +5,8 @@ import json
 import time
 import re
 from datetime import datetime
-from fastapi import APIRouter, Request, Depends
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import APIRouter, Request, Depends, UploadFile, File
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 from ..auth import require_owner
 from ..config import CONTROL_PANEL_DIR, EXTRACTED_DIR, PROJECT_ROOT, LOGS_DIR
@@ -322,16 +322,102 @@ async def api_clear_temp(session: dict = Depends(require_owner)):
 @router.post("/api/chat")
 async def api_chat(request: Request, session: dict = Depends(require_owner)):
     try:
-        body = await request.json()
-        msg  = str(body.get("message", "")).strip()
-        if not msg:
+        body     = await request.json()
+        msg      = str(body.get("message", "")).strip()
+        img_ids  = [str(i) for i in body.get("image_ids", []) if i][:5]
+
+        if not msg and not img_ids:
             return JSONResponse({"ok": False, "error": "الرسالة فارغة"}, status_code=400)
         if len(msg) > 2000:
             return JSONResponse({"ok": False, "error": "الرسالة طويلة جداً"}, status_code=400)
-        result = await asyncio.to_thread(process_chat, msg)
-        return {"ok": True, **result}
+
+        vision_results = []
+        augmented_msg  = msg
+
+        if img_ids:
+            from ..image_handler import analyze_uploads_for_chat
+            vision_results = await asyncio.to_thread(analyze_uploads_for_chat, img_ids)
+            ctx_parts = []
+            for vr in vision_results:
+                if vr.get("ok") and vr.get("caption"):
+                    ctx_parts.append(f"[تحليل الصورة \"{vr.get('filename','')}\": {vr['caption']}]")
+                elif vr.get("error"):
+                    ctx_parts.append(f"[تحليل الصورة: غير متاح — {vr['error']}]")
+            if ctx_parts:
+                augmented_msg = "\n".join(ctx_parts) + ("\n\n" + msg if msg else "")
+        if not augmented_msg.strip():
+            augmented_msg = "صف هذه الصورة"
+
+        result = await asyncio.to_thread(process_chat, augmented_msg)
+        return {"ok": True, **result, "vision_results": vision_results}
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  VISION / IMAGE UPLOAD ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/api/upload")
+async def api_upload_image(
+    request: Request,
+    file: UploadFile = File(...),
+    session: dict = Depends(require_owner),
+):
+    """
+    POST /ai/api/upload — Upload an image for vision analysis.
+    Returns upload record with thumb_url, image_url, dimensions.
+    Max 10 MB, PNG/JPG/JPEG/WEBP only. No base64 stored in DB.
+    """
+    from ..image_handler import handle_upload
+    try:
+        file_bytes = await file.read()
+        session_id = request.headers.get("X-Session-Id", "")
+        result = await asyncio.to_thread(
+            handle_upload,
+            file_bytes,
+            file.filename or "upload",
+            session_id or None,
+            False,  # run_vision=False at upload time; runs at send time
+        )
+        if not result["ok"]:
+            return JSONResponse({"ok": False, "error": result["error"]}, status_code=422)
+        return {"ok": True, **{k: v for k, v in result.items() if k != "vision"}}
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@router.get("/uploads/{upload_id}/image")
+async def serve_image(upload_id: str, session: dict = Depends(require_owner)):
+    """Serve the full uploaded image file."""
+    from ..image_storage import get_upload, get_image_bytes
+    rec = get_upload(upload_id)
+    if not rec:
+        return JSONResponse({"ok": False, "error": "not found"}, status_code=404)
+    data = get_image_bytes(upload_id)
+    if not data:
+        return JSONResponse({"ok": False, "error": "file missing"}, status_code=404)
+    return Response(content=data, media_type=rec.get("mime_type", "image/jpeg"))
+
+
+@router.get("/uploads/{upload_id}/thumb")
+async def serve_thumb(upload_id: str, session: dict = Depends(require_owner)):
+    """Serve the thumbnail (WEBP, max 320×320)."""
+    from ..image_storage import get_thumb_bytes, get_thumb_mime
+    data = get_thumb_bytes(upload_id)
+    if not data:
+        return JSONResponse({"ok": False, "error": "not found"}, status_code=404)
+    return Response(content=data, media_type=get_thumb_mime(upload_id))
+
+
+@router.delete("/api/upload/{upload_id}")
+async def delete_upload(upload_id: str, session: dict = Depends(require_owner)):
+    """Soft-delete an upload (removes files from disk, marks deleted in DB)."""
+    from ..image_storage import delete_upload as _del
+    ok = await asyncio.to_thread(_del, upload_id)
+    if not ok:
+        return JSONResponse({"ok": False, "error": "upload not found"}, status_code=404)
+    return {"ok": True, "deleted": upload_id}
 
 
 @router.post("/api/plan")

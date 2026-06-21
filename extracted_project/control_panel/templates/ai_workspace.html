@@ -128,9 +128,34 @@
         <button class="xai-chip" onclick="sendChip('ما مسارات API المتاحة؟')">🔌 مسارات API</button>
         <button class="xai-chip" onclick="sendChip('ابحث عن أخطاء محتملة')">🔍 أخطاء</button>
       </div>
-      <div class="xai-input-box" id="xai-input-box">
+      <!-- Image preview strip — shown when images are queued -->
+      <div class="xai-img-preview-strip" id="xai-img-preview-strip" style="display:none"></div>
+      <div class="xai-input-box" id="xai-input-box"
+           ondragover="xaiHandleDragOver(event)"
+           ondragleave="xaiHandleDragLeave(event)"
+           ondrop="xaiHandleDrop(event)">
+        <!-- Drag-over overlay -->
+        <div class="xai-drag-overlay" id="xai-drag-overlay">📷 أفلت الصورة هنا</div>
+        <!-- Attach button + menu -->
+        <div class="xai-attach-wrap" id="xai-attach-wrap">
+          <button class="xai-attach-btn" id="xai-attach-btn" type="button"
+                  onclick="xaiToggleAttachMenu(event)" title="إرفاق صورة">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+          <div class="xai-attach-menu" id="xai-attach-menu" style="display:none">
+            <button class="xai-attach-item" type="button" onclick="xaiSelectImage()">
+              <span>🖼️</span> رفع صورة
+              <span class="xai-attach-hint">PNG · JPG · WEBP · حتى 10 MB</span>
+            </button>
+          </div>
+          <!-- Hidden file input -->
+          <input type="file" id="xai-file-input" accept="image/png,image/jpeg,image/jpg,image/webp"
+                 multiple style="display:none" onchange="xaiHandleFileInput(event)">
+        </div>
         <textarea class="xai-textarea" id="xai-input"
-          placeholder="اكتب رسالتك... مثال: ما الملف المسؤول عن صفحة تسجيل الدخول؟"
+          placeholder="اكتب رسالتك... أو أرفق صورة للتحليل"
           rows="1"
           onkeydown="xaiHandleKey(event)"
           oninput="xaiAutoResize(this);xaiCountChars(this)"></textarea>
@@ -712,6 +737,162 @@
 [data-theme="light"] .xai-code-block { background: #1a1f2e; }
 [data-theme="light"] .xai-code-body  { color: #cdd5e0; }
 [data-theme="light"] .xai-inline-code { background: rgba(6,182,212,0.1); }
+
+/* ── Vision / Image Upload Components ───────────── */
+
+/* Attach wrapper (positions the menu) */
+.xai-attach-wrap {
+  position: relative; flex-shrink: 0; align-self: flex-end;
+}
+
+/* "+" button */
+.xai-attach-btn {
+  width: 34px; height: 34px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 9px; cursor: pointer; color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--trans); flex-shrink: 0;
+}
+.xai-attach-btn:hover {
+  background: rgba(59,130,246,0.12);
+  border-color: rgba(59,130,246,0.4); color: var(--accent2);
+}
+.xai-attach-btn.xai-attach-active {
+  background: rgba(59,130,246,0.15);
+  border-color: rgba(59,130,246,0.5); color: var(--accent2);
+}
+
+/* Dropdown menu */
+.xai-attach-menu {
+  position: absolute;
+  bottom: calc(100% + 6px); left: 0;
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  min-width: 190px;
+  z-index: 200;
+  animation: xai-fadein .15s ease both;
+  overflow: hidden;
+}
+.xai-attach-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; padding: 10px 14px;
+  background: none; border: none; cursor: pointer;
+  color: var(--text2); font-size: .82rem;
+  font-family: 'Cairo', sans-serif;
+  transition: var(--trans-fast); text-align: right; direction: rtl;
+}
+.xai-attach-item:hover {
+  background: rgba(59,130,246,0.08); color: var(--accent2);
+}
+.xai-attach-hint {
+  font-size: .65rem; color: var(--text3);
+  font-family: 'JetBrains Mono', monospace;
+  margin-right: auto;
+}
+
+/* Image preview strip (above input box) */
+.xai-img-preview-strip {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 6px 2px 8px;
+  animation: xai-fadein .2s ease both;
+}
+.xai-img-preview-item {
+  position: relative; flex-shrink: 0;
+  width: 72px; height: 72px;
+  border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  animation: xai-fadein .2s ease both;
+}
+.xai-img-preview-item img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.xai-img-preview-remove {
+  position: absolute; top: 3px; right: 3px;
+  width: 18px; height: 18px;
+  background: rgba(0,0,0,0.68); border: none; border-radius: 50%;
+  color: #fff; font-size: .65rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1; transition: var(--trans-fast);
+}
+.xai-img-preview-remove:hover { background: rgba(239,68,68,0.85); }
+.xai-img-preview-uploading::after {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+}
+.xai-img-preview-status {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  font-size: .55rem; text-align: center; padding: 2px 4px;
+  background: rgba(0,0,0,0.6); color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Drag-over overlay inside input box */
+.xai-drag-overlay {
+  display: none; position: absolute; inset: 0;
+  background: rgba(59,130,246,0.12);
+  border: 2px dashed rgba(59,130,246,0.6);
+  border-radius: 13px;
+  z-index: 10; align-items: center; justify-content: center;
+  font-size: .9rem; font-weight: 700; color: var(--accent2);
+  pointer-events: none;
+}
+.xai-drag-over .xai-drag-overlay { display: flex; }
+
+/* Images inside chat messages */
+.xai-msg-images {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.xai-msg-img-wrap {
+  border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--border2);
+  cursor: zoom-in; flex-shrink: 0;
+  max-width: 180px; max-height: 180px;
+  transition: var(--trans-fast);
+}
+.xai-msg-img-wrap:hover { border-color: rgba(59,130,246,0.5); }
+.xai-msg-img-wrap img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  max-width: 180px; max-height: 180px;
+}
+
+/* Vision badge inside AI reply */
+.xai-vision-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25);
+  color: #c084fc; font-size: .67rem; font-weight: 700;
+  padding: 2px 9px; border-radius: 99px;
+  margin-bottom: 7px; font-family: 'JetBrains Mono', monospace;
+}
+
+/* Upload spinner animation */
+@keyframes xai-spin { to { transform: rotate(360deg); } }
+.xai-uploading-spin {
+  width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff; border-radius: 50%;
+  animation: xai-spin .7s linear infinite; display: inline-block;
+}
+
+/* Lightbox overlay */
+.xai-lightbox {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.88);
+  display: flex; align-items: center; justify-content: center;
+  cursor: zoom-out; animation: xai-fadein .18s ease both;
+}
+.xai-lightbox img {
+  max-width: 90vw; max-height: 90vh;
+  object-fit: contain; border-radius: var(--radius-sm);
+  box-shadow: 0 0 60px rgba(0,0,0,0.8);
+}
+
+@media (max-width: 480px) {
+  .xai-img-preview-item { width: 58px; height: 58px; }
+  .xai-msg-img-wrap img { max-width: 130px; max-height: 130px; }
+}
 </style>
 
 <script>
@@ -724,6 +905,10 @@ var _xMsgs   = document.getElementById('xai-messages');
 var _xTurnCount = 0;
 var _xThinkTimer = null;
 var _xThinkStep  = 0;
+
+/* ── Vision image state ──────────────────────────────────────────────────── */
+var _xPendingImages = [];   // [{upload_id, thumb_url, filename, ok}]
+var _xAttachOpen    = false;
 
 /* ── Sessions (localStorage) ──────────────────── */
 var _SKEY = 'xai_sessions';
@@ -786,7 +971,7 @@ function loadSession(id) {
     _renderWelcome();
   } else {
     sess.messages.forEach(function(m) {
-      if (m.role === 'user') _appendUser(m.text, m.ts, false);
+      if (m.role === 'user') _appendUser(m.text, m.ts, false, m.images || []);
       else _appendBot(m.text, m.type || '', [], m.ts, false);
     });
     _scrollToBottom();
@@ -806,16 +991,23 @@ function deleteSession(id, e) {
   }
 }
 
-function _saveMsgToSession(role, text, type) {
+function _saveMsgToSession(role, text, type, images) {
   var id = _getCurrentId();
   if (!id) return;
   var sess = _getSession(id);
   if (!sess) return;
   sess.messages = sess.messages || [];
-  sess.messages.push({ role: role, text: text, type: type||'', ts: Date.now() });
+  var entry = { role: role, text: text, type: type||'', ts: Date.now() };
+  if (images && images.length) {
+    entry.images = images.map(function(i){ return { upload_id: i.upload_id, thumb_url: i.thumb_url, filename: i.filename, ok: i.ok }; });
+  }
+  sess.messages.push(entry);
   if (sess.messages.length === 2) {
     var firstUser = sess.messages.find(function(m){ return m.role === 'user'; });
-    if (firstUser) sess.title = firstUser.text.slice(0,40) || 'محادثة';
+    if (firstUser) {
+      sess.title = (firstUser.images && firstUser.images.length ? '🖼️ ' : '') +
+                   (firstUser.text.slice(0,36) || 'صورة');
+    }
   }
   sess.ts = Date.now();
   _saveSession(sess);
@@ -912,32 +1104,42 @@ function xaiSend() {
   if (_xBusy) return;
   var inp = document.getElementById('xai-input');
   var msg = inp.value.trim();
-  if (!msg) return;
+  var hasImages = _xPendingImages.length > 0;
+  if (!msg && !hasImages) return;
+
   inp.value = '';
   xaiAutoResize(inp);
   document.getElementById('xai-char-count').textContent = '0';
   _xBusy = true;
   document.getElementById('xai-send-btn').disabled = true;
 
+  // Capture pending images and clear the strip
+  var sendImages = _xPendingImages.slice();
+  _xPendingImages = [];
+  _renderPreviewStrip();
+
   // Remove welcome screen if present
   var welcome = _xMsgs.querySelector('.xai-welcome');
   if (welcome) welcome.remove();
 
-  _appendUser(msg, Date.now(), true);
-  _saveMsgToSession('user', msg, '');
+  _appendUser(msg, Date.now(), true, sendImages);
+  _saveMsgToSession('user', msg, '', sendImages);
   _showThinking();
   _hideChips();
 
   if (msg === 'create_backup') { _doBackup(); return; }
   if (msg === 'list_backups')  { _doListBackups(); return; }
 
-  apiPost('/ai/api/chat', { message: msg })
+  var imgIds = sendImages.filter(function(i){ return i.ok && i.upload_id; })
+                         .map(function(i){ return i.upload_id; });
+
+  apiPost('/ai/api/chat', { message: msg, image_ids: imgIds })
     .then(function(d) {
       _hideThinking();
       var text = d.ok ? (d.text || '') : ('❌ ' + (d.error || 'حدث خطأ'));
       var type = d.ok ? (d.type || '') : 'error';
       _appendBot(text, type, d.actions || [], Date.now(), true);
-      _saveMsgToSession('bot', text, type);
+      _saveMsgToSession('bot', text, type, []);
       if (d.data) _updateCtx(d.data);
       _renderSidebar();
       _xTurnCount++;
@@ -948,7 +1150,7 @@ function xaiSend() {
       _hideThinking();
       var errText = '❌ تعذّر الاتصال بمحرك الذكاء. تحقق من أن الخادم يعمل.';
       _appendBot(errText, 'error', [], Date.now(), true);
-      _saveMsgToSession('bot', errText, 'error');
+      _saveMsgToSession('bot', errText, 'error', []);
       _setTopStatus('error');
       setTimeout(function(){ _setTopStatus('ready'); }, 3000);
     })
@@ -991,17 +1193,31 @@ function _hideChips() {
 }
 
 /* ── DOM message builders ────────────────────── */
-function _appendUser(text, ts, animate) {
+function _appendUser(text, ts, animate, images) {
   var el = document.createElement('div');
   el.className = 'xai-msg xai-msg-user' + (animate?' xai-fadein':'');
+  var imgs = images || [];
+  var imgHtml = '';
+  if (imgs.length) {
+    imgHtml = '<div class="xai-msg-images">';
+    imgs.forEach(function(img) {
+      if (img && img.thumb_url) {
+        imgHtml += '<div class="xai-msg-img-wrap" onclick="xaiOpenLightbox(this)">' +
+          '<img src="' + escHtml(img.thumb_url) + '" alt="' + escHtml(img.filename || 'صورة') + '" loading="lazy">' +
+          '</div>';
+      }
+    });
+    imgHtml += '</div>';
+  }
   el.innerHTML =
     '<div class="xai-msg-av">أنت</div>' +
     '<div class="xai-bubble">' +
-      '<div class="xai-msg-text">' + escHtml(text) + '</div>' +
+      imgHtml +
+      (text ? '<div class="xai-msg-text">' + escHtml(text) + '</div>' : '') +
       '<div class="xai-msg-footer">' +
         '<span class="xai-msg-time">' + _fmtTime(ts) + '</span>' +
         '<div class="xai-msg-acts">' +
-          '<button class="xai-act-btn" onclick="xaiCopyMsg(this)">نسخ</button>' +
+          (text ? '<button class="xai-act-btn" onclick="xaiCopyMsg(this)">نسخ</button>' : '') +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1339,12 +1555,218 @@ function handleKey(e)  { xaiHandleKey(e); }
 function autoResize(el){ xaiAutoResize(el); }
 function sendQuick(cmd){ sendChip(cmd); }
 
+/* ═══════════════════════════════════════════════
+   VISION / IMAGE UPLOAD ENGINE
+   ═══════════════════════════════════════════════ */
+
+/* ── Attach menu ─────────────────────────────── */
+function xaiToggleAttachMenu(e) {
+  e.stopPropagation();
+  var menu = document.getElementById('xai-attach-menu');
+  var btn  = document.getElementById('xai-attach-btn');
+  if (!menu) return;
+  _xAttachOpen = !_xAttachOpen;
+  menu.style.display = _xAttachOpen ? 'block' : 'none';
+  if (btn) btn.classList.toggle('xai-attach-active', _xAttachOpen);
+}
+
+function _closeAttachMenu() {
+  _xAttachOpen = false;
+  var menu = document.getElementById('xai-attach-menu');
+  var btn  = document.getElementById('xai-attach-btn');
+  if (menu) menu.style.display = 'none';
+  if (btn)  btn.classList.remove('xai-attach-active');
+}
+
+function xaiSelectImage() {
+  _closeAttachMenu();
+  var fi = document.getElementById('xai-file-input');
+  if (fi) fi.click();
+}
+
+/* ── File input handler ──────────────────────── */
+function xaiHandleFileInput(e) {
+  var files = Array.from(e.target.files || []);
+  e.target.value = '';  // reset so same file can be re-selected
+  _processFiles(files);
+}
+
+/* ── Drag & drop ─────────────────────────────── */
+function xaiHandleDragOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  var box = document.getElementById('xai-input-box');
+  if (box) box.classList.add('xai-drag-over');
+}
+
+function xaiHandleDragLeave(e) {
+  var box = document.getElementById('xai-input-box');
+  if (box) box.classList.remove('xai-drag-over');
+}
+
+function xaiHandleDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  var box = document.getElementById('xai-input-box');
+  if (box) box.classList.remove('xai-drag-over');
+  var files = Array.from(e.dataTransfer.files || []);
+  var imgs  = files.filter(function(f) {
+    return f.type.startsWith('image/');
+  });
+  if (!imgs.length) {
+    showToast('الملفات المسقطة يجب أن تكون صور (PNG · JPG · WEBP)', 'warning', 3000);
+    return;
+  }
+  _processFiles(imgs);
+}
+
+/* ── Process files (validate + upload) ──────── */
+var _MAX_CLIENT_SIZE = 10 * 1024 * 1024;  // 10 MB
+var _ALLOWED_TYPES   = ['image/png', 'image/jpeg', 'image/webp'];
+
+function _processFiles(files) {
+  var remaining = 5 - _xPendingImages.length;
+  if (remaining <= 0) {
+    showToast('الحد الأقصى 5 صور لكل رسالة', 'warning', 3000);
+    return;
+  }
+  var toProcess = files.slice(0, remaining);
+  toProcess.forEach(function(file) {
+    // Client-side quick validation
+    if (file.size > _MAX_CLIENT_SIZE) {
+      showToast('الصورة "' + file.name + '" أكبر من 10 MB', 'error', 4000);
+      return;
+    }
+    if (_ALLOWED_TYPES.indexOf(file.type) === -1) {
+      showToast('الصيغة "' + file.type + '" غير مدعومة. PNG / JPG / WEBP فقط.', 'error', 4000);
+      return;
+    }
+    _uploadSingleImage(file);
+  });
+}
+
+/* ── Upload single image ─────────────────────── */
+function _uploadSingleImage(file) {
+  // Create a temporary placeholder in the strip while uploading
+  var tempId = 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  var reader  = new FileReader();
+  reader.onload = function(e) {
+    var dataUrl = e.target.result;
+    // Add pending placeholder
+    _xPendingImages.push({
+      _tempId:   tempId,
+      upload_id: null,
+      thumb_url: dataUrl,    // local blob for immediate preview
+      filename:  file.name,
+      ok:        false,      // will become true after server confirms
+      uploading: true,
+    });
+    _renderPreviewStrip();
+
+    // Upload to server
+    var fd = new FormData();
+    fd.append('file', file, file.name);
+    var sid = localStorage.getItem('xai_current') || '';
+
+    fetch('/ai/api/upload', {
+      method:  'POST',
+      headers: { 'X-Session-Id': sid },
+      body:    fd,
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var idx = _xPendingImages.findIndex(function(i){ return i._tempId === tempId; });
+      if (idx === -1) return;
+      if (d.ok) {
+        _xPendingImages[idx] = {
+          _tempId:   tempId,
+          upload_id: d.upload_id,
+          thumb_url: d.thumb_url,
+          filename:  d.filename,
+          ok:        true,
+          uploading: false,
+        };
+        showToast('✅ تم رفع "' + (d.filename || file.name) + '"', 'success', 2500);
+      } else {
+        _xPendingImages.splice(idx, 1);
+        showToast('❌ ' + (d.error || 'فشل رفع الصورة'), 'error', 5000);
+      }
+      _renderPreviewStrip();
+    })
+    .catch(function(err) {
+      var idx = _xPendingImages.findIndex(function(i){ return i._tempId === tempId; });
+      if (idx !== -1) _xPendingImages.splice(idx, 1);
+      showToast('❌ خطأ في الاتصال أثناء رفع الصورة', 'error', 4000);
+      _renderPreviewStrip();
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ── Render preview strip ────────────────────── */
+function _renderPreviewStrip() {
+  var strip = document.getElementById('xai-img-preview-strip');
+  if (!strip) return;
+  if (!_xPendingImages.length) {
+    strip.style.display = 'none';
+    strip.innerHTML = '';
+    return;
+  }
+  strip.style.display = 'flex';
+  var html = '';
+  _xPendingImages.forEach(function(img, idx) {
+    var statusHtml = img.uploading
+      ? '<div class="xai-img-preview-status"><span class="xai-uploading-spin"></span></div>'
+      : '';
+    html +=
+      '<div class="xai-img-preview-item' + (img.uploading ? ' xai-img-preview-uploading' : '') + '">' +
+        '<img src="' + escHtml(img.thumb_url || '') + '" alt="' + escHtml(img.filename || '') + '">' +
+        (img.uploading
+          ? ''
+          : '<button class="xai-img-preview-remove" onclick="_removePendingImage(' + idx + ')" title="إزالة">✕</button>') +
+        statusHtml +
+      '</div>';
+  });
+  strip.innerHTML = html;
+}
+
+function _removePendingImage(idx) {
+  var img = _xPendingImages[idx];
+  if (img && img.upload_id) {
+    // Fire-and-forget delete on server
+    fetch('/ai/api/upload/' + img.upload_id, { method: 'DELETE' }).catch(function(){});
+  }
+  _xPendingImages.splice(idx, 1);
+  _renderPreviewStrip();
+}
+
+/* ── Lightbox ────────────────────────────────── */
+function xaiOpenLightbox(wrapper) {
+  var img = wrapper.querySelector('img');
+  if (!img) return;
+  // Use full-res URL if available (thumb_url → /thumb, image_url → /image)
+  var src = img.src.replace('/thumb', '/image');
+  var lb  = document.createElement('div');
+  lb.className = 'xai-lightbox';
+  lb.innerHTML = '<img src="' + escHtml(src) + '" alt="صورة">';
+  lb.addEventListener('click', function() { lb.remove(); });
+  document.body.appendChild(lb);
+}
+
 /* ── Init ─────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', function() {
   // Theme button init
   var tBtn = document.getElementById('theme-btn');
   var cur  = document.documentElement.getAttribute('data-theme') || 'dark';
   if (tBtn) tBtn.textContent = cur === 'dark' ? '☀️' : '🌙';
+
+  // Close attach menu on outside click
+  document.addEventListener('click', function(e) {
+    if (_xAttachOpen) {
+      var wrap = document.getElementById('xai-attach-wrap');
+      if (wrap && !wrap.contains(e.target)) _closeAttachMenu();
+    }
+  });
 
   // Sidebar mobile init
   if (window.innerWidth <= 820) {
