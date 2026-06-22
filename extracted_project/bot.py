@@ -117,44 +117,222 @@ async def message_router(update: Update, context):
     if await _handle_pending_rpt_reply(update, context):
         return
 
+    if context.user_data.get("waiting_for_admin_search"):
+        handled = await admin_search_handler(update, context)
+        if handled:
+            return
 
-async def past_init(application: Application):
-    system_logger.info("Support Bot starting up..")
+    if context.user_data.get("waiting_for") == "report":
+        handled = await handle_report_message(update, context)
+        if handled:
+            return
+
+    if context.user_data.get("waiting_for") == "support":
+        handled = await handle_support_message(update, context)
+        if handled:
+            return
+
+    # Video studio text overlay
+    if context.user_data.get("vs_state") == STATE_VS_TEXT:
+        handled = await handle_studio_text_input(update, context)
+        if handled:
+            return
+
+    text = (update.message.text or "").strip()
+
+    # --- Main menu button routing ---
+    if text in MENU_BUTTONS:
+        from database.users import get_user
+        from locales import t
+        db_user = get_user(update.effective_user.id)
+        lang = db_user.get("language", "en") if db_user else "en"
+
+        if text in (t("en", "menu_download"), t("ar", "menu_download")):
+            await update.message.reply_text(t(lang, "send_url_prompt"), parse_mode="HTML")
+
+        elif text in (t("en", "menu_profile"), t("ar", "menu_profile")):
+            await profile_command(update, context)
+
+        elif text in (t("en", "menu_referrals"), t("ar", "menu_referrals")):
+            await referral_command(update, context)
+
+        elif text in (t("en", "menu_achievements"), t("ar", "menu_achievements")):
+            await achievements_command(update, context)
+
+        elif text in (t("en", "menu_favorites"), t("ar", "menu_favorites")):
+            await favorites_command(update, context)
+
+        elif text in (t("en", "menu_wheel"), t("ar", "menu_wheel")):
+            await wheel_command(update, context)
+
+        elif text in (t("en", "menu_support"), t("ar", "menu_support")):
+            await support_command(update, context)
+
+        elif text in (t("en", "menu_admin"), t("ar", "menu_admin")):
+            from middlewares.auth import is_admin
+            from config.settings import ADMIN_BOT_USERNAME
+            if is_admin(update.effective_user.id):
+                if ADMIN_BOT_USERNAME:
+                    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+                    lang = update.effective_user.language_code or "en"
+                    await update.message.reply_text(
+                        "👑 <b>Admin Panel</b>\n\nOpen the dedicated Admin Bot:",
+                        parse_mode="HTML",
+                        reply_markup=InlineKeyboardMarkup([[
+                            InlineKeyboardButton(
+                                "🚀 Open Admin Bot",
+                                url=f"https://t.me/{ADMIN_BOT_USERNAME}"
+                            )
+                        ]])
+                    )
+                else:
+                    await panel_command(update, context)
+        return
+
+    # --- URL detection ---
+    if text.startswith(("http://", "https://")):
+        await handle_url(update, context)
+
+
+async def post_init(application: Application):
+    system_logger.info("Bot starting up...")
+    init_logo_table()
+    asyncio.create_task(cleanup_temp_files())
+    asyncio.create_task(cleanup_old_cache())
+    asyncio.create_task(run_heartbeat())
+    system_logger.info("Background workers started.")
 
 
 def build_application() -> Application:
     if not BOT_TOKEN:
-        raise ValueError("BOT_TOKEN is not set.")
+        raise ValueError("TELEGRAM_BOT_TOKEN is not set.")
 
-    app = (
-        Application.builder()
-        .token(BOT_TOKEN)
-        .base_url("https://api.pwrtelegram.xyz/bot")
-        .post_init(past_init)
-        .build()
+    app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+
+    start_conv = ConversationHandler(
+        entry_points=[CommandHandler("start", start_command)],
+        states={
+            CHOOSING_LANGUAGE: [
+                CallbackQueryHandler(language_callback, pattern="^lang_"),
+            ]
+        },
+        fallbacks=[CommandHandler("start", start_command)],
+        per_user=True,
+        per_chat=True,
+        per_message=False,
     )
+
+    app.add_handler(start_conv)
+    app.add_handler(CommandHandler("help",     help_command))
+    app.add_handler(CommandHandler("settings", settings_command))
+
+    app.add_handler(CommandHandler("profile",      profile_command))
+    app.add_handler(CommandHandler("history",      history_command))
+    app.add_handler(CommandHandler("referral",     referral_command))
+    app.add_handler(CommandHandler("points",       points_command))
+    app.add_handler(CommandHandler("daily",        daily_command))
+    app.add_handler(CommandHandler("wheel",        wheel_command))
+    app.add_handler(CommandHandler("achievements", achievements_command))
+    app.add_handler(CommandHandler("leaderboard",  leaderboard_command))
+    app.add_handler(CommandHandler("goals",        goals_command))
+    app.add_handler(CommandHandler("favorites",    favorites_command))
+    app.add_handler(CommandHandler("support",      support_command))
+    app.add_handler(CommandHandler("videotools",   video_tools_command))
+    app.add_handler(CommandHandler("studio",       studio_command))
+    app.add_handler(CommandHandler("logo",         logo_command))
+
+    app.add_handler(CommandHandler("panel",           panel_command))
+    app.add_handler(CommandHandler("stats",           stats_command))
+    app.add_handler(CommandHandler("users",           users_command))
+    app.add_handler(CommandHandler("topusers",        topusers_command))
+    app.add_handler(CommandHandler("broadcast",       broadcast_command))
+    app.add_handler(CommandHandler("cancelbroadcast", cancelbroadcast_command))
+    app.add_handler(CommandHandler("ban",             ban_command))
+    app.add_handler(CommandHandler("unban",           unban_command))
+    app.add_handler(CommandHandler("reports",         reports_command))
+    app.add_handler(CommandHandler("referrals",       referrals_command))
+    app.add_handler(CommandHandler("closereport",     closereport_command))
+    app.add_handler(CommandHandler("status",          status_command))
+    app.add_handler(CommandHandler("maintenance",     maintenance_command))
+    app.add_handler(CommandHandler("top",             top_command))
+    app.add_handler(CommandHandler("addpoints",       addpoints_command))
+    app.add_handler(CommandHandler("removepoints",    removepoints_command))
+    app.add_handler(CommandHandler("search",          search_command))
+    app.add_handler(CommandHandler("activity",        activity_feed_command))
+
+    app.add_handler(MessageHandler(
+        filters.Regex(r"^/reply_\d+_\d+"),
+        reply_command
+    ))
+    app.add_handler(MessageHandler(
+        filters.Regex(r"^/report_reply_\d+_\d+"),
+        report_reply_command
+    ))
+
+    app.add_handler(CallbackQueryHandler(verify_subscription_callback, pattern="^verify_sub$"))
+    app.add_handler(CallbackQueryHandler(language_callback,            pattern="^lang_"))
+    app.add_handler(CallbackQueryHandler(settings_callback,            pattern="^settings_"))
+    app.add_handler(CallbackQueryHandler(profile_callback,             pattern="^prof_"))
+    app.add_handler(CallbackQueryHandler(admin_panel_callback,         pattern="^adm_"))
+    app.add_handler(CallbackQueryHandler(rpt_inline_callback,          pattern="^rpt_"))
+    app.add_handler(CallbackQueryHandler(video_tools_callback,         pattern="^vt_"))
+    app.add_handler(CallbackQueryHandler(studio_callback,              pattern="^vs_"))
+    app.add_handler(CallbackQueryHandler(logo_callback,                pattern="^logo_"))
+    app.add_handler(CallbackQueryHandler(download_callback,            pattern="^dl_"))
+    app.add_handler(CallbackQueryHandler(download_callback,            pattern="^fav_"))
+    app.add_handler(CallbackQueryHandler(feedback_callback,            pattern="^fb_"))
+    app.add_handler(CallbackQueryHandler(redeem_callback,              pattern="^redeem_"))
+    app.add_handler(CallbackQueryHandler(leaderboard_callback,         pattern="^lb_"))
+    app.add_handler(CallbackQueryHandler(unfav_callback,               pattern="^unfav_"))
+    app.add_handler(CallbackQueryHandler(wheel_callback,               pattern="^wheel_"))
+
+    app.add_handler(MessageHandler(
+        filters.VIDEO | filters.Document.VIDEO,
+        handle_video_for_studio
+    ))
+    app.add_handler(MessageHandler(
+        filters.PHOTO | (filters.Document.IMAGE),
+        handle_logo_upload
+    ))
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND,
+        message_router
+    ))
+
     return app
 
 
 def main():
-    app = build_application()
+    import time
+    from config.settings import BOT_TOKEN
+    init_db()
+    system_logger.info("Database initialized.")
+    record_startup()
 
-    # جلب معرف الـ Space الخاص بـ Hugging Face تلقائياً لتشغيل الـ Webhook
-    space_id = os.environ.get("SPACE_ID")
-    
-    if space_id:
-        webhook_url = f"https://{space_id.replace('/', '-')}.hf.space/webhook"
-        system_logger.info(f"Starting Webhook on: {webhook_url}")
-        
-        app.run_webhook(
-            listen="0.0.0.0",
-            port=7860,
-            url_path="webhook",
-            webhook_url=webhook_url
+    try:
+        import httpx
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/deleteWebhook?drop_pending_updates=true"
+        resp = httpx.get(url, timeout=10)
+        system_logger.info("deleteWebhook response: %s", resp.text)
+    except Exception as e:
+        system_logger.warning("deleteWebhook failed: %s", e)
+    system_logger.info("Waiting 10s for previous session to expire...")
+    time.sleep(10)
+
+    import asyncio
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    app = build_application()
+    system_logger.info("Bot polling started.")
+    try:
+        app.run_polling(
+            allowed_updates=Update.ALL_TYPES,
+            drop_pending_updates=True,
         )
-    else:
-        system_logger.info("Starting Polling locally...")
-        app.run_polling()
+    except Exception as exc:
+        record_crash(exc)
+        raise
 
 
 if __name__ == "__main__":
